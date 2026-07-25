@@ -48,7 +48,18 @@ public class KnowledgeTome extends SimpleSlimefunItem<ItemUseHandler> {
             e.setUseBlock(Result.DENY);
 
             ItemMeta im = item.getItemMeta();
+
+            // A Knowledge Tome must carry at least two lore lines (owner + uuid).
+            // Abort gracefully if the lore was stripped/edited instead of throwing NPE/IOOBE.
+            if (im == null || !im.hasLore()) {
+                return;
+            }
+
             List<String> lore = im.getLore();
+
+            if (lore.size() < 2) {
+                return;
+            }
 
             if (lore.get(1).isEmpty()) {
                 lore.set(0, ChatColors.color("&7Owner: &b" + p.getName()));
@@ -57,7 +68,13 @@ public class KnowledgeTome extends SimpleSlimefunItem<ItemUseHandler> {
                 item.setItemMeta(im);
                 SoundEffect.TOME_OF_KNOWLEDGE_USE_SOUND.playFor(p);
             } else {
-                UUID uuid = UUID.fromString(ChatColor.stripColor(item.getItemMeta().getLore().get(1)));
+                UUID uuid;
+
+                try {
+                    uuid = UUID.fromString(ChatColor.stripColor(lore.get(1)));
+                } catch (IllegalArgumentException x) {
+                    return;
+                }
 
                 if (p.getUniqueId().equals(uuid)) {
                     Slimefun.getLocalization().sendMessage(p, "messages.no-tome-yourself");

@@ -112,7 +112,9 @@ public class MultiTool extends SlimefunItem implements Rechargeable {
                 }
 
                 if (!regexMatchFound) {
-                    lore.add(2, LORE_PREFIX + ChatColor.stripColor(itemName));
+                    // Guard against IndexOutOfBoundsException: ArrayList.add(index, e) requires index <= size.
+                    // The lore may be shorter than expected (e.g. item lore was stripped/edited).
+                    lore.add(Math.min(2, lore.size()), LORE_PREFIX + ChatColor.stripColor(itemName));
                 }
 
                 meta.setLore(lore);

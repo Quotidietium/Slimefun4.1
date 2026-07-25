@@ -62,6 +62,10 @@ public class ExplosiveBow extends SlimefunBow {
                 double distanceSquared = distanceVector.lengthSquared();
                 double damage = e.getDamage() * (1 - (distanceSquared / (2 * range.getValue() * range.getValue())));
 
+                // Entities near the corner of the (radius x 3) search box can be farther away than
+                // sqrt(2) * range, which would make the proximity-scaled damage negative. Clamp to 0.
+                damage = Math.max(0.0, damage);
+
                 if (!entity.getUniqueId().equals(target.getUniqueId())) {
                     EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(e.getDamager(), entity, EntityDamageEvent.DamageCause.ENTITY_EXPLOSION, damage);
                     Bukkit.getPluginManager().callEvent(event);

@@ -438,7 +438,9 @@ public abstract class SlimefunLocalization implements Keyed {
             for (String key : section.getKeys(false)) {
                 String value = section.getString(key);
 
-                if (value != null) {
+                // Skip empty keys: String.replace("", value) would insert the value between
+                // every character, corrupting the entire lore. Guard against misconfiguration.
+                if (value != null && !key.isEmpty()) {
                     phrases.add(new String[] { ChatColors.color(key), ChatColors.color(value) });
                 }
             }

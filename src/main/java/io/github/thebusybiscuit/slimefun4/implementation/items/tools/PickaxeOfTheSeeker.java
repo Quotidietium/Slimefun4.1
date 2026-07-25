@@ -53,6 +53,16 @@ public class PickaxeOfTheSeeker extends SimpleSlimefunItem<ItemUseHandler> imple
                 double w = closest.getZ() + 0.5 - p.getLocation().getZ();
 
                 double c = Math.sqrt(l * l + w * w);
+
+                // If the player stands (almost) directly above the ore, c ~ 0 and the
+                // divisions below would produce NaN yaw/pitch (and asin/acos of >1).
+                // Look straight down at the ore instead.
+                if (c < 1.0E-6) {
+                    Location current = p.getLocation();
+                    p.teleport(new Location(p.getWorld(), current.getX(), current.getY(), current.getZ(), current.getYaw(), 90.0f));
+                    return;
+                }
+
                 float alpha1 = (float) -(Math.asin(l / c) / Math.PI * 180);
                 float alpha2 = (float) (Math.acos(w / c) / Math.PI * 180);
 
