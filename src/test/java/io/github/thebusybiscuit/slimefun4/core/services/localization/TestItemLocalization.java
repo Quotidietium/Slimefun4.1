@@ -19,6 +19,8 @@ import be.seeseemelk.mockbukkit.ServerMock;
 import be.seeseemelk.mockbukkit.entity.PlayerMock;
 import io.github.bakedlibs.dough.data.persistent.PersistentDataAPI;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
+import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
+import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.services.LocalizationService;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
@@ -130,5 +132,28 @@ class TestItemLocalization {
 
         List<String> translated = localization.translateLore(player, lore);
         Assertions.assertEquals(lore, translated);
+    }
+
+    @Test
+    @DisplayName("Test that a localized display item preserves its slimefun identity and does not mutate the template")
+    void testLocalizedItemStability() {
+        Player cnPlayer = new PlayerMock(server, "ChinesePlayer");
+        PersistentDataAPI.setString(cnPlayer, localization.getKey(), "zh-CN");
+
+        // A real SlimefunItemStack with a custom name and the slimefun id in its PDC.
+        SlimefunItemStack stack = new SlimefunItemStack("PORTABLE_CRAFTER", Material.PAPER, "&6Portable Crafter", "&a&oA portable Crafting Table");
+        SlimefunItem item = new SlimefunItem(TestUtilities.getItemGroup(plugin, "test"), stack, RecipeType.NULL, new ItemStack[9]);
+        item.register(plugin);
+
+        String originalDisplayName = stack.getItemMeta().getDisplayName();
+
+        // zh-CN has a name translation AND lore phrases, so this MUST produce a localized clone.
+        ItemStack localized = localization.getLocalizedItem(cnPlayer, item);
+
+        // 1. Identity preserved: the display clone must still be recognizable (guide clicks call getByItem on it).
+        Assertions.assertEquals(item, SlimefunItem.getByItem(localized), "Localized display item must preserve its slimefun id");
+
+        // 2. No mutation: the shared template must be untouched (name still the original English).
+        Assertions.assertEquals(originalDisplayName, stack.getItemMeta().getDisplayName(), "Localization must not mutate the original item template");
     }
 }
