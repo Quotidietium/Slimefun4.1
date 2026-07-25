@@ -95,6 +95,40 @@ Minecraft **1.21.2** 移除了所有属性的 `generic.` / `player.` / `zombie.`
 
 ---
 
+## 八、已实施的兼容性修复（2026-07-25）
+
+采用**多版本兼容层**方案：保持针对 paper-api 1.21.1 编译，用反射兼容层处理 1.21.2+ 的 API 变更，使同一份 jar 同时支持 1.21.1 与 1.21.11。
+
+1. **新增 [`VersionedAttribute`](src/main/java/io/github/thebusybiscuit/slimefun4/utils/compatibility/VersionedAttribute.java)**
+   —— 仿照 [`VersionedPotionType`](src/main/java/io/github/thebusybiscuit/slimefun4/utils/compatibility/VersionedPotionType.java) 的反射模式，先尝试新名 `MAX_HEALTH`（1.21.2+），失败再回退 `GENERIC_MAX_HEALTH`（≤1.21.1）。全程不直接引用任何字段名，从根源上避免 `NoSuchFieldError`，补上了 [`utils/compatibility/`](src/main/java/io/github/thebusybiscuit/slimefun4/utils/compatibility/) 包此前缺失的 `Attribute` 适配。
+
+2. **替换 4 处硬编码** `Attribute.GENERIC_MAX_HEALTH` → `VersionedAttribute.MAX_HEALTH`：
+   - [`VampireBlade.java:48`](src/main/java/io/github/thebusybiscuit/slimefun4/implementation/items/weapons/VampireBlade.java#L48)
+   - [`Bandage.java:45`](src/main/java/io/github/thebusybiscuit/slimefun4/implementation/items/medical/Bandage.java#L45)
+   - [`Splint.java:34`](src/main/java/io/github/thebusybiscuit/slimefun4/implementation/items/medical/Splint.java#L34)
+   - [`MedicalSupply.java:76`](src/main/java/io/github/thebusybiscuit/slimefun4/implementation/items/medical/MedicalSupply.java#L76)
+
+3. **其他疑似 breaking 点经核实无需修复**——逐项对照 Paper **1.21.11 官方 javadoc** 确认字段在 1.21.11 仍然存在（仅个别 deprecated，不会触发链接期 `NoSuchFieldError`）：
+   - `ItemFlag.HIDE_ATTRIBUTES` / `HIDE_ENCHANTS`：仍为 enum 常量。
+   - `Enchantment.KNOCKBACK` / `THORNS` / `FIRE_ASPECT`：仍为 class 静态字段。
+   - `PotionEffectType.SATURATION` / `WITHER` / `BLINDNESS` / `SLOW_FALLING` / `WEAKNESS` / `ABSORPTION` 等：字段全部存在。
+   - [`SlimefunUtils.java`](src/main/java/io/github/thebusybiscuit/slimefun4/utils/SlimefunUtils.java#L495-L509) 的药水比较已是版本分支兼容写法。
+
+4. **验证**：`mvn clean package` 重新编译——**BUILD SUCCESS**，全部 **1786 个测试通过**（Failures: 0, Errors: 0, Skipped: 7），分析类数 630 → 631（新增 `VersionedAttribute`）。产物在 [build/Slimefun v4.9-UNOFFICIAL.jar](build/)。
+
+### 已知局限
+
+- 本次修复覆盖的是**本项目源码中唯一确定的致命 breaking 点**（`Attribute.GENERIC_MAX_HEALTH`）。shaded 进来的第三方依赖（`dough-api`、`paperlib` 1.0.8）以及遗留 `me.mrCookieSlime.*` 代码若内部也引用了 1.21.2+ 已移除的符号，仍可能在 1.21.11 上报错，需上真实服务器后观察日志。
+- 本环境**没有运行中的 Minecraft 1.21.11 服务端**，未能做端到端实测；完成判据为「源码层不再引用 1.21.11 已移除的符号 + 编译与全部单元测试通过」。
+- `paperlib` 1.0.8 较旧，其版本探测若无法识别 1.21.11，主类会走"假设支持"分支（不会崩溃，仅失去部分性能优化）。
+
+### 参考（1.21.11 API 核实）
+
+- Paper 1.21.11 Attribute javadoc（字段为 `MAX_HEALTH`，无 `GENERIC_`）：https://jd.papermc.io/paper/1.21.11/org/bukkit/attribute/Attribute.html
+- Paper 1.21.11 ItemFlag javadoc（`HIDE_*` 常量仍在）：https://jd.papermc.io/paper/1.21.11/org/bukkit/inventory/ItemFlag.html
+- Paper 1.21.11 Enchantment javadoc：https://jd.papermc.io/paper/1.21.11/org/bukkit/enchantments/Enchantment.html
+- Paper 1.21.11 PotionEffectType javadoc：https://jd.papermc.io/paper/1.21.11/org/bukkit/potion/PotionEffectType.html
+
 ## 参考来源
 
 - Minecraft Wiki — Attribute（1.21.2 移除属性前缀）：https://minecraft.wiki/w/Attribute
