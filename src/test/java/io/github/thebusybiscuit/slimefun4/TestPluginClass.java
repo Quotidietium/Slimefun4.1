@@ -69,7 +69,6 @@ class TestPluginClass {
         Assertions.assertNotNull(Slimefun.getWorldSettingsService());
         Assertions.assertNotNull(Slimefun.getGitHubService());
         Assertions.assertNotNull(Slimefun.getUpdater());
-        Assertions.assertNotNull(Slimefun.getMetricsService());
     }
 
     @Test

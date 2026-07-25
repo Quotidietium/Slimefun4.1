@@ -48,10 +48,6 @@ networks:
 talismans:
   use-actionbar: true
 
-metrics:
-  auto-update: true
-  analytics: true
-
 research-ranks:
 - Chicken
 - Cow

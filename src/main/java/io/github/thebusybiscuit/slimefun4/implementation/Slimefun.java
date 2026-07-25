@@ -42,14 +42,12 @@ import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.SlimefunRegistry;
 import io.github.thebusybiscuit.slimefun4.core.commands.SlimefunCommand;
 import io.github.thebusybiscuit.slimefun4.core.networks.NetworkManager;
-import io.github.thebusybiscuit.slimefun4.core.services.AnalyticsService;
 import io.github.thebusybiscuit.slimefun4.core.services.AutoSavingService;
 import io.github.thebusybiscuit.slimefun4.core.services.BackupService;
 import io.github.thebusybiscuit.slimefun4.core.services.BlockDataService;
 import io.github.thebusybiscuit.slimefun4.core.services.CustomItemDataService;
 import io.github.thebusybiscuit.slimefun4.core.services.CustomTextureService;
 import io.github.thebusybiscuit.slimefun4.core.services.LocalizationService;
-import io.github.thebusybiscuit.slimefun4.core.services.MetricsService;
 import io.github.thebusybiscuit.slimefun4.core.services.MinecraftRecipeService;
 import io.github.thebusybiscuit.slimefun4.core.services.PerWorldSettingsService;
 import io.github.thebusybiscuit.slimefun4.core.services.PermissionsService;
@@ -176,7 +174,6 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
     private final CustomTextureService textureService = new CustomTextureService(new Config(this, "item-models.yml"));
     private final GitHubService gitHubService = new GitHubService("Slimefun/Slimefun4");
     private final UpdaterService updaterService = new UpdaterService(this, getDescription().getVersion(), getFile());
-    private final MetricsService metricsService = new MetricsService(this);
     private final AutoSavingService autoSavingService = new AutoSavingService();
     private final BackupService backupService = new BackupService();
     private final PermissionsService permissionsService = new PermissionsService(this);
@@ -185,7 +182,6 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
     private final HologramsService hologramsService = new HologramsService(this);
     private final SoundService soundService = new SoundService(this);
     private final ThreadService threadService = new ThreadService(this);
-    private final AnalyticsService analyticsService = new AnalyticsService(this);
 
     // Some other things we need
     private final IntegrationsManager integrations = new IntegrationsManager(this);
@@ -312,10 +308,6 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         // Data storage
         playerStorage = new LegacyStorage();
         logger.log(Level.INFO, "Using legacy storage for player data");
-
-        // Setting up bStats and analytics
-        new Thread(metricsService::start, "Slimefun Metrics").start();
-        analyticsService.start();
 
         // Starting the Auto-Updater
         if (config.getBoolean("options.auto-update")) {
@@ -452,9 +444,6 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         if (config.getBoolean("options.backup-data")) {
             backupService.run();
         }
-
-        // Close and unload any resources from our Metrics Service
-        metricsService.cleanUp();
 
         // Terminate our Plugin instance
         setInstance(null);
@@ -894,28 +883,6 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
     public static @Nonnull UpdaterService getUpdater() {
         validateInstance();
         return instance.updaterService;
-    }
-
-    /**
-     * This method returns the {@link MetricsService} of Slimefun.
-     * It is used to handle sending metric information to bStats.
-     *
-     * @return The {@link MetricsService} for Slimefun
-     */
-    public static @Nonnull MetricsService getMetricsService() {
-        validateInstance();
-        return instance.metricsService;
-    }
-
-    /**
-     * This method returns the {@link AnalyticsService} of Slimefun.
-     * It is used to handle sending analytic information.
-     *
-     * @return The {@link AnalyticsService} for Slimefun
-     */
-    public static @Nonnull AnalyticsService getAnalyticsService() {
-        validateInstance();
-        return instance.analyticsService;
     }
 
     /**
