@@ -91,6 +91,12 @@ public class BackpackListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onClick(InventoryClickEvent e) {
+        // getClickedInventory() may be null for certain InventoryActions (e.g. clicking outside
+        // the inventory). Guard against NPE before calling .getType().
+        if (e.getClickedInventory() == null) {
+            return;
+        }
+
         ItemStack item = backpacks.get(e.getWhoClicked().getUniqueId());
 
         if (item != null) {
