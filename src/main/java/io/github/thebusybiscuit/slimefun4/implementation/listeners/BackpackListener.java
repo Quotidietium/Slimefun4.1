@@ -148,7 +148,15 @@ public class BackpackListener implements Listener {
 
     @ParametersAreNonnullByDefault
     private void openBackpack(Player p, ItemStack item, PlayerProfile profile, int size) {
-        List<String> lore = item.getItemMeta().getLore();
+        ItemMeta meta = item.getItemMeta();
+
+        // The lore (and the "ID: <ID>" line) may be missing if the item was stripped/edited.
+        // ItemMeta.getLore() returns null when there is no lore.
+        if (meta == null || !meta.hasLore()) {
+            return;
+        }
+
+        List<String> lore = meta.getLore();
 
         for (int line = 0; line < lore.size(); line++) {
             if (lore.get(line).equals(ChatColor.GRAY + "ID: <ID>")) {

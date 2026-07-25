@@ -70,7 +70,22 @@ public class TeleporterListener implements Listener {
 
             if (teleporter instanceof Teleporter && checkForPylons(b.getRelative(BlockFace.DOWN))) {
                 Block block = b.getRelative(BlockFace.DOWN);
-                UUID owner = UUID.fromString(BlockStorage.getLocationInfo(block.getLocation(), "owner"));
+                String ownerId = BlockStorage.getLocationInfo(block.getLocation(), "owner");
+
+                // The "owner" key may be missing (older Slimefun version, edited/corrupted
+                // data, or a block registered by an external addon). Guard against NPE/IllegalArgumentException.
+                if (ownerId == null) {
+                    return;
+                }
+
+                UUID owner;
+
+                try {
+                    owner = UUID.fromString(ownerId);
+                } catch (IllegalArgumentException x) {
+                    return;
+                }
+
                 Slimefun.getGPSNetwork().getTeleportationManager().openTeleporterGUI(p, owner, block);
             }
         }

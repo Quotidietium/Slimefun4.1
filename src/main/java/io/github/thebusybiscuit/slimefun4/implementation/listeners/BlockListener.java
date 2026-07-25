@@ -291,18 +291,21 @@ public class BlockListener implements Listener {
                 List<ItemStack> drops = new ArrayList<>(sfItem.getDrops(player));
 
                 sfItem.callItemHandler(BlockBreakHandler.class, handler -> handler.onPlayerBreak(dummyEvent, item, drops));
-                blockAbove.setType(Material.AIR);
 
-                if (!dummyEvent.isCancelled() && dummyEvent.isDropItems()) {
-                    for (ItemStack drop : drops) {
-                        if (drop != null && !drop.getType().isAir()) {
-                            blockAbove.getWorld().dropItemNaturally(blockAbove.getLocation(), drop);
+                if (!dummyEvent.isCancelled()) {
+                    blockAbove.setType(Material.AIR);
+
+                    if (dummyEvent.isDropItems()) {
+                        for (ItemStack drop : drops) {
+                            if (drop != null && !drop.getType().isAir()) {
+                                blockAbove.getWorld().dropItemNaturally(blockAbove.getLocation(), drop);
+                            }
                         }
                     }
-                }
 
-                // Fixes #2944 - Don't forget to clear the Block Data
-                BlockStorage.clearBlockInfo(blockAbove);
+                    // Fixes #2944 - Don't forget to clear the Block Data
+                    BlockStorage.clearBlockInfo(blockAbove);
+                }
             }
         }
     }

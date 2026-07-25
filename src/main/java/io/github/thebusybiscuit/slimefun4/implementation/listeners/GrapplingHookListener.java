@@ -162,26 +162,32 @@ public class GrapplingHookListener implements Listener {
 
                 Vector velocity = new Vector(0.0, 0.2, 0.0);
 
-                if (player.getLocation().distance(target) < 3.0) {
-                    if (target.getY() <= player.getLocation().getY()) {
-                        velocity = target.toVector().subtract(player.getLocation().toVector());
+                // The player may have changed worlds (e.g. via teleport/portal) between firing
+                // the grappling hook and the arrow landing. Location.distance() throws an
+                // IllegalArgumentException across worlds, so we only compute a pull when both
+                // are still in the same world.
+                if (player.getWorld().equals(target.getWorld())) {
+                    if (player.getLocation().distance(target) < 3.0) {
+                        if (target.getY() <= player.getLocation().getY()) {
+                            velocity = target.toVector().subtract(player.getLocation().toVector());
+                        }
+                    } else {
+                        Location l = player.getLocation();
+                        l.setY(l.getY() + 0.5);
+                        player.teleport(l);
+
+                        double g = -0.08;
+                        double d = target.distance(l);
+                        double t = d;
+                        double vX = (1.0 + 0.08 * t) * (target.getX() - l.getX()) / t;
+                        double vY = (1.0 + 0.04 * t) * (target.getY() - l.getY()) / t - 0.5D * g * t;
+                        double vZ = (1.0 + 0.08 * t) * (target.getZ() - l.getZ()) / t;
+
+                        velocity = player.getVelocity();
+                        velocity.setX(vX);
+                        velocity.setY(vY);
+                        velocity.setZ(vZ);
                     }
-                } else {
-                    Location l = player.getLocation();
-                    l.setY(l.getY() + 0.5);
-                    player.teleport(l);
-
-                    double g = -0.08;
-                    double d = target.distance(l);
-                    double t = d;
-                    double vX = (1.0 + 0.08 * t) * (target.getX() - l.getX()) / t;
-                    double vY = (1.0 + 0.04 * t) * (target.getY() - l.getY()) / t - 0.5D * g * t;
-                    double vZ = (1.0 + 0.08 * t) * (target.getZ() - l.getZ()) / t;
-
-                    velocity = player.getVelocity();
-                    velocity.setX(vX);
-                    velocity.setY(vY);
-                    velocity.setZ(vZ);
                 }
 
                 player.setVelocity(velocity);
