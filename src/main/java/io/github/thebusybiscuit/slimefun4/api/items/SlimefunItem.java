@@ -1178,9 +1178,17 @@ public class SlimefunItem implements Placeable {
         }
 
         Optional<String> itemID = Slimefun.getItemDataService().getItemData(item);
+        SlimefunItem sfItem = itemID.map(SlimefunItem::getById).orElse(null);
 
-        return itemID.map(SlimefunItem::getById).orElse(null);
+        // Verify the ItemStack Material matches the registered SlimefunItem template Material.
+        // Without this, a forged cheap item carrying a high-value "slimefun_item" PDC value
+        // (set via NBT tools) would be treated as that SlimefunItem, bypassing recipe/charge
+        // checks and enabling item/economy duplication.
+        if (sfItem != null && sfItem.getItem().getType() != item.getType()) {
+            return null;
+        }
 
+        return sfItem;
     }
 
     /**

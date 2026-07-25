@@ -136,13 +136,13 @@ public final class SlimefunUtils {
                 } else {
                     return !sfItem.isDisabled();
                 }
+            } else if (meta != null && hasSoulboundFlag(meta) && meta.hasLore() && meta.getLore().contains(SOULBOUND_LORE)) {
+                // Legacy soulbound marker. We require BOTH the PDC flag and the lore line:
+                // lore alone is player-forgeable, so honouring lore by itself would let anyone
+                // mark arbitrary items (e.g. shulker boxes) as soulbound and keep them on death.
+                // The PDC flag is set authoritatively by SlimefunUtils.setSoulbound / the rune.
+                return true;
             }
-
-            // Note: we intentionally do NOT fall back to checking for the SOULBOUND_LORE string
-            // here. Lore is player-forgeable, so honouring it would let anyone mark arbitrary
-            // items (e.g. shulker boxes) as soulbound and keep them on death. Soulbound status
-            // must come from the item being a Soulbound SlimefunItem, or the PDC flag handled
-            // above via the soulbound rune.
 
         }
         return false;
