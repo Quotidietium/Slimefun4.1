@@ -173,7 +173,7 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
     private final BlockDataService blockDataService = new BlockDataService(this, "slimefun_block");
     private final CustomTextureService textureService = new CustomTextureService(new Config(this, "item-models.yml"));
     private final GitHubService gitHubService = new GitHubService("Slimefun/Slimefun4");
-    private final UpdaterService updaterService = new UpdaterService(this, getDescription().getVersion(), getFile());
+    private final UpdaterService updaterService = new UpdaterService(getDescription().getVersion());
     private final AutoSavingService autoSavingService = new AutoSavingService();
     private final BackupService backupService = new BackupService();
     private final PermissionsService permissionsService = new PermissionsService(this);
@@ -308,14 +308,6 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         // Data storage
         playerStorage = new LegacyStorage();
         logger.log(Level.INFO, "Using legacy storage for player data");
-
-        // Starting the Auto-Updater
-        if (config.getBoolean("options.auto-update")) {
-            logger.log(Level.INFO, "Starting Auto-Updater...");
-            updaterService.start();
-        } else {
-            updaterService.disable();
-        }
 
         // Registering all GEO Resources
         logger.log(Level.INFO, "Loading GEO-Resources...");
