@@ -122,7 +122,7 @@ class CargoNetworkTask implements Runnable {
                 inv.setItem(previousSlot, item);
             } else {
                 // Try to add the item into another available slot then
-                ItemStack rest = inv.addItem(item).get(0);
+                ItemStack rest = inv.addItem(item).values().stream().findFirst().orElse(null);
 
                 if (rest != null && !manager.isItemDeletionEnabled()) {
                     // If the item still couldn't be inserted, simply drop it on the ground

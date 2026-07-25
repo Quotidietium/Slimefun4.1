@@ -198,6 +198,10 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
                 if (lifetime % 60 == 0 && getCharge(b.getLocation(), data) >= getEnergyConsumption()) {
                     BlockMenu menu = BlockStorage.getInventory(b);
 
+                    if (menu == null) {
+                        return;
+                    }
+
                     boolean hasBody = findResource(menu, getBody(), bodySlots);
                     boolean hasHead = findResource(menu, getHead(), headSlots);
 
@@ -205,7 +209,14 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
                         consumeResources(menu);
 
                         removeCharge(b.getLocation(), getEnergyConsumption());
-                        double offset = Double.parseDouble(BlockStorage.getLocationInfo(b.getLocation(), KEY_OFFSET));
+                        String offsetData = BlockStorage.getLocationInfo(b.getLocation(), KEY_OFFSET);
+                        double offset;
+
+                        try {
+                            offset = Double.parseDouble(offsetData);
+                        } catch (NumberFormatException x) {
+                            return;
+                        }
 
                         Slimefun.runSync(() -> {
                             Location loc = new Location(b.getWorld(), b.getX() + 0.5D, b.getY() + offset, b.getZ() + 0.5D);

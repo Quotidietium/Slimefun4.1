@@ -198,7 +198,7 @@ public abstract class MultiBlockMachine extends SlimefunItem implements NotPlace
         if (outputInv != null) {
             outputInv.addItem(outputItem);
         } else {
-            ItemStack rest = blockInv.addItem(outputItem).get(0);
+            ItemStack rest = blockInv.addItem(outputItem).values().stream().findFirst().orElse(null);
 
             // fallback: drop item
             if (rest != null) {

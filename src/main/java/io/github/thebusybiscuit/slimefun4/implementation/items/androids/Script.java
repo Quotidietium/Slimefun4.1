@@ -233,7 +233,13 @@ public final class Script {
             directory.mkdirs();
         }
 
-        for (File file : directory.listFiles()) {
+        File[] files = directory.listFiles();
+
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
             if (file.getName().endsWith(".sfs")) {
                 try {
                     Config config = new Config(file);

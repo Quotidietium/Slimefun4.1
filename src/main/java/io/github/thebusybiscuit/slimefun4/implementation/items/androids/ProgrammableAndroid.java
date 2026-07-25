@@ -680,7 +680,17 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             BlockMenu menu = BlockStorage.getInventory(b);
 
             String fuelData = data.getString("fuel");
-            float fuel = fuelData == null ? 0 : Float.parseFloat(fuelData);
+            float fuel;
+
+            if (fuelData == null) {
+                fuel = 0;
+            } else {
+                try {
+                    fuel = Float.parseFloat(fuelData);
+                } catch (NumberFormatException x) {
+                    fuel = 0;
+                }
+            }
 
             if (fuel < 0.001) {
                 consumeFuel(b, menu);
@@ -712,7 +722,17 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
     private void executeInstruction(Instruction instruction, Block b, BlockMenu inv, Config data, int index) {
         if (getAndroidType().isType(instruction.getRequiredType())) {
             String rotationData = data.getString("rotation");
-            BlockFace face = rotationData == null ? BlockFace.NORTH : BlockFace.valueOf(rotationData);
+            BlockFace face;
+
+            if (rotationData == null) {
+                face = BlockFace.NORTH;
+            } else {
+                try {
+                    face = BlockFace.valueOf(rotationData);
+                } catch (IllegalArgumentException x) {
+                    face = BlockFace.NORTH;
+                }
+            }
 
             switch (instruction) {
                 case START:

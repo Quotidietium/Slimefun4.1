@@ -70,21 +70,23 @@ public class VanillaAutoCrafter extends AbstractAutoCrafter {
             if (value != null) {
                 String[] values = CommonPatterns.COLON.split(value);
 
-                /*
-                 * Normally this constructor should not be used.
-                 * But it is completely fine for this purpose since we only use
-                 * it for lookups.
-                 */
-                @SuppressWarnings("deprecation")
-                NamespacedKey key = new NamespacedKey(values[0], values[1]);
-                Recipe keyedRecipe = Slimefun.getMinecraftRecipeService().getRecipe(key);
+                if (values.length >= 2) {
+                    /*
+                     * Normally this constructor should not be used.
+                     * But it is completely fine for this purpose since we only use
+                     * it for lookups.
+                     */
+                    @SuppressWarnings("deprecation")
+                    NamespacedKey key = new NamespacedKey(values[0], values[1]);
+                    Recipe keyedRecipe = Slimefun.getMinecraftRecipeService().getRecipe(key);
 
-                if (keyedRecipe != null) {
-                    boolean enabled = !container.has(recipeEnabledKey, PersistentDataType.BYTE);
-                    AbstractRecipe recipe = AbstractRecipe.of(keyedRecipe);
-                    recipe.setEnabled(enabled);
+                    if (keyedRecipe != null) {
+                        boolean enabled = !container.has(recipeEnabledKey, PersistentDataType.BYTE);
+                        AbstractRecipe recipe = AbstractRecipe.of(keyedRecipe);
+                        recipe.setEnabled(enabled);
 
-                    return recipe;
+                        return recipe;
+                    }
                 }
             }
         }

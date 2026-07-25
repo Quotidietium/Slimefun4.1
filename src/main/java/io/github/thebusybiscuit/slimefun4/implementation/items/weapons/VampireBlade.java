@@ -45,7 +45,8 @@ public class VampireBlade extends SimpleSlimefunItem<WeaponUseHandler> {
             if (ThreadLocalRandom.current().nextInt(100) < getChance()) {
                 SoundEffect.VAMPIRE_BLADE_HEALING_SOUND.playFor(p);
                 double health = p.getHealth() + HEALING_AMOUNT;
-                double maxHealth = p.getAttribute(VersionedAttribute.MAX_HEALTH).getValue();
+                var maxHealthAttr = p.getAttribute(VersionedAttribute.MAX_HEALTH);
+                double maxHealth = maxHealthAttr != null ? maxHealthAttr.getValue() : 20.0;
                 p.setHealth(Math.min(health, maxHealth));
             }
         };

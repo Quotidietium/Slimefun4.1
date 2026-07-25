@@ -97,17 +97,23 @@ public class TapeMeasure extends SimpleSlimefunItem<ItemUseHandler> implements N
         String data = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
 
         if (data != null) {
-            JsonObject json = JsonUtils.parseString(data).getAsJsonObject();
-            UUID uuid = UUID.fromString(json.get("world").getAsString());
+            try {
+                JsonObject json = JsonUtils.parseString(data).getAsJsonObject();
+                UUID uuid = UUID.fromString(json.get("world").getAsString());
 
-            if (p.getWorld().getUID().equals(uuid)) {
-                int x = json.get("x").getAsInt();
-                int y = json.get("y").getAsInt();
-                int z = json.get("z").getAsInt();
-                Location loc = new Location(p.getWorld(), x, y, z);
-                return Optional.of(loc);
-            } else {
-                Slimefun.getLocalization().sendMessage(p, "messages.tape-measure.wrong-world");
+                if (p.getWorld().getUID().equals(uuid)) {
+                    int x = json.get("x").getAsInt();
+                    int y = json.get("y").getAsInt();
+                    int z = json.get("z").getAsInt();
+                    Location loc = new Location(p.getWorld(), x, y, z);
+                    return Optional.of(loc);
+                } else {
+                    Slimefun.getLocalization().sendMessage(p, "messages.tape-measure.wrong-world");
+                    return Optional.empty();
+                }
+            } catch (Exception x) {
+                // Corrupted anchor data (e.g. forged or modified NBT). Treat as no anchor.
+                Slimefun.getLocalization().sendMessage(p, "messages.tape-measure.no-anchor");
                 return Optional.empty();
             }
         } else {

@@ -31,7 +31,10 @@ public class Splint extends SimpleSlimefunItem<ItemUseHandler> {
             Player p = e.getPlayer();
 
             // Player is neither burning nor injured
-            if (p.getFireTicks() <= 0 && p.getHealth() >= p.getAttribute(VersionedAttribute.MAX_HEALTH).getValue()) {
+            var maxHealthAttr = p.getAttribute(VersionedAttribute.MAX_HEALTH);
+            double maxHealth = maxHealthAttr != null ? maxHealthAttr.getValue() : 20.0;
+
+            if (p.getFireTicks() <= 0 && p.getHealth() >= maxHealth) {
                 return;
             }
 

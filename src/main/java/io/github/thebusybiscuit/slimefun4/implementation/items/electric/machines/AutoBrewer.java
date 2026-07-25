@@ -109,6 +109,11 @@ public class AutoBrewer extends AContainer implements NotHopperable {
             return brewPreBasePotionType(input, potionType, potion);
         }
         PotionType type = potion.getBasePotionType();
+
+        if (type == null) {
+            return null;
+        }
+
         if (type == PotionType.WATER) {
             if (input == Material.FERMENTED_SPIDER_EYE) {
                 potion.setBasePotionType(PotionType.WEAKNESS);

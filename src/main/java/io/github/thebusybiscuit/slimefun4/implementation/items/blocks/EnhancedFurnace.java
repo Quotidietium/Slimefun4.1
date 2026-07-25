@@ -107,8 +107,16 @@ public class EnhancedFurnace extends SimpleSlimefunItem<BlockTicker> {
     }
 
     private void setProgress(@Nonnull Furnace furnace) {
+        int cookTimeTotal = furnace.getCookTimeTotal();
+
+        // cookTimeTotal may be 0 if the recipe was removed or due to a data anomaly.
+        // Guard against it: Math.min(cookTime, -1) would otherwise set progress to -1.
+        if (cookTimeTotal <= 0) {
+            return;
+        }
+
         // Update the cooktime
         int cookTime = furnace.getCookTime() + getProcessingSpeed() * 10;
-        furnace.setCookTime((short) Math.min(cookTime, furnace.getCookTimeTotal() - 1));
+        furnace.setCookTime((short) Math.min(cookTime, cookTimeTotal - 1));
     }
 }

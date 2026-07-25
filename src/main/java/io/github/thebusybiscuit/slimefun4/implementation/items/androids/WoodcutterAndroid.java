@@ -57,8 +57,8 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
                 Block log = list.get(list.size() - 1);
                 log.getWorld().playEffect(log.getLocation(), Effect.STEP_SOUND, log.getType());
 
-                OfflinePlayer owner = Bukkit.getOfflinePlayer(UUID.fromString(BlockStorage.getLocationInfo(b.getLocation(), "owner")));
-                if (Slimefun.getProtectionManager().hasPermission(owner, log.getLocation(), Interaction.BREAK_BLOCK)) {
+                OfflinePlayer owner = getOwner(b);
+                if (owner != null && Slimefun.getProtectionManager().hasPermission(owner, log.getLocation(), Interaction.BREAK_BLOCK)) {
                     breakLog(log, b, menu, face);
                 }
 
@@ -67,6 +67,24 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
         }
 
         return true;
+    }
+
+    /**
+     * Returns the {@link OfflinePlayer} who owns this android, or {@code null} if the owner data
+     * is missing or corrupted.
+     */
+    private OfflinePlayer getOwner(Block b) {
+        String ownerId = BlockStorage.getLocationInfo(b.getLocation(), "owner");
+
+        if (ownerId == null) {
+            return null;
+        }
+
+        try {
+            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
+        } catch (IllegalArgumentException x) {
+            return null;
+        }
     }
 
     @ParametersAreNonnullByDefault

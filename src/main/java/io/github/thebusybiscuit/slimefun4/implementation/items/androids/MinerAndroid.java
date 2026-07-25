@@ -70,15 +70,33 @@ public class MinerAndroid extends ProgrammableAndroid {
         return AndroidType.MINER;
     }
 
+    /**
+     * Returns the {@link OfflinePlayer} who owns this android, or {@code null} if the owner data
+     * is missing or corrupted. Callers should skip ownership-dependent actions when this is null.
+     */
+    private OfflinePlayer getOwner(Block b) {
+        String ownerId = BlockStorage.getLocationInfo(b.getLocation(), "owner");
+
+        if (ownerId == null) {
+            return null;
+        }
+
+        try {
+            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
+        } catch (IllegalArgumentException x) {
+            return null;
+        }
+    }
+
     @Override
     @ParametersAreNonnullByDefault
     protected void dig(Block b, BlockMenu menu, Block block) {
         Collection<ItemStack> drops = block.getDrops(effectivePickaxe);
 
         if (!SlimefunTag.UNBREAKABLE_MATERIALS.isTagged(block.getType()) && !drops.isEmpty()) {
-            OfflinePlayer owner = Bukkit.getOfflinePlayer(UUID.fromString(BlockStorage.getLocationInfo(b.getLocation(), "owner")));
+            OfflinePlayer owner = getOwner(b);
 
-            if (Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.BREAK_BLOCK)) {
+            if (owner != null && Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.BREAK_BLOCK)) {
                 AndroidMineEvent event = new AndroidMineEvent(block, new AndroidInstance(this, b));
                 Bukkit.getPluginManager().callEvent(event);
 
@@ -100,9 +118,9 @@ public class MinerAndroid extends ProgrammableAndroid {
         Collection<ItemStack> drops = block.getDrops(effectivePickaxe);
 
         if (!SlimefunTag.UNBREAKABLE_MATERIALS.isTagged(block.getType()) && !drops.isEmpty()) {
-            OfflinePlayer owner = Bukkit.getOfflinePlayer(UUID.fromString(BlockStorage.getLocationInfo(b.getLocation(), "owner")));
+            OfflinePlayer owner = getOwner(b);
 
-            if (Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.BREAK_BLOCK)) {
+            if (owner != null && Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.BREAK_BLOCK)) {
                 AndroidMineEvent event = new AndroidMineEvent(block, new AndroidInstance(this, b));
                 Bukkit.getPluginManager().callEvent(event);
 

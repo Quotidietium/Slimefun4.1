@@ -53,7 +53,7 @@ public class OilPump extends AContainer implements RecipeDisplayItem {
                     return false;
                 }
 
-                if (!Slimefun.getGPSNetwork().getResourceManager().getSupplies(oil, b.getWorld(), b.getX() >> 4, b.getZ() >> 4).isPresent()) {
+                if (oil == null || !Slimefun.getGPSNetwork().getResourceManager().getSupplies(oil, b.getWorld(), b.getX() >> 4, b.getZ() >> 4).isPresent()) {
                     Slimefun.getLocalization().sendMessage(p, "gps.geo.scan-required", true);
                     return false;
                 }
@@ -89,6 +89,10 @@ public class OilPump extends AContainer implements RecipeDisplayItem {
 
     @Override
     protected MachineRecipe findNextRecipe(BlockMenu inv) {
+        if (oil == null) {
+            return null;
+        }
+
         if (inv.fits(SlimefunItems.OIL_BUCKET.item(), getOutputSlots())) {
             Block b = inv.getBlock();
 

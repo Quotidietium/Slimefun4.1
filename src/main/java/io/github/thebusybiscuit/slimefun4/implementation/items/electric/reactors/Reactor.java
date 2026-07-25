@@ -220,8 +220,12 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
     protected ReactorMode getReactorMode(@Nonnull Location l) {
         ReactorMode mode = ReactorMode.GENERATOR;
 
-        if (BlockStorage.hasBlockInfo(l) && BlockStorage.getLocationInfo(l, MODE).equals(ReactorMode.PRODUCTION.toString())) {
-            mode = ReactorMode.PRODUCTION;
+        if (BlockStorage.hasBlockInfo(l)) {
+            String stored = BlockStorage.getLocationInfo(l, MODE);
+
+            if (stored != null && stored.equals(ReactorMode.PRODUCTION.toString())) {
+                mode = ReactorMode.PRODUCTION;
+            }
         }
 
         return mode;
@@ -337,7 +341,12 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
                 ReactorExplodeEvent event = new ReactorExplodeEvent(l, Reactor.this);
                 Bukkit.getPluginManager().callEvent(event);
 
-                BlockStorage.getInventory(l).close();
+                BlockMenu inv = BlockStorage.getInventory(l);
+
+                if (inv != null) {
+                    inv.close();
+                }
+
                 removeHologram(l.getBlock());
             });
 

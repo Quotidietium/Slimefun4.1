@@ -116,22 +116,31 @@ abstract class AbstractCraftingTable extends MultiBlockMachine {
     }
 
     private @Nonnull Optional<String> retrieveID(@Nullable ItemStack backpack, int size) {
-        if (backpack != null) {
+        if (backpack != null && backpack.hasItemMeta() && backpack.getItemMeta().hasLore()) {
             for (String line : backpack.getItemMeta().getLore()) {
                 if (line.startsWith(ChatColors.color("&7ID: ")) && line.contains("#")) {
                     String id = line.replace(ChatColors.color("&7ID: "), "");
                     String[] idSplit = CommonPatterns.HASH.split(id);
 
-                    PlayerProfile.fromUUID(UUID.fromString(idSplit[0]), profile -> {
-                        Optional<PlayerBackpack> optional = profile.getBackpack(Integer.parseInt(idSplit[1]));
-                        optional.ifPresent(playerBackpack -> {
-                            // Safety feature for Issue #3664
-                            CompletableFuture<Void> future = playerBackpack.closeForAll();
-                            future.thenRun(() -> playerBackpack.setSize(size));
-                        });
-                    });
+                    if (idSplit.length >= 2) {
+                        try {
+                            UUID ownerUuid = UUID.fromString(idSplit[0]);
+                            int backpackId = Integer.parseInt(idSplit[1]);
 
-                    return Optional.of(id);
+                            PlayerProfile.fromUUID(ownerUuid, profile -> {
+                                Optional<PlayerBackpack> optional = profile.getBackpack(backpackId);
+                                optional.ifPresent(playerBackpack -> {
+                                    // Safety feature for Issue #3664
+                                    CompletableFuture<Void> future = playerBackpack.closeForAll();
+                                    future.thenRun(() -> playerBackpack.setSize(size));
+                                });
+                            });
+
+                            return Optional.of(id);
+                        } catch (IllegalArgumentException x) {
+                            // Malformed backpack id in lore, ignore this line.
+                        }
+                    }
                 }
             }
         }
