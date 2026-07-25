@@ -47,9 +47,11 @@ public class ElytraImpactListener implements Listener {
         if (entity instanceof Player player && player.isGliding()) {
             UUID uuid = player.getUniqueId();
             gliding.add(uuid);
+            // We tick 1 tick later because the player is being toggled off at the same tick as it takes damage.
+            // Remove only this player (not gliding::clear) so two ElytraCap users toggling within the
+            // same tick don't wipe each other's glide state and lose fall-damage protection.
+            Slimefun.instance().getServer().getScheduler().runTaskLater(Slimefun.instance(), () -> gliding.remove(uuid), 1);
         }
-        // We tick 1 tick later because the player is being toggled of at the same tick as it takes damage.
-        Slimefun.instance().getServer().getScheduler().runTaskLater(Slimefun.instance(), gliding::clear, 1);
     }
 
     @EventHandler

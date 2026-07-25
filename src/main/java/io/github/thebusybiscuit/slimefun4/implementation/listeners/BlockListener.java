@@ -239,6 +239,12 @@ public class BlockListener implements Listener {
 
     @ParametersAreNonnullByDefault
     private void dropItems(BlockBreakEvent e, List<ItemStack> drops) {
+        // A BlockBreakHandler may have cancelled the event during callBlockHandler.
+        // If so, do not drop anything even if drops were already populated.
+        if (e.isCancelled()) {
+            return;
+        }
+
         if (!drops.isEmpty()) {
             // TODO: properly support loading inventories within unit tests
             if (!Slimefun.instance().isUnitTest()) {

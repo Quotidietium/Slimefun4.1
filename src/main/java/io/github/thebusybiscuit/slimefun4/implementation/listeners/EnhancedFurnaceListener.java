@@ -87,7 +87,12 @@ public class EnhancedFurnaceListener implements Listener {
                     ItemStack item = result.get();
                     int previous = inventory.getResult() != null ? inventory.getResult().getAmount() : 0;
                     amount = Math.min(item.getMaxStackSize() - previous, amount);
-                    e.setResult(new ItemStack(item.getType(), amount));
+
+                    // amount may resolve to 0 when the result slot is already full. ItemStack cannot
+                    // be constructed with amount 0 (throws IllegalArgumentException), so skip in that case.
+                    if (amount > 0) {
+                        e.setResult(new ItemStack(item.getType(), amount));
+                    }
                 }
             }
         }

@@ -108,7 +108,14 @@ public class AncientAltarTask implements Runnable {
 
     private boolean checkLockedItems() {
         for (Map.Entry<Item, Location> entry : positionLock.entrySet()) {
-            if (entry.getKey().getLocation().distanceSquared(entry.getValue()) > 0.1) {
+            Location itemLoc = entry.getKey().getLocation();
+            Location lockedLoc = entry.getValue();
+
+            // A locked item may have been moved to another world (e.g. through a portal) or the
+            // altar chunk unloaded. distanceSquared across worlds throws IllegalArgumentException,
+            // which would silently kill this repeating task and leave the altar locked forever.
+            // Treat cross-world (or moved) items as "no longer locked in place".
+            if (!itemLoc.getWorld().equals(lockedLoc.getWorld()) || itemLoc.distanceSquared(lockedLoc) > 0.1) {
                 return false;
             }
         }

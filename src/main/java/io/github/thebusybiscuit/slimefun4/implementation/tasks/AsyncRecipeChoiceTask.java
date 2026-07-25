@@ -50,7 +50,8 @@ public class AsyncRecipeChoiceTask implements Runnable {
         Validate.notNull(inv, "Inventory must not be null");
 
         inventory = inv;
-        id = Bukkit.getScheduler().runTaskTimerAsynchronously(Slimefun.instance(), this, 0, UPDATE_INTERVAL).getTaskId();
+        // Run on the main thread: modifying Inventory contents (setItem) is not safe off-thread.
+        id = Bukkit.getScheduler().runTaskTimer(Slimefun.instance(), this, 0, UPDATE_INTERVAL).getTaskId();
     }
 
     public void add(int slot, @Nonnull MaterialChoice choice) {
