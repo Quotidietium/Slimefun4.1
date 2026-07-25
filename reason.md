@@ -129,6 +129,40 @@ Minecraft **1.21.2** 移除了所有属性的 `generic.` / `player.` / `zombie.`
 - Paper 1.21.11 Enchantment javadoc：https://jd.papermc.io/paper/1.21.11/org/bukkit/enchantments/Enchantment.html
 - Paper 1.21.11 PotionEffectType javadoc：https://jd.papermc.io/paper/1.21.11/org/bukkit/potion/PotionEffectType.html
 
+## 九、修复 dough `CustomGameProfile` / `GameProfile` final（1.21.11 启动崩溃）
+
+实际在 Paper 1.21.11 运行时，插件在**启动阶段**即崩溃（比第三节所述的 Attribute 问题更早、更致命）：
+
+```
+IncompatibleClassChangeError: class ...libraries.dough.skins.CustomGameProfile
+cannot inherit from final class com.mojang.authlib.GameProfile
+```
+
+**根因**：shaded 进来的 dough（旧版 `com.github.Slimefun.dough:cb22e71335`）中，`CustomGameProfile` 声明为 `extends com.mojang.authlib.GameProfile`。而 Minecraft 1.21.2 起 `GameProfile` 被改为 `final`，JVM 加载 `CustomGameProfile` 时直接抛 `IncompatibleClassChangeError`。调用链：`onEnable → LocalizationService → Language.<init> → SlimefunUtils.getCustomHead → PlayerSkin.fromBase64 → CustomGameProfile`。
+
+### 方案取舍
+
+- **升级 dough 到上游 `baked-libs` `f8ff25187d`**：该版本已修复 GameProfile final，但引发了**几十处**其它 API 不兼容（`ItemStackEditor` 删除、`ProgrammableAndroid` / `Reactor` / `RecipeType` / `Talisman` 等大量签名变化），相当于同步上游大规模重构，风险与工作量都过高，**放弃**。
+- **最终方案**：保留 dough `cb22e71335`（API 与现有代码兼容），在 [pom.xml](pom.xml) 中**排除 `dough-skins` 子模块**，并**自行实现** `io.github.bakedlibs.dough.skins` 下的 4 个类，全部改用 Bukkit/Paper 的 `PlayerProfile` API，完全不继承 `GameProfile`：
+
+| 文件 | 作用 |
+|---|---|
+| [CustomGameProfile.java](src/main/java/io/github/bakedlibs/dough/skins/CustomGameProfile.java) | 持有 uuid / base64 贴图 / skin url；`apply(SkullMeta)` 用 `setOwnerProfile`（item） |
+| [PlayerSkin.java](src/main/java/io/github/bakedlibs/dough/skins/PlayerSkin.java) | `fromBase64` / `fromHashCode` / `fromPlayerUUID` 等工厂方法（API 与 dough 一致） |
+| [PlayerHead.java](src/main/java/io/github/bakedlibs/dough/skins/PlayerHead.java) | `getItemStack(skin)`（item）、`setSkin(block, skin, ...)`（block，用 Paper `PlayerProfile`） |
+| [UUIDLookup.java](src/main/java/io/github/bakedlibs/dough/skins/UUIDLookup.java) | `getUuidFromUsername`（playerdb.co） |
+
+此外 [ColoredFireworkStar.java](src/main/java/io/github/thebusybiscuit/slimefun4/utils/itemstack/ColoredFireworkStar.java) 原用了 dough 的 `ItemStackEditor`，一并改为直接 `ItemMeta` 操作 + `ChatColors`，对外签名不变。
+
+### 验证
+
+`mvn clean package`：**BUILD SUCCESS**，全部 **1787 个测试通过**（Failures: 0, Errors: 0, Skipped: 7），产物在 [build/Slimefun v4.9-UNOFFICIAL.jar](build/)。
+
+### 已知行为差异
+
+- 自实现的 `PlayerHead.setSkin`（设置头**方块**贴图）改用 Paper `Skull.setPlayerProfile`，不再走 dough 的 NMS 反射 `PlayerHeadAdapter`——行为等价且更稳定。
+- 贡献者头像（`GitHubTask`）依赖 mojang sessionserver / playerdb.co 在线查询，受限流/网络影响时该头像跳过（与 dough 原有行为一致，非本次引入）。
+
 ## 参考来源
 
 - Minecraft Wiki — Attribute（1.21.2 移除属性前缀）：https://minecraft.wiki/w/Attribute
