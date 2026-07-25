@@ -6,10 +6,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.slimefun</groupId>
     <artifactId>Slimefun</artifactId>
+    <name>SlimeFun4.1</name>
 
-    <!-- Our default version will be UNOFFICIAL, this will prevent auto updates -->
-    <!-- from overriding our local test file -->
-    <version>4.9-UNOFFICIAL</version>
+    <!-- The version does not start with "Dev - " or "RC - " and does not contain "UNOFFICIAL", -->
+    <!-- so UpdaterService classifies it as UNKNOWN and will NOT auto-update (protecting this fork). -->
+    <version>4.9.1</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>jar</packaging>
 
@@ -111,7 +112,7 @@
         <defaultGoal>clean package</defaultGoal>
 
         <!-- The name of the final jar -->
-        <finalName>${project.name} v${project.version}</finalName>
+        <finalName>${project.name}-${project.version}</finalName>
 
         <plugins>
             <plugin>
