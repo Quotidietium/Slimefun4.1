@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.core.services.localization;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import io.github.bakedlibs.dough.config.Config;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunBranch;
+import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.services.LocalizationService;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -298,6 +300,138 @@ public abstract class SlimefunLocalization implements Keyed {
         Validate.notNull(key, "NamespacedKey cannot be null!");
 
         return getStringOrNull(getLanguage(p), LanguageFile.CATEGORIES, key.getNamespace() + '.' + key.getKey());
+    }
+
+    /**
+     * This returns the localized name of the given {@link SlimefunItem} for the specified {@link Player}.
+     * The lookup is performed in the {@link LanguageFile#ITEMS} file (e.g. {@code items.yml}),
+     * keyed by {@code "<itemId>.name"}.
+     *
+     * If no translation is found (or the current language has no {@code items.yml}), this returns {@code null}
+     * and the caller is expected to fall back to the default (hardcoded) item name.
+     *
+     * @param p
+     *            The {@link Player} whose language should be used
+     * @param item
+     *            The {@link SlimefunItem} whose name to translate
+     *
+     * @return The localized item name or {@code null} if no translation exists
+     */
+    public @Nullable String getItemName(@Nonnull Player p, @Nonnull SlimefunItem item) {
+        Validate.notNull(p, "Player must not be null!");
+        Validate.notNull(item, "SlimefunItem must not be null!");
+
+        return getStringOrNull(getLanguage(p), LanguageFile.ITEMS, item.getId() + ".name");
+    }
+
+    /**
+     * This returns the localized lore of the given {@link SlimefunItem} for the specified {@link Player}.
+     * The lookup is performed in the {@link LanguageFile#ITEMS} file, keyed by {@code "<itemId>.lore"}.
+     *
+     * @param p
+     *            The {@link Player} whose language should be used
+     * @param item
+     *            The {@link SlimefunItem} whose lore to translate
+     *
+     * @return The localized lore or {@code null} if no translation exists
+     */
+    public @Nullable List<String> getItemLore(@Nonnull Player p, @Nonnull SlimefunItem item) {
+        Validate.notNull(p, "Player must not be null!");
+        Validate.notNull(item, "SlimefunItem must not be null!");
+
+        return getStringListOrNull(getLanguage(p), LanguageFile.ITEMS, item.getId() + ".lore");
+    }
+
+    /**
+     * This returns the display name of the given {@link SlimefunItem} for the specified {@link Player},
+     * already colorized and ready to be shown.
+     *
+     * It uses the localized name from {@link LanguageFile#ITEMS} when available and otherwise falls back
+     * to the default (hardcoded) item name.
+     *
+     * @param p
+     *            The {@link Player} whose language should be used
+     * @param item
+     *            The {@link SlimefunItem} whose name to translate
+     *
+     * @return The (colorized) display name, localized if a translation exists
+     */
+    public @Nonnull String getDisplayName(@Nonnull Player p, @Nonnull SlimefunItem item) {
+        Validate.notNull(p, "Player must not be null!");
+        Validate.notNull(item, "SlimefunItem must not be null!");
+
+        String localized = getItemName(p, item);
+        return localized != null ? ChatColors.color(localized) : item.getItemName();
+    }
+
+    /**
+     * This returns a {@link SlimefunItem}'s display {@link ItemStack} with its name (and lore) translated
+     * to the {@link Player}'s selected language.
+     *
+     * Color codes (using the {@code &} prefix) and placeholders inside the translation are preserved.
+     * If no translation exists, the original (hardcoded, English) {@link ItemStack} is returned unchanged.
+     *
+     * @param p
+     *            The {@link Player} whose language should be used
+     * @param item
+     *            The {@link SlimefunItem} to localize
+     *
+     * @return A localized display {@link ItemStack}, or the original if no translation is available
+     */
+    @ParametersAreNonnullByDefault
+    public @Nonnull ItemStack getLocalizedItem(Player p, SlimefunItem item) {
+        Validate.notNull(p, "Player must not be null!");
+        Validate.notNull(item, "SlimefunItem must not be null!");
+
+        String name = getItemName(p, item);
+        List<String> lore = getItemLore(p, item);
+
+        // No translation available, return the original (hardcoded English) item.
+        if (name == null && lore == null) {
+            return item.getItem();
+        }
+
+        return CustomItemStack.create(item.getItem(), meta -> {
+            if (name != null) {
+                meta.setDisplayName(ChatColors.color(name));
+            }
+
+            if (lore != null) {
+                List<String> coloredLore = new ArrayList<>(lore.size());
+
+                for (String line : lore) {
+                    coloredLore.add(ChatColors.color(line));
+                }
+
+                meta.setLore(coloredLore);
+            }
+        });
+    }
+
+    /**
+     * This resolves the {@link SlimefunItem} behind the given {@link ItemStack} and returns a localized
+     * display copy (see {@link #getLocalizedItem(Player, SlimefunItem)}). If the {@link ItemStack} is not
+     * a Slimefun item, it is returned unchanged.
+     *
+     * @param p
+     *            The {@link Player} whose language should be used
+     * @param item
+     *            The {@link ItemStack} to localize
+     *
+     * @return A localized display {@link ItemStack}, or the original if it is not a Slimefun item
+     */
+    @ParametersAreNonnullByDefault
+    public @Nonnull ItemStack getLocalizedItem(Player p, ItemStack item) {
+        Validate.notNull(p, "Player must not be null!");
+        Validate.notNull(item, "ItemStack must not be null!");
+
+        SlimefunItem sfItem = SlimefunItem.getByItem(item);
+
+        if (sfItem == null) {
+            return item;
+        }
+
+        return getLocalizedItem(p, sfItem);
     }
 
     public @Nullable String getResourceString(@Nonnull Player p, @Nonnull String key) {
