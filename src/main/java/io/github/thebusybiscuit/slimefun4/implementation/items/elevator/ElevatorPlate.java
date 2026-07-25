@@ -83,8 +83,9 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
     public @Nonnull BlockUseHandler getItemHandler() {
         return e -> {
             Block b = e.getClickedBlock().get();
+            String owner = BlockStorage.getLocationInfo(b.getLocation(), "owner");
 
-            if (BlockStorage.getLocationInfo(b.getLocation(), "owner").equals(e.getPlayer().getUniqueId().toString())) {
+            if (owner != null && owner.equals(e.getPlayer().getUniqueId().toString())) {
                 openEditor(e.getPlayer(), b);
             }
         };
@@ -96,7 +97,8 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
 
         for (int y = b.getWorld().getMinHeight(); y < b.getWorld().getMaxHeight(); y++) {
             if (y == b.getY()) {
-                String name = ChatColors.color(BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY));
+                String raw = BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY);
+                String name = ChatColors.color(raw != null ? raw : "Floor #" + index);
                 floors.addFirst(new ElevatorFloor(name, index, b));
                 index++;
                 continue;
@@ -105,7 +107,8 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
             Block block = b.getWorld().getBlockAt(b.getX(), y, b.getZ());
 
             if (block.getType() == getItem().getType() && BlockStorage.check(block, getId())) {
-                String name = ChatColors.color(BlockStorage.getLocationInfo(block.getLocation(), DATA_KEY));
+                String raw = BlockStorage.getLocationInfo(block.getLocation(), DATA_KEY);
+                String name = ChatColors.color(raw != null ? raw : "Floor #" + index);
                 floors.addFirst(new ElevatorFloor(name, index, block));
                 index++;
             }
@@ -203,7 +206,8 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
     public void openEditor(Player p, Block b) {
         ChestMenu menu = new ChestMenu(Slimefun.getLocalization().getMessage(p, "machines.ELEVATOR.editor-title"));
 
-        menu.addItem(4, CustomItemStack.create(Material.NAME_TAG, "&7Floor Name &e(Click to edit)", "", ChatColor.WHITE + ChatColors.color(BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY))));
+        String currentName = BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY);
+        menu.addItem(4, CustomItemStack.create(Material.NAME_TAG, "&7Floor Name &e(Click to edit)", "", ChatColor.WHITE + ChatColors.color(currentName != null ? currentName : "Floor #0")));
         menu.addMenuClickHandler(4, (pl, slot, item, action) -> {
             pl.closeInventory();
             pl.sendMessage("");

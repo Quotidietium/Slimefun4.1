@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Location;
@@ -62,10 +63,33 @@ public abstract class GPSTransmitter extends SimpleSlimefunItem<BlockTicker> imp
             @Override
             public void onPlayerBreak(BlockBreakEvent e, ItemStack item, List<ItemStack> drops) {
                 Location l = e.getBlock().getLocation();
-                UUID owner = UUID.fromString(BlockStorage.getLocationInfo(l, "owner"));
-                Slimefun.getGPSNetwork().updateTransmitter(l, owner, false);
+                UUID owner = getOwner(l);
+
+                if (owner != null) {
+                    Slimefun.getGPSNetwork().updateTransmitter(l, owner, false);
+                }
             }
         };
+    }
+
+    /**
+     * Resolves the {@link UUID} of the {@link org.bukkit.entity.Player} who placed this transmitter.
+     * Returns {@code null} when the owner data is missing or corrupted, in which case the
+     * transmitter is treated as unowned and skipped (no network updates).
+     */
+    @Nullable
+    private UUID getOwner(@Nonnull Location l) {
+        String owner = BlockStorage.getLocationInfo(l, "owner");
+
+        if (owner == null) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(owner);
+        } catch (IllegalArgumentException x) {
+            return null;
+        }
     }
 
     public abstract int getMultiplier(int y);
@@ -79,7 +103,11 @@ public abstract class GPSTransmitter extends SimpleSlimefunItem<BlockTicker> imp
             @Override
             public void tick(Block b, SlimefunItem item, Config data) {
                 int charge = getCharge(b.getLocation(), data);
-                UUID owner = UUID.fromString(BlockStorage.getLocationInfo(b.getLocation(), "owner"));
+                UUID owner = getOwner(b.getLocation());
+
+                if (owner == null) {
+                    return;
+                }
 
                 if (charge >= getEnergyConsumption()) {
                     Slimefun.getGPSNetwork().updateTransmitter(b.getLocation(), owner, true);
