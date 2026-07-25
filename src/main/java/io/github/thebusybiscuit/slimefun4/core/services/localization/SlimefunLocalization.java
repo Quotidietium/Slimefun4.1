@@ -3,9 +3,12 @@ package io.github.thebusybiscuit.slimefun4.core.services.localization;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nonnull;
@@ -19,6 +22,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -49,7 +53,21 @@ import net.md_5.bungee.api.chat.TextComponent;
  */
 public abstract class SlimefunLocalization implements Keyed {
 
+    /**
+     * The path (inside {@link LanguageFile#MESSAGES}) under which lore-phrase translations are stored.
+     * Lore phrases are mapped from an English substring to its localized equivalent and are applied to
+     * lore lines at display time. This allows us to translate the static text portion of <em>dynamic</em>
+     * lore (e.g. the labels produced by {@code LoreBuilder}) while preserving any numbers, icons,
+     * color codes and placeholders (such as {@code <Type>} or {@code <ID>}).
+     */
+    private static final String LORE_PHRASES_PATH = "lore-phrases";
+
     private final Config defaultConfig;
+
+    /**
+     * A per-{@link Language} cache of colorized lore phrases (English -> localized), sorted longest-first.
+     */
+    private final Map<Language, List<String[]>> lorePhraseCache = new ConcurrentHashMap<>();
 
     protected SlimefunLocalization(@Nonnull Slimefun plugin) {
         this.defaultConfig = new Config(plugin, "messages.yml");
@@ -325,21 +343,112 @@ public abstract class SlimefunLocalization implements Keyed {
     }
 
     /**
-     * This returns the localized lore of the given {@link SlimefunItem} for the specified {@link Player}.
-     * The lookup is performed in the {@link LanguageFile#ITEMS} file, keyed by {@code "<itemId>.lore"}.
+     * This translates the given lore lines for the specified {@link Player} using the
+     * {@link #LORE_PHRASES_PATH lore-phrase} table of the player's language.
+     *
+     * <p>
+     * <b>This is safe for dynamic lore:</b> it only replaces known English substrings (the translatable
+     * labels, e.g. the ones produced by {@code LoreBuilder}) and leaves everything else untouched.
+     * Numbers, icons, color codes and placeholders (such as {@code <Type>} or {@code <ID>}) are preserved,
+     * so the dynamic content (power values, speed, capacity, runtime-resolved placeholders) remains intact.
+     * </p>
+     *
+     * <p>
+     * Lines that contain no known phrase are returned unchanged.
+     * </p>
      *
      * @param p
      *            The {@link Player} whose language should be used
-     * @param item
-     *            The {@link SlimefunItem} whose lore to translate
+     * @param lore
+     *            The original (English) lore lines
      *
-     * @return The localized lore or {@code null} if no translation exists
+     * @return The translated lore lines (a new list)
      */
-    public @Nullable List<String> getItemLore(@Nonnull Player p, @Nonnull SlimefunItem item) {
+    @ParametersAreNonnullByDefault
+    public @Nonnull List<String> translateLore(Player p, List<String> lore) {
         Validate.notNull(p, "Player must not be null!");
-        Validate.notNull(item, "SlimefunItem must not be null!");
+        Validate.notNull(lore, "Lore must not be null!");
 
-        return getStringListOrNull(getLanguage(p), LanguageFile.ITEMS, item.getId() + ".lore");
+        return translateLore(getLorePhrases(getLanguage(p)), lore);
+    }
+
+    /**
+     * This applies the given (colorized) lore phrases to the given lore lines.
+     *
+     * Phrases are matched longest-first so that a more specific phrase (e.g. " J Buffer") is replaced
+     * before a shorter prefix of it could interfere.
+     *
+     * @param phrases
+     *            The colorized phrases, each a {@code String[]} of {@code {english, localized}}
+     * @param lore
+     *            The original lore lines
+     *
+     * @return A new list with all matching phrases replaced
+     */
+    private @Nonnull List<String> translateLore(@Nonnull List<String[]> phrases, @Nonnull List<String> lore) {
+        if (phrases.isEmpty()) {
+            return new ArrayList<>(lore);
+        }
+
+        List<String> result = new ArrayList<>(lore.size());
+
+        for (String line : lore) {
+            String translated = line;
+
+            for (String[] phrase : phrases) {
+                String english = phrase[0];
+
+                if (translated.contains(english)) {
+                    translated = translated.replace(english, phrase[1]);
+                }
+            }
+
+            result.add(translated);
+        }
+
+        return result;
+    }
+
+    /**
+     * This returns the list of colorized lore phrases (English -> localized) for the given {@link Language},
+     * sorted longest-first. The result is cached per language.
+     *
+     * @param language
+     *            The {@link Language} to load the phrases for
+     *
+     * @return The (possibly empty) list of phrases, each a {@code String[]} of {@code {english, localized}}
+     */
+    private @Nonnull List<String[]> getLorePhrases(@Nullable Language language) {
+        if (language == null) {
+            return Collections.emptyList();
+        }
+
+        List<String[]> cached = lorePhraseCache.get(language);
+
+        if (cached != null) {
+            return cached;
+        }
+
+        List<String[]> phrases = new ArrayList<>();
+        FileConfiguration config = language.getFile(LanguageFile.MESSAGES);
+
+        if (config != null && config.isConfigurationSection(LORE_PHRASES_PATH)) {
+            ConfigurationSection section = config.getConfigurationSection(LORE_PHRASES_PATH);
+
+            for (String key : section.getKeys(false)) {
+                String value = section.getString(key);
+
+                if (value != null) {
+                    phrases.add(new String[] { ChatColors.color(key), ChatColors.color(value) });
+                }
+            }
+
+            // Apply longer phrases first so that e.g. " J Buffer" is matched before " J".
+            phrases.sort((a, b) -> Integer.compare(b[0].length(), a[0].length()));
+        }
+
+        lorePhraseCache.put(language, phrases);
+        return phrases;
     }
 
     /**
@@ -368,8 +477,18 @@ public abstract class SlimefunLocalization implements Keyed {
      * This returns a {@link SlimefunItem}'s display {@link ItemStack} with its name (and lore) translated
      * to the {@link Player}'s selected language.
      *
-     * Color codes (using the {@code &} prefix) and placeholders inside the translation are preserved.
-     * If no translation exists, the original (hardcoded, English) {@link ItemStack} is returned unchanged.
+     * <p>
+     * The item <b>name</b> is translated via the per-item {@code items.yml} ({@code "<id>.name"}).
+     * </p>
+     * <p>
+     * The <b>lore</b> is translated via the {@link #LORE_PHRASES_PATH lore-phrase} table, which only replaces
+     * known English labels and thus preserves dynamic content (numbers, icons, color codes, placeholders
+     * like {@code <Type>}/{@code <ID>}). This makes it safe for dynamic lore such as machine stats.
+     * </p>
+     * <p>
+     * If no name translation exists and the language has no lore phrases, the original (hardcoded, English)
+     * {@link ItemStack} is returned unchanged.
+     * </p>
      *
      * @param p
      *            The {@link Player} whose language should be used
@@ -384,10 +503,10 @@ public abstract class SlimefunLocalization implements Keyed {
         Validate.notNull(item, "SlimefunItem must not be null!");
 
         String name = getItemName(p, item);
-        List<String> lore = getItemLore(p, item);
+        List<String[]> lorePhrases = getLorePhrases(getLanguage(p));
 
-        // No translation available, return the original (hardcoded English) item.
-        if (name == null && lore == null) {
+        // No name translation and no lore phrases -> nothing to localize.
+        if (name == null && lorePhrases.isEmpty()) {
             return item.getItem();
         }
 
@@ -396,14 +515,8 @@ public abstract class SlimefunLocalization implements Keyed {
                 meta.setDisplayName(ChatColors.color(name));
             }
 
-            if (lore != null) {
-                List<String> coloredLore = new ArrayList<>(lore.size());
-
-                for (String line : lore) {
-                    coloredLore.add(ChatColors.color(line));
-                }
-
-                meta.setLore(coloredLore);
+            if (!lorePhrases.isEmpty() && meta.hasLore()) {
+                meta.setLore(translateLore(lorePhrases, meta.getLore()));
             }
         });
     }
