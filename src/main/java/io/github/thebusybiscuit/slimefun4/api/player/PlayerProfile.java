@@ -496,8 +496,16 @@ public class PlayerProfile {
 
         if (id.isPresent()) {
             int number = id.getAsInt();
+            UUID ownerUuid;
 
-            fromUUID(UUID.fromString(uuid), profile -> {
+            try {
+                ownerUuid = UUID.fromString(uuid);
+            } catch (IllegalArgumentException x) {
+                // Forged or malformed lore line. Silently ignore.
+                return;
+            }
+
+            fromUUID(ownerUuid, profile -> {
                 Optional<PlayerBackpack> backpack = profile.getBackpack(number);
                 backpack.ifPresent(callback);
             });

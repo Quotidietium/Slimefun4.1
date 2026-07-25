@@ -175,11 +175,13 @@ public class BackpackListener implements Listener {
 
         // Check if someone else is currently viewing this backpack
         if (!backpacks.containsValue(item)) {
-            SoundEffect.BACKPACK_OPEN_SOUND.playAt(p.getLocation(), SoundCategory.PLAYERS);
-            backpacks.put(p.getUniqueId(), item);
-
             PlayerProfile.getBackpack(item, backpack -> {
-                if (backpack != null) {
+                // Only the owner (or an admin with the bypass permission) may open a backpack.
+                // Without this check, a forged lore line ("ID: <victim-uuid>#<id>") would allow
+                // anyone to open and loot arbitrary players' backpacks (IDOR).
+                if (backpack != null && (p.getUniqueId().equals(backpack.getOwnerId()) || p.hasPermission("slimefun.inventory.bypass"))) {
+                    SoundEffect.BACKPACK_OPEN_SOUND.playAt(p.getLocation(), SoundCategory.PLAYERS);
+                    backpacks.put(p.getUniqueId(), item);
                     backpack.open(p);
                 }
             });
