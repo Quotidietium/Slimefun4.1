@@ -433,3 +433,39 @@ languages:
   be: '白俄罗斯语'
   si-LK: '僧伽罗语'
   lt: '立陶宛语'
+# 动态 lore 短语翻译表。
+# 键 = lore 行中出现的英文子串；值 = 对应中文。
+# 仅替换已知英文标签，数字、图标、&颜色码、占位符（如 <Type>/<ID>）原样保留。
+# 短语按长度降序应用（先长后短），避免前缀误匹配。
+lore-phrases:
+  # 机器数值标签（LoreBuilder：speed / powerBuffer / powerPerSecond / material / range）
+  "Speed: ": "速度： "
+  " J Buffer": " J 缓冲"
+  " J/s": " J/秒"
+  "Material: ": "材料： "
+  "Range: ": "范围： "
+  " blocks": " 格"
+  # 机器等级 (MachineTier) + 类型 (MachineType)
+  "Basic Machine": "基础机器"
+  "Advanced Machine": "高级机器"
+  "End-Game Machine": "终局机器"
+  "Basic Generator": "基础发电机"
+  "Advanced Generator": "高级发电机"
+  "End-Game Generator": "终局发电机"
+  "Basic Capacitor": "基础电容"
+  "Advanced Capacitor": "高级电容"
+  "End-Game Capacitor": "终局电容"
+  # 饥饿值（LoreBuilder.hunger）
+  "Restores ": "恢复 "
+  "Hunger": "饥饿值"
+  # 剩余使用次数（LoreBuilder.usesLeft）
+  " Uses &7left": " 次 &7剩余"
+  " Use &7left": " 次 &7剩余"
+  # LoreBuilder 常量
+  "&eRight Click&7 to open": "&e右键&7打开"
+  "&eRight Click&7 to use": "&e右键&7使用"
+  "&eCrouch&7 to use": "&e潜行&7使用"
+  "Hazmat Suit required!": "需要防化服！"
+  "Cycles through all Colors of the Rainbow!": "循环显示彩虹的所有颜色！"
+  # 放射性（Radioactivity.getLore）
+  " Radiation level: ": " 辐射等级： "

@@ -1,5 +1,8 @@
 package io.github.thebusybiscuit.slimefun4.core.services.localization;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -8,6 +11,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.bakedlibs.dough.common.ChatColors;
 
 import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
@@ -81,5 +86,49 @@ class TestItemLocalization {
 
         // getDisplayName must therefore return the (English) hardcoded name unchanged.
         Assertions.assertEquals(item.getItemName(), localization.getDisplayName(player, item));
+    }
+
+    @Test
+    @DisplayName("Test that dynamic lore labels are translated while numbers and icons are preserved")
+    void testDynamicLoreTranslation() {
+        Player player = new PlayerMock(server, "ChinesePlayer");
+        PersistentDataAPI.setString(player, localization.getKey(), "zh-CN");
+
+        // Simulate a LoreBuilder.powerBuffer(4) line (already colorized, as it is on a real ItemStack).
+        List<String> lore = Arrays.asList(ChatColors.color("&8⇨ &e⚡ &74 J Buffer"));
+
+        List<String> translated = localization.translateLore(player, lore);
+        Assertions.assertEquals(1, translated.size());
+
+        String line = translated.get(0);
+        // The label "Buffer" must be translated...
+        Assertions.assertTrue(line.contains("缓冲"), "Lore label should be translated, but was: " + line);
+        // ...but the dynamic number and the icon must be preserved.
+        Assertions.assertTrue(line.contains("4"), "The dynamic number should be preserved, but was: " + line);
+        Assertions.assertTrue(line.contains("⚡"), "The icon should be preserved, but was: " + line);
+    }
+
+    @Test
+    @DisplayName("Test that placeholders like <Type> are preserved when translating lore")
+    void testPlaceholderPreserved() {
+        Player player = new PlayerMock(server, "ChinesePlayer");
+        PersistentDataAPI.setString(player, localization.getKey(), "zh-CN");
+
+        // A Broken Spawner-style line that contains the <Type> placeholder.
+        List<String> lore = Arrays.asList(ChatColors.color("&7Type: &b<Type>"));
+
+        List<String> translated = localization.translateLore(player, lore);
+        Assertions.assertEquals(1, translated.size());
+        Assertions.assertTrue(translated.get(0).contains("<Type>"), "Placeholders must be preserved, but was: " + translated.get(0));
+    }
+
+    @Test
+    @DisplayName("Test that an English player's lore is left untouched")
+    void testEnglishLoreUntouched() {
+        Player player = new PlayerMock(server, "EnglishPlayer");
+        List<String> lore = Arrays.asList(ChatColors.color("&8⇨ &e⚡ &74 J Buffer"));
+
+        List<String> translated = localization.translateLore(player, lore);
+        Assertions.assertEquals(lore, translated);
     }
 }
