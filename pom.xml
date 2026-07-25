@@ -360,12 +360,15 @@
             <artifactId>dough-api</artifactId>
             <version>cb22e71335</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.Slimefun.dough</groupId>
-            <artifactId>dough-api</artifactId>
-            <version>cb22e71335</version>
-            <scope>compile</scope>
+            <exclusions>
+                <!-- dough-skins uses CustomGameProfile which extends com.mojang.authlib.GameProfile.
+                     Since 1.21.2 GameProfile is final, so loading that class throws IncompatibleClassChangeError.
+                     We provide our own io.github.bakedlibs.dough.skins implementation instead. -->
+                <exclusion>
+                    <groupId>com.github.Slimefun.dough</groupId>
+                    <artifactId>dough-skins</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.papermc</groupId>
