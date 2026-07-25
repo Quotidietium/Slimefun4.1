@@ -114,6 +114,13 @@ public abstract class LimitedUseItem extends SimpleSlimefunItem<ItemUseHandler> 
             NamespacedKey key = getStorageKey();
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
             int usesLeft = pdc.getOrDefault(key, PersistentDataType.INTEGER, getMaxUseCount());
+            int maxUses = getMaxUseCount();
+
+            // Clamp to [1, max] to defend against forged PDC values (e.g. Integer.MAX_VALUE
+            // for unlimited uses, or non-positive values that would never decrement to break).
+            if (maxUses >= 1) {
+                usesLeft = Math.min(Math.max(usesLeft, 1), maxUses);
+            }
 
             if (usesLeft == 1) {
                 SoundEffect.LIMITED_USE_ITEM_BREAK_SOUND.playFor(p);

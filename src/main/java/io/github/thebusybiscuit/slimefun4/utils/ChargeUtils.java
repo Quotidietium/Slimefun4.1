@@ -81,9 +81,14 @@ public final class ChargeUtils {
                 if (REGEX.matcher(line).matches()) {
                     String data = ChatColor.stripColor(PatternUtils.SLASH_SEPARATOR.split(line)[0].replace(LORE_PREFIX, ""));
 
-                    float loreValue = Float.parseFloat(data);
-                    container.set(key, PersistentDataType.FLOAT, loreValue);
-                    return loreValue;
+                    try {
+                        float loreValue = Float.parseFloat(data);
+                        container.set(key, PersistentDataType.FLOAT, loreValue);
+                        return loreValue;
+                    } catch (NumberFormatException x) {
+                        // Corrupted lore that matches the regex but isn't a valid number.
+                        return 0;
+                    }
                 }
             }
         }
