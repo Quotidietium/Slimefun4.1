@@ -10,10 +10,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.Plugin;
 
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu.AdvancedMenuClickHandler;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu.MenuClickHandler;
+import me.mrCookieSlime.Slimefun.api.inventory.DirtyChestMenu;
 
 /**
  * An old {@link Listener} for CS-CoreLib
@@ -52,9 +54,56 @@ public class MenuListener implements Listener {
                 } else {
                     e.setCancelled(!handler.onClick((Player) e.getWhoClicked(), e.getSlot(), e.getCurrentItem(), new ClickAction(e.isRightClick(), e.isShiftClick())));
                 }
+
+                // Any click inside the menu that was not cancelled may modify its contents
+                if (!e.isCancelled() && menu instanceof DirtyChestMenu dirtyMenu) {
+                    dirtyMenu.markDirty();
+                }
             } else {
                 e.setCancelled(!menu.getPlayerInventoryClickHandler().onClick((Player) e.getWhoClicked(), e.getSlot(), e.getCurrentItem(), new ClickAction(e.isRightClick(), e.isShiftClick())));
+
+                // Shift-clicking inside the Player inventory moves the item into the menu
+                if (!e.isCancelled() && e.isShiftClick() && menu instanceof DirtyChestMenu dirtyMenu) {
+                    dirtyMenu.markDirty();
+                }
             }
+        }
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        ChestMenu menu = menus.get(e.getWhoClicked().getUniqueId());
+
+        if (menu == null) {
+            return;
+        }
+
+        int topInventorySize = e.getView().getTopInventory().getSize();
+        boolean touchesMenu = false;
+
+        for (int rawSlot : e.getRawSlots()) {
+            if (rawSlot < topInventorySize) {
+                touchesMenu = true;
+
+                /*
+                 * Dragging is not an InventoryClickEvent, so the click handlers never
+                 * see it. Mirror the click logic: slots with a registered handler are
+                 * protected, handler-less slots follow isEmptySlotsClickable().
+                 */
+                if (menu.getMenuClickHandler(rawSlot) != null || !menu.isEmptySlotsClickable()) {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+        }
+
+        if (!touchesMenu && !menu.isPlayerInventoryClickable()) {
+            e.setCancelled(true);
+            return;
+        }
+
+        if (touchesMenu && menu instanceof DirtyChestMenu dirtyMenu) {
+            dirtyMenu.markDirty();
         }
     }
 

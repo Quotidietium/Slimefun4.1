@@ -1,10 +1,10 @@
 package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -21,6 +21,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
@@ -51,7 +52,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.backpacks.Slimefu
  */
 public class BackpackListener implements Listener {
 
-    private final Map<UUID, ItemStack> backpacks = new HashMap<>();
+    private final Map<UUID, ItemStack> backpacks = new ConcurrentHashMap<>();
 
     public void register(@Nonnull Slimefun plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -126,8 +127,49 @@ public class BackpackListener implements Listener {
                             e.setCancelled(true);
                         }
                     }
-                } else if (!isAllowed(slimefunBackpack, e.getCurrentItem())) {
+                } else if (e.getClickedInventory().getType() == InventoryType.PLAYER) {
+                    // Shift-clicking inside the Player's own inventory moves the item into the backpack.
+                    if (e.getClick().isShiftClick() && !isAllowed(slimefunBackpack, e.getCurrentItem())) {
+                        e.setCancelled(true);
+                    }
+                } else if (!isAllowed(slimefunBackpack, e.getCursor())) {
+                    /*
+                     * Clicking inside the backpack GUI may place the item held on the cursor
+                     * into the backpack (or swap it with the clicked slot's content).
+                     * The previous check only looked at the clicked slot's item, which is
+                     * null for empty slots - allowing disallowed items (e.g. shulker boxes
+                     * or nested backpacks) to be placed into empty slots.
+                     */
                     e.setCancelled(true);
+                }
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onDrag(InventoryDragEvent e) {
+        ItemStack item = backpacks.get(e.getWhoClicked().getUniqueId());
+
+        if (item == null) {
+            return;
+        }
+
+        SlimefunItem backpack = SlimefunItem.getByItem(item);
+
+        if (backpack instanceof SlimefunBackpack slimefunBackpack) {
+            int topInventorySize = e.getView().getTopInventory().getSize();
+
+            for (int rawSlot : e.getRawSlots()) {
+                if (rawSlot < topInventorySize) {
+                    /*
+                     * Dragging distributes the dragged item across the affected slots.
+                     * InventoryDragEvent is NOT an InventoryClickEvent, so the click-based
+                     * checks above never see this - validate the dragged item here.
+                     */
+                    if (!isAllowed(slimefunBackpack, e.getOldCursor())) {
+                        e.setCancelled(true);
+                        return;
+                    }
                 }
             }
         }

@@ -400,6 +400,19 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         // Cancel all tasks from this plugin immediately
         Bukkit.getScheduler().cancelTasks(this);
 
+        /*
+         * Close all inventories BEFORE saving anything.
+         * Closing a backpack or menu fires its close handlers, which mark the
+         * corresponding data as dirty. If we saved first and closed afterwards,
+         * those last-minute changes would never be persisted (item loss), or
+         * worse: an already-saved backpack would still contain items the player
+         * took out after the save (item duplication).
+         * This also prevents item dupes (in case some idiot uses /reload).
+         */
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.closeInventory();
+        }
+
         // Finishes all started movements/removals of block data
         try {
             ticker.halt();
@@ -439,14 +452,6 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
 
         // Terminate our Plugin instance
         setInstance(null);
-
-        /**
-         * Close all inventories on the server to prevent item dupes
-         * (Incase some idiot uses /reload)
-         */
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.closeInventory();
-        }
     }
 
     /**
