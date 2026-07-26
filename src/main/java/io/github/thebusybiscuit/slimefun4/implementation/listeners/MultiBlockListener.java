@@ -36,6 +36,14 @@ import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
  */
 public class MultiBlockListener implements Listener {
 
+    /**
+     * Pre-allocated direction arrays for {@link #compareMaterials(Block, Material[], boolean)}.
+     * These are read-only constants, allocating them on every call would just create garbage
+     * on each right click.
+     */
+    private static final BlockFace[] TWO_WAY_DIRECTIONS = { BlockFace.NORTH, BlockFace.EAST };
+    private static final BlockFace[] FOUR_WAY_DIRECTIONS = { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST };
+
     public MultiBlockListener(@Nonnull Slimefun plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
@@ -78,7 +86,7 @@ public class MultiBlockListener implements Listener {
             return false;
         }
 
-        BlockFace[] directions = onlyTwoWay ? new BlockFace[] { BlockFace.NORTH, BlockFace.EAST } : new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST };
+        BlockFace[] directions = onlyTwoWay ? TWO_WAY_DIRECTIONS : FOUR_WAY_DIRECTIONS;
 
         for (BlockFace direction : directions) {
             if (compareMaterialsVertical(b.getRelative(direction), blocks[0], blocks[3], blocks[6]) && compareMaterialsVertical(b.getRelative(direction.getOppositeFace()), blocks[2], blocks[5], blocks[8])) {
