@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -244,6 +245,17 @@ public class PlayerBackpack {
 
     @ParametersAreNonnullByDefault
     public static PlayerBackpack load(UUID ownerId, int id, int size, HashMap<Integer, ItemStack> contents) {
+        if (size < 9 || size > 54 || size % 9 != 0) {
+            /*
+             * A corrupted size entry (e.g. a hand-edited or truncated config file)
+             * would make Bukkit.createInventory() throw and drop the whole backpack.
+             * Clamp to a valid inventory size instead, preserving as much as we can.
+             */
+            int clamped = Math.min(54, Math.max(9, ((size + 8) / 9) * 9));
+            Slimefun.logger().log(Level.WARNING, "Backpack {0} of Player {1} has an invalid size of {2}, clamping it to {3}", new Object[] { id, ownerId, size, clamped });
+            size = clamped;
+        }
+
         PlayerBackpack backpack = new PlayerBackpack(ownerId, id, size);
 
         backpack.setContents(size, contents);
