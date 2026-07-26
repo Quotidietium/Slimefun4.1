@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>local.benchmark</groupId>
+    <artifactId>sf4-perf-benchmark</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+
+    <!--
+      Standalone performance benchmark for SlimeFun4.1.
+      This project is NOT a module of the main build and is NOT tracked by git
+      (excluded via .git/info/exclude). It does not depend on the Slimefun
+      Maven artifact; instead it loads the *unshaded* classes of a Slimefun
+      build (target/classes) via ${sf.classes} on the runtime classpath,
+      exactly like the project's own test-suite does (surefire runs against
+      target/classes + dough-api, not the shaded jar).
+    -->
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>21</maven.compiler.release>
+
+        <!-- Jar containing the Slimefun classes under test (built from a
+             Slimefun build's unshaded target/classes by run-benchmark.sh) -->
+        <sf.jar>${basedir}/target/slimefun-under-test.jar</sf.jar>
+
+        <!-- Label + output file for this run (overridden per run) -->
+        <bench.label>current</bench.label>
+        <bench.out>report/results-current.txt</bench.out>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots</url>
+        </repository>
+        <repository>
+            <id>paper-repo</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- The Slimefun version under test: unshaded classes of a Slimefun
+             build, packaged as a jar (system scope puts it on both the
+             compile classpath and the exec:java runtime classpath). -->
+        <dependency>
+            <groupId>local</groupId>
+            <artifactId>slimefun-under-test</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${sf.jar}</systemPath>
+        </dependency>
+
+        <!-- Paper API (same version as the main project) -->
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.21.1-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- paper-api declares adventure-api with *runtime* scope, so it never
+             reaches the compile classpath transitively. Bukkit interfaces
+             (World, Audience, Keyed, ...) reference it - declare it explicitly. -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>4.17.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- MockBukkit: same version the project's test-suite uses -->
+        <dependency>
+            <groupId>com.github.seeseemelk</groupId>
+            <artifactId>MockBukkit-v1.21</artifactId>
+            <version>3.133.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jetbrains</groupId>
+                    <artifactId>annotations</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- dough-api: same version as the main project; dough-skins is excluded
+             because SlimeFun4.1 provides its own implementation (inside sf.classes) -->
+        <dependency>
+            <groupId>com.github.Slimefun.dough</groupId>
+            <artifactId>dough-api</artifactId>
+            <version>cb22e71335</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.Slimefun.dough</groupId>
+                    <artifactId>dough-skins</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>io.papermc</groupId>
+            <artifactId>paperlib</artifactId>
+            <version>1.0.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mojang</groupId>
+            <artifactId>authlib</artifactId>
+            <version>6.0.52</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

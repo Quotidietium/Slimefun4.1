@@ -1,0 +1,11 @@
+# Build output of the benchmark harness itself (including the
+# slimefun-under-test jars assembled by run-benchmark.sh)
+target/
+
+# Runtime artifacts produced by benchmark runs (BlockStorage persistence,
+# plugin data folder with error reports)
+data-storage/
+plugins/
+
+# NOTE: report/ is intentionally NOT ignored - benchmark reports are kept
+# in git for future reference.
