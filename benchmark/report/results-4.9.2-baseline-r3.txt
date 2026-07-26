@@ -1,0 +1,21 @@
+NOTE|4.9.2-baseline-r3|Slimefun version under test: 4.9.2
+NOTE|4.9.2-baseline-r3|Java: 21.0.10 (Oracle Corporation)
+RESULT|4.9.2-baseline-r3|blockstorage|charge-write|median_ns_per_write|ns|958.600
+RESULT|4.9.2-baseline-r3|blockstorage|charge-write|min_ns_per_write|ns|937.900
+RESULT|4.9.2-baseline-r3|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|25.300
+RESULT|4.9.2-baseline-r3|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|20.950
+RESULT|4.9.2-baseline-r3|machine-idle-scan|empty-input|median_ns_per_tick|ns|1054.100
+RESULT|4.9.2-baseline-r3|machine-idle-scan|empty-input|min_ns_per_tick|ns|932.700
+RESULT|4.9.2-baseline-r3|machine-idle-scan|junk-input|median_ns_per_tick|ns|2700.300
+RESULT|4.9.2-baseline-r3|machine-idle-scan|junk-input|min_ns_per_tick|ns|2659.000
+NOTE|4.9.2-baseline-r3|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|4.9.2-baseline-r3|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|4473.750
+RESULT|4.9.2-baseline-r3|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|4083.200
+RESULT|4.9.2-baseline-r3|hologram-label|unchanged-label|median_ns_per_call|ns|8961.550
+RESULT|4.9.2-baseline-r3|hologram-label|unchanged-label|min_ns_per_call|ns|5794.600
+NOTE|4.9.2-baseline-r3|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|4.9.2-baseline-r3|ticker-run: first chunk isLoaded=true
+NOTE|4.9.2-baseline-r3|ticker-run: 5000 blocks ticked per run
+RESULT|4.9.2-baseline-r3|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|3.609
+RESULT|4.9.2-baseline-r3|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|2.600
+RESULT|4.9.2-baseline-r3|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|721.740
