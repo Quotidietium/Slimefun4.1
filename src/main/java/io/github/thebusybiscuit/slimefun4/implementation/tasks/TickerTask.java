@@ -65,8 +65,8 @@ public class TickerTask implements Runnable {
     private final Map<BlockPosition, Integer> bugs = new ConcurrentHashMap<>();
 
     private int tickRate;
-    private boolean halted = false;
-    private boolean running = false;
+    private volatile boolean halted = false;
+    private volatile boolean running = false;
 
     /**
      * A buffered synchronized tick. Holds everything needed to run the synchronized
@@ -291,6 +291,27 @@ public class TickerTask implements Runnable {
         halted = true;
     }
 
+    /**
+     * Waits (with a timeout) until no asynchronous {@link #run()} is in flight.
+     * {@link org.bukkit.Bukkit#getScheduler()} cancellation does not interrupt an
+     * already running task, so without this a shutdown {@link #run()} call would
+     * return immediately (because {@link #running} is true) and leave the
+     * deletion/move queues un-drained before the final save - resurrecting
+     * block data for blocks that were just broken.
+     */
+    public void awaitIdle() {
+        long deadline = System.currentTimeMillis() + 5_000;
+
+        while (running && System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException x) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+
     @ParametersAreNonnullByDefault
     public void queueMove(Location from, Location to) {
         Validate.notNull(from, "Source Location cannot be null!");
@@ -466,8 +487,15 @@ public class TickerTask implements Runnable {
         if (locations != null) {
             locations.remove(l);
 
+            /*
+             * Remove the chunk entry only if it is still mapped to THIS (now empty)
+             * Set. A plain remove(chunk) is a check-then-act race: a concurrent
+             * enableTicker() may have picked up this Set reference and be about to
+             * add a Location to it - the entry would vanish with the Set and the
+             * newly added machine would never tick.
+             */
             if (locations.isEmpty()) {
-                tickingLocations.remove(chunk);
+                tickingLocations.remove(chunk, locations);
             }
         }
     }
