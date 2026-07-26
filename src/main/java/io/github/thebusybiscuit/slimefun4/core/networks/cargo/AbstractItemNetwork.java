@@ -1,9 +1,9 @@
 package io.github.thebusybiscuit.slimefun4.core.networks.cargo;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -37,12 +37,12 @@ abstract class AbstractItemNetwork extends Network {
      * This is a cache for the {@link BlockFace} a node is facing, so we don't need to
      * request the {@link BlockData} each time we visit a node
      */
-    protected Map<Location, BlockFace> connectorCache = new HashMap<>();
+    protected Map<Location, BlockFace> connectorCache = new ConcurrentHashMap<>();
 
     /**
      * This is our cache for the {@link ItemFilter} for each node.
      */
-    protected Map<Location, ItemFilter> filterCache = new HashMap<>();
+    protected Map<Location, ItemFilter> filterCache = new ConcurrentHashMap<>();
 
     protected AbstractItemNetwork(@Nonnull Location regulator) {
         super(Slimefun.getNetworkManager(), regulator);

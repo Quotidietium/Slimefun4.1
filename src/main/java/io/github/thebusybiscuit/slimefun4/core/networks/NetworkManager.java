@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Location;
 import org.bukkit.Server;
+import org.bukkit.World;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.config.Config;
@@ -97,6 +98,14 @@ public class NetworkManager {
     }
 
     /**
+     * Guards the two-step write in {@link #registerNetworkChunk(Network, Location)}
+     * against a concurrent {@link #unregisterNetwork(Network)}: without a common
+     * lock, an unregister landing between the two writes would leave a stale
+     * bucket entry behind that can never be removed again.
+     */
+    private final Object chunkIndexLock = new Object();
+
+    /**
      * Registers a {@link Network} under the chunk containing the given {@link Location}.
      * This is called internally whenever a {@link Network} starts occupying a new chunk.
      * <p>
@@ -110,12 +119,14 @@ public class NetworkManager {
     public void registerNetworkChunk(@Nonnull Network network, @Nonnull Location l) {
         long chunkKey = chunkKey(l);
 
-        networksByChunk
-            .computeIfAbsent(l.getWorld().getUID(), k -> new ConcurrentHashMap<>())
-            .computeIfAbsent(chunkKey, k -> new CopyOnWriteArrayList<>())
-            .addIfAbsent(network);
+        synchronized (chunkIndexLock) {
+            networksByChunk
+                .computeIfAbsent(l.getWorld().getUID(), k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(chunkKey, k -> new CopyOnWriteArrayList<>())
+                .addIfAbsent(network);
 
-        chunksPerNetwork.computeIfAbsent(network, k -> ConcurrentHashMap.newKeySet()).add(chunkKey);
+            chunksPerNetwork.computeIfAbsent(network, k -> ConcurrentHashMap.newKeySet()).add(chunkKey);
+        }
     }
 
     /**
@@ -284,7 +295,7 @@ public class NetworkManager {
 
     /**
      * This removes a {@link Network} from the network system.
-     * 
+     *
      * @param network
      *            The {@link Network} to remove
      */
@@ -293,31 +304,69 @@ public class NetworkManager {
         networks.remove(network);
         unindexedNetworks.remove(network);
 
-        // Remove the Network from the chunk index again.
-        Set<Long> chunks = chunksPerNetwork.remove(network);
+        synchronized (chunkIndexLock) {
+            // Remove the Network from the chunk index again.
+            Set<Long> chunks = chunksPerNetwork.remove(network);
 
-        if (chunks != null) {
-            Location regulator = network.getRegulator();
-
-            if (regulator == null) {
+            if (chunks == null) {
                 return;
             }
 
-            Map<Long, CopyOnWriteArrayList<Network>> worldMap = networksByChunk.get(regulator.getWorld().getUID());
+            Location regulator = network.getRegulator();
 
-            if (worldMap != null) {
-                for (Long chunkKey : chunks) {
-                    List<Network> bucket = worldMap.get(chunkKey);
+            if (regulator != null) {
+                removeFromChunkIndex(network, networksByChunk.get(regulator.getWorld().getUID()), chunks);
+            } else {
+                /*
+                 * Without a regulator we cannot know the World (unit tests only) -
+                 * sweep all worlds so no stale bucket entry is left behind.
+                 */
+                for (Map<Long, CopyOnWriteArrayList<Network>> worldMap : networksByChunk.values()) {
+                    removeFromChunkIndex(network, worldMap, chunks);
+                }
+            }
+        }
+    }
 
-                    if (bucket != null) {
-                        bucket.remove(network);
+    private void removeFromChunkIndex(@Nonnull Network network, Map<Long, CopyOnWriteArrayList<Network>> worldMap, @Nonnull Set<Long> chunks) {
+        if (worldMap != null) {
+            for (Long chunkKey : chunks) {
+                List<Network> bucket = worldMap.get(chunkKey);
 
-                        if (bucket.isEmpty()) {
-                            worldMap.remove(chunkKey, bucket);
-                        }
+                if (bucket != null) {
+                    bucket.remove(network);
+
+                    if (bucket.isEmpty()) {
+                        worldMap.remove(chunkKey, bucket);
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * This removes every {@link Network} that lives in the given {@link World},
+     * together with that World's chunk index. Called when a {@link World} is
+     * unloaded, so a stale (dead) Network can never shadow a new one after the
+     * World is loaded again.
+     *
+     * @param world
+     *            The {@link World} being unloaded
+     */
+    public void removeAllNetworks(@Nonnull World world) {
+        Validate.notNull(world, "The World cannot be null");
+        UUID worldId = world.getUID();
+
+        for (Network network : networks) {
+            Location regulator = network.getRegulator();
+
+            if (regulator != null && regulator.getWorld().getUID().equals(worldId)) {
+                unregisterNetwork(network);
+            }
+        }
+
+        synchronized (chunkIndexLock) {
+            networksByChunk.remove(worldId);
         }
     }
 

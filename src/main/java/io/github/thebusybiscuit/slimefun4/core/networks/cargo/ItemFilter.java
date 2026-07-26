@@ -99,7 +99,7 @@ class ItemFilter implements Predicate<ItemStack> {
                     int[] slots = CargoUtils.getFilteringSlots();
                     int inventorySize = menu.toInventory().getSize();
 
-                    if (inventorySize < slots[slots.length - 1]) {
+                    if (inventorySize <= slots[slots.length - 1]) {
                         /*
                          * Related to #2876
                          * The reason was a missing negation int he filtering statement above.

@@ -264,6 +264,14 @@ public class EnergyNet extends Network implements HologramOwner {
             } catch (Exception | LinkageError throwable) {
                 explodedBlocks.add(loc);
                 new ErrorReport<>(throwable, loc, item);
+
+                /*
+                 * Queue the location for re-classification: without this, the
+                 * generator would silently drop out of the Network forever
+                 * (until someone breaks and replaces the block), even after the
+                 * underlying problem is fixed.
+                 */
+                markDirty(loc);
             }
 
             long time = Slimefun.getProfiler().closeEntry(loc, item, timestamp);

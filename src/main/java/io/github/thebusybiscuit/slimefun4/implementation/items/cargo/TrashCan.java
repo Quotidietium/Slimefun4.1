@@ -74,7 +74,9 @@ public class TrashCan extends SlimefunItem implements InventoryBlock {
 
             @Override
             public boolean isSynchronized() {
-                return false;
+                // Clearing slots must happen on the main Thread: Players can have
+                // this menu open and Bukkit inventories are not thread-safe.
+                return true;
             }
         });
     }

@@ -20,6 +20,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.scheduler.BukkitScheduler;
 
@@ -401,6 +402,21 @@ public class TickerTask implements Runnable {
 
         Set<Location> locations = tickingLocations.getOrDefault(new ChunkPosition(chunk), Collections.emptySet());
         return Collections.unmodifiableSet(locations);
+    }
+
+    /**
+     * This removes every ticking {@link Location} that belongs to the given
+     * {@link World}. Called when that {@link World} is unloaded, so no stale
+     * entries (and their {@link Location} references) linger around until the
+     * World is loaded again.
+     *
+     * @param world
+     *            The {@link World} being unloaded
+     */
+    public void removeTickingLocations(@Nonnull World world) {
+        Validate.notNull(world, "The World cannot be null");
+
+        tickingLocations.keySet().removeIf(chunk -> chunk.getWorld().getUID().equals(world.getUID()));
     }
 
     /**

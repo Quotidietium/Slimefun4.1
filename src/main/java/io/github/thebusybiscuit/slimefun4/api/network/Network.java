@@ -1,10 +1,10 @@
 package io.github.thebusybiscuit.slimefun4.api.network;
 
-import java.util.ArrayDeque;
-import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,13 +51,17 @@ public abstract class Network {
      * This {@link Set} holds all {@link Network} positions that are part of this {@link Network}.
      * The {@link World} should be equal for all positions, therefore we can save memory by simply
      * storing {@link BlockPosition#getAsLong(int, int, int)}.
+     * <p>
+     * All collections in this class are thread-safe: node classification runs on the
+     * asynchronous ticker Thread while {@link #markDirty(Location)} and
+     * {@link #connectsTo(Location)} are (also) called from the main Thread.
      */
-    private final Set<Long> positions = new HashSet<>();
+    private final Set<Long> positions = ConcurrentHashMap.newKeySet();
 
-    private final Queue<Location> nodeQueue = new ArrayDeque<>();
-    protected final Set<Location> regulatorNodes = new HashSet<>();
-    protected final Set<Location> connectorNodes = new HashSet<>();
-    protected final Set<Location> terminusNodes = new HashSet<>();
+    private final Queue<Location> nodeQueue = new ConcurrentLinkedQueue<>();
+    protected final Set<Location> regulatorNodes = ConcurrentHashMap.newKeySet();
+    protected final Set<Location> connectorNodes = ConcurrentHashMap.newKeySet();
+    protected final Set<Location> terminusNodes = ConcurrentHashMap.newKeySet();
 
     /**
      * This constructs a new {@link Network} at the given {@link Location}.

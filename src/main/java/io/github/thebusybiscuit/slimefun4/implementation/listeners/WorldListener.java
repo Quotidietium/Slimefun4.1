@@ -34,6 +34,14 @@ public class WorldListener implements Listener {
         } else {
             Slimefun.logger().log(Level.SEVERE, "Could not save Slimefun Blocks for World \"{0}\"", e.getWorld().getName());
         }
+
+        /*
+         * Drop any state that references this World: Networks (and their chunk
+         * index) would otherwise linger as "dead" Networks that shadow new ones
+         * after the World is loaded again, and ticking Locations would leak.
+         */
+        Slimefun.getNetworkManager().removeAllNetworks(e.getWorld());
+        Slimefun.getTickerTask().removeTickingLocations(e.getWorld());
     }
 
 }

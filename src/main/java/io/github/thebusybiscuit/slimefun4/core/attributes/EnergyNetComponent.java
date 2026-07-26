@@ -163,7 +163,7 @@ public interface EnergyNetComponent extends ItemAttribute {
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {
-                        SlimefunUtils.updateCapacitorTexture(l, charge, capacity);
+                        SlimefunUtils.updateCapacitorTexture(l, newCharge, capacity);
                     }
                 }
             }
@@ -190,7 +190,7 @@ public interface EnergyNetComponent extends ItemAttribute {
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {
-                        SlimefunUtils.updateCapacitorTexture(l, charge, capacity);
+                        SlimefunUtils.updateCapacitorTexture(l, newCharge, capacity);
                     }
                 }
             }

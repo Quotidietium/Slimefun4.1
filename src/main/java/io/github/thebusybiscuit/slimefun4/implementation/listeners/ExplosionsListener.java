@@ -85,6 +85,13 @@ public class ExplosionsListener implements Listener {
         if (!(slimefunItem instanceof WitherProof)
             && !slimefunItem.callItemHandler(BlockBreakHandler.class, handler -> handleExplosion(handler, block))
         ) {
+            /*
+             * Notify any Networks before the block data is cleared, otherwise a
+             * destroyed connector/regulator would never trigger a re-classification
+             * and the Network would silently keep working across the gap (or a dead
+             * Network would linger forever, blocking new Networks at the same spot).
+             */
+            Slimefun.getNetworkManager().updateAllNetworks(block.getLocation());
             BlockStorage.clearBlockInfo(block);
             block.setType(Material.AIR);
         }
@@ -93,6 +100,8 @@ public class ExplosionsListener implements Listener {
     @ParametersAreNonnullByDefault
     private void handleExplosion(BlockBreakHandler handler, Block block) {
         if (handler.isExplosionAllowed(block)) {
+            // Notify any Networks before the block data is cleared (see above)
+            Slimefun.getNetworkManager().updateAllNetworks(block.getLocation());
             BlockStorage.clearBlockInfo(block);
             block.setType(Material.AIR);
 
