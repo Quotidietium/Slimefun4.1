@@ -74,6 +74,14 @@ public class BlockStorage {
     private final Map<Location, Set<String>> pendingFileDeletions = new ConcurrentHashMap<>();
     private final Object persistenceLock = new Object();
 
+    /**
+     * Serializes whole {@link #save()} / {@link #saveAndRemove()} invocations against
+     * each other (e.g. the asynchronous auto-save vs. a world unload on the main
+     * Thread). Writers never take this lock, so holding it across file IO does not
+     * stall gameplay code.
+     */
+    private final Object saveLock = new Object();
+
     /*
      * A persistent in-memory view of the per-id .sfb files, shared across
      * save cycles. Keeping the parsed file Config around avoids re-parsing
@@ -330,115 +338,183 @@ public class BlockStorage {
     }
 
     public void save() {
-        computeChanges();
+        synchronized (saveLock) {
+            computeChanges();
 
-        if (changes == 0) {
-            return;
-        }
+            if (changes == 0) {
+                return;
+            }
 
-        Slimefun.logger().log(Level.INFO, "Saving block data for world \"{0}\" ({1} change(s) queued)", new Object[] { world.getName(), changes });
+            Slimefun.logger().log(Level.INFO, "Saving block data for world \"{0}\" ({1} change(s) queued)", new Object[] { world.getName(), changes });
 
-        /*
-         * Drain the pending writes under a lock so no deletion can be lost to a
-         * concurrent write, then serialize everything outside the lock.
-         * Writers that come in after the drain simply land in the next save cycle.
-         */
-        Map<Location, Set<String>> deletions;
-        Set<Location> dirty;
+            /*
+             * Drain the pending writes under a lock so no deletion can be lost to a
+             * concurrent write, then serialize everything outside the lock.
+             * Writers that come in after the drain simply land in the next save cycle.
+             */
+            Map<Location, Set<String>> deletions;
+            Set<Location> dirty;
 
-        synchronized (persistenceLock) {
-            deletions = new HashMap<>(pendingFileDeletions);
-            pendingFileDeletions.clear();
-            dirty = new HashSet<>(dirtyBlocks);
-            dirtyBlocks.clear();
-        }
+            synchronized (persistenceLock) {
+                deletions = new HashMap<>(pendingFileDeletions);
+                pendingFileDeletions.clear();
+                dirty = new HashSet<>(dirtyBlocks);
+                dirtyBlocks.clear();
+            }
 
-        // The per-id .sfb file views are cached persistently (see blockFiles);
-        // only the ids touched in this cycle are written back to disk.
-        Set<String> touchedIds = new HashSet<>();
+            // The per-id .sfb file views are cached persistently (see blockFiles);
+            // only the ids touched in this cycle are written back to disk.
+            Set<String> touchedIds = new HashSet<>();
 
-        // 1. File-key removals first (a deleted or re-ided block may be re-written below)
-        for (Map.Entry<Location, Set<String>> entry : deletions.entrySet()) {
-            String serializedLocation = serializeLocation(entry.getKey());
+            // 1. File-key removals first (a deleted or re-ided block may be re-written below)
+            for (Map.Entry<Location, Set<String>> entry : deletions.entrySet()) {
+                String serializedLocation = serializeLocation(entry.getKey());
 
-            for (String id : entry.getValue()) {
-                getBlockFile(id).setValue(serializedLocation, null);
+                for (String id : entry.getValue()) {
+                    getBlockFile(id).setValue(serializedLocation, null);
+                    touchedIds.add(id);
+                }
+            }
+
+            // 2. Serialize all dirty blocks (the live storage map is the source of truth)
+            Map<String, Set<Location>> locationsById = new HashMap<>();
+
+            for (Location l : dirty) {
+                Config cfg = storage.get(l);
+
+                if (cfg == null) {
+                    // The block was deleted again after being marked dirty,
+                    // its removal is handled by the deletions above (if any).
+                    continue;
+                }
+
+                String id = cfg.getString("id");
+
+                if (id == null) {
+                    /*
+                     * This Block is no longer valid...
+                     * Fixes #1577
+                     */
+                    continue;
+                }
+
+                getBlockFile(id).setValue(serializeLocation(l), serializeBlockInfo(cfg));
                 touchedIds.add(id);
-            }
-        }
-
-        // 2. Serialize all dirty blocks (the live storage map is the source of truth)
-        for (Location l : dirty) {
-            Config cfg = storage.get(l);
-
-            if (cfg == null) {
-                // The block was deleted again after being marked dirty,
-                // its removal is handled by the deletions above (if any).
-                continue;
+                locationsById.computeIfAbsent(id, key -> new HashSet<>()).add(l);
             }
 
-            String id = cfg.getString("id");
+            // 3. Write every touched file (atomically) or delete it if no keys remain
+            for (String id : touchedIds) {
+                Config cfg = blockFiles.get(id);
 
-            if (id == null) {
-                /*
-                 * This Block is no longer valid...
-                 * Fixes #1577
-                 */
-                continue;
-            }
+                if (cfg == null) {
+                    // Cannot happen, but stay defensive.
+                    continue;
+                }
 
-            getBlockFile(id).setValue(serializeLocation(l), serializeBlockInfo(cfg));
-            touchedIds.add(id);
-        }
+                if (cfg.getKeys().isEmpty()) {
+                    /*
+                     * Drop the cached view as well, otherwise a block of this id
+                     * added later would resurrect stale keys into a fresh file.
+                     */
+                    blockFiles.remove(id);
 
-        // 3. Write every touched file (atomically) or delete it if no keys remain
-        for (String id : touchedIds) {
-            Config cfg = blockFiles.get(id);
+                    File file = cfg.getFile();
 
-            if (cfg == null) {
-                // Cannot happen, but stay defensive.
-                continue;
-            }
-
-            if (cfg.getKeys().isEmpty()) {
-                /*
-                 * Drop the cached view as well, otherwise a block of this id
-                 * added later would resurrect stale keys into a fresh file.
-                 */
-                blockFiles.remove(id);
-
-                File file = cfg.getFile();
-
-                if (file.exists()) {
-                    try {
-                        Files.delete(file.toPath());
-                    } catch (IOException e) {
-                        Slimefun.logger().log(Level.WARNING, e, () -> "Could not delete file \"" + file.getName() + '"');
+                    if (file.exists()) {
+                        try {
+                            Files.delete(file.toPath());
+                        } catch (IOException e) {
+                            Slimefun.logger().log(Level.WARNING, e, () -> "Could not delete file \"" + file.getName() + '"');
+                        }
                     }
+                } else if (!writeBlockFile(id, cfg)) {
+                    /*
+                     * The write failed (e.g. disk full). Re-queue everything we just
+                     * drained for this id, otherwise the in-memory view and the file
+                     * on disk would diverge permanently without any retry.
+                     */
+                    requeueFailedChanges(id, deletions, locationsById.get(id));
                 }
-            } else {
-                File tmpFile = new File(cfg.getFile().getParentFile(), cfg.getFile().getName() + ".tmp");
-                cfg.save(tmpFile);
+            }
 
-                try {
-                    Files.move(tmpFile.toPath(), cfg.getFile().toPath(), StandardCopyOption.ATOMIC_MOVE);
-                } catch (IOException x) {
-                    Slimefun.logger().log(Level.SEVERE, x, () -> "An Error occurred while copying a temporary File for Slimefun " + Slimefun.getVersion());
+            Map<Location, BlockMenu> unsavedInventories = new HashMap<>(inventories);
+            for (Map.Entry<Location, BlockMenu> entry : unsavedInventories.entrySet()) {
+                /*
+                 * Skip menus that were removed after the snapshot was taken (e.g. the
+                 * machine was broken in the meantime) - re-saving them would recreate
+                 * an orphaned .sfi file whose contents would "resurrect" later.
+                 */
+                if (inventories.get(entry.getKey()) == entry.getValue()) {
+                    entry.getValue().save(entry.getKey());
+                }
+            }
+
+            Map<String, UniversalBlockMenu> unsavedUniversalInventories = new HashMap<>(Slimefun.getRegistry().getUniversalInventories());
+            for (Map.Entry<String, UniversalBlockMenu> entry : unsavedUniversalInventories.entrySet()) {
+                entry.getValue().save();
+            }
+
+            changes = 0;
+        }
+    }
+
+    /**
+     * Writes the cached .sfb file view for one item id to disk, via a temporary
+     * file and an atomic move (with a plain replace as fallback for filesystems
+     * that do not support atomic moves).
+     *
+     * @param id
+     *            The item id (for logging)
+     * @param cfg
+     *            The cached file view
+     *
+     * @return Whether the file was successfully written
+     */
+    private boolean writeBlockFile(@Nonnull String id, @Nonnull Config cfg) {
+        File target = cfg.getFile();
+        File tmpFile = new File(target.getParentFile(), target.getName() + ".tmp");
+
+        cfg.save(tmpFile);
+
+        if (!tmpFile.exists()) {
+            // Config.save() swallowed an IOException (e.g. disk full) - nothing to move
+            Slimefun.logger().log(Level.SEVERE, "Could not write a temporary file for \"{0}\" (disk full?), will retry on the next save cycle", target.getName());
+            return false;
+        }
+
+        try {
+            Files.move(tmpFile.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            return true;
+        } catch (IOException x) {
+            try {
+                // Some filesystems do not support atomic moves - fall back to a plain replace
+                Files.move(tmpFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return true;
+            } catch (IOException x2) {
+                Slimefun.logger().log(Level.SEVERE, x2, () -> "An Error occurred while saving block data for id \"" + id + "\", will retry on the next save cycle");
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Puts the changes for one item id back into the pending queues after a
+     * failed write, so the next save cycle retries them instead of losing them.
+     */
+    @ParametersAreNonnullByDefault
+    private void requeueFailedChanges(String id, Map<Location, Set<String>> deletions, Set<Location> dirtyLocations) {
+        synchronized (persistenceLock) {
+            if (dirtyLocations != null) {
+                dirtyBlocks.addAll(dirtyLocations);
+            }
+
+            for (Map.Entry<Location, Set<String>> entry : deletions.entrySet()) {
+                if (entry.getValue().contains(id)) {
+                    pendingFileDeletions.computeIfAbsent(entry.getKey(), key -> ConcurrentHashMap.newKeySet()).add(id);
                 }
             }
         }
-
-        Map<Location, BlockMenu> unsavedInventories = new HashMap<>(inventories);
-        for (Map.Entry<Location, BlockMenu> entry : unsavedInventories.entrySet()) {
-            entry.getValue().save(entry.getKey());
-        }
-
-        Map<String, UniversalBlockMenu> unsavedUniversalInventories = new HashMap<>(Slimefun.getRegistry().getUniversalInventories());
-        for (Map.Entry<String, UniversalBlockMenu> entry : unsavedUniversalInventories.entrySet()) {
-            entry.getValue().save();
-        }
-
-        changes = 0;
     }
 
     /**
@@ -462,10 +538,12 @@ public class BlockStorage {
     }
 
     public void saveAndRemove() {
-        save();
-        blockFiles.clear();
-        saveChunks();
-        isMarkedForRemoval.set(true);
+        synchronized (saveLock) {
+            save();
+            blockFiles.clear();
+            saveChunks();
+            isMarkedForRemoval.set(true);
+        }
     }
 
     public boolean isMarkedForRemoval() {
@@ -475,7 +553,8 @@ public class BlockStorage {
     public static void saveChunks() {
         if (chunkChanges > 0) {
             File chunks = new File(PATH_CHUNKS + "chunks.sfc");
-            Config cfg = new Config(PATH_CHUNKS + "chunks.temp");
+            File tmpFile = new File(PATH_CHUNKS + "chunks.temp");
+            Config cfg = new Config(tmpFile);
 
             for (Map.Entry<String, BlockInfoConfig> entry : Slimefun.getRegistry().getChunks().entrySet()) {
                 // Saving empty chunk data is pointless
@@ -484,7 +563,18 @@ public class BlockStorage {
                 }
             }
 
-            cfg.save(chunks);
+            // Write to a temporary file first, then move it into place
+            cfg.save();
+
+            try {
+                Files.move(tmpFile.toPath(), chunks.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException x) {
+                try {
+                    Files.move(tmpFile.toPath(), chunks.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException x2) {
+                    Slimefun.logger().log(Level.SEVERE, x2, () -> "An Error occurred while saving chunk data for Slimefun " + Slimefun.getVersion());
+                }
+            }
 
             chunkChanges = 0;
         }
