@@ -4,8 +4,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,6 +30,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.common.CommonPatterns;
 import io.github.bakedlibs.dough.items.ItemMetaSnapshot;
 import io.github.bakedlibs.dough.skins.PlayerHead;
@@ -563,11 +567,54 @@ public final class SlimefunUtils {
         return line.equals(SOULBOUND_LORE);
     }
 
+    /**
+     * The texture of a {@link io.github.thebusybiscuit.slimefun4.implementation.items.electric.Capacitor}
+     * only has four discrete stages (0-25%, 25-50%, 50-75%, 75-100%).
+     * This caches the last scheduled stage per location, so charge changes that do
+     * not cross a stage boundary (which would re-apply the exact same texture)
+     * can skip the scheduler submission and the block update entirely.
+     * <p>
+     * A freshly placed capacitor always starts with the stage-0 texture
+     * ({@code HeadTexture.CAPACITOR_25}), matching stage 0 in this cache, so a
+     * stale entry left behind by a broken capacitor can never cause a wrong skip:
+     * any charge level whose stage differs from the placed texture also differs
+     * from the stale entry and is scheduled normally.
+     */
+    private static final Map<BlockPosition, Integer> capacitorTextureStages = new ConcurrentHashMap<>();
+
     public static void updateCapacitorTexture(@Nonnull Location l, int charge, int capacity) {
         Validate.notNull(l, "Cannot update a texture for null");
         Validate.isTrue(capacity > 0, "Capacity must be greater than zero!");
 
+        int stage = getCapacitorTextureStage((double) charge / capacity);
+
+        if (Objects.equals(capacitorTextureStages.put(new BlockPosition(l), stage), stage)) {
+            // Still within the same texture stage, no visual change.
+            return;
+        }
+
         Slimefun.runSync(new CapacitorTextureUpdateTask(l, charge, capacity));
+    }
+
+    /**
+     * This maps a "filled" percentage (0.0 - 1.0) to one of the four discrete
+     * capacitor texture stages. The boundaries mirror {@link CapacitorTextureUpdateTask}.
+     *
+     * @param filled
+     *            The charge divided by the capacity
+     *
+     * @return The texture stage (0 - 3)
+     */
+    private static int getCapacitorTextureStage(double filled) {
+        if (filled <= 0.25) {
+            return 0;
+        } else if (filled <= 0.5) {
+            return 1;
+        } else if (filled <= 0.75) {
+            return 2;
+        } else {
+            return 3;
+        }
     }
 
     /**
