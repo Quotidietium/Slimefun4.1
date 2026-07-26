@@ -5,8 +5,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
@@ -16,6 +18,7 @@ import org.bukkit.block.Block;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
@@ -52,6 +55,14 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
     protected final List<MachineRecipe> recipes = new ArrayList<>();
     private final MachineProcessor<CraftingOperation> processor = new MachineProcessor<>(this);
 
+    /**
+     * Caches the input contents of machines whose last recipe scan found no
+     * matching recipe at all. As long as the inputs (and the recipe list) stay
+     * unchanged, an idle machine does not need to re-run the full recipe scan
+     * on every tick. Keyed by the machine's {@link BlockPosition}.
+     */
+    private final Map<BlockPosition, FailedRecipeScan> failedScans = new ConcurrentHashMap<>();
+
     private int energyConsumedPerTick = -1;
     private int energyCapacity = -1;
     private int processingSpeed = -1;
@@ -79,6 +90,7 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                     inv.dropItems(b.getLocation(), getOutputSlots());
                 }
 
+                failedScans.remove(new BlockPosition(b));
                 processor.endOperation(b);
             }
 
@@ -371,7 +383,7 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                 }
             }
         } else {
-            MachineRecipe next = findNextRecipe(inv);
+            MachineRecipe next = findNextRecipeCached(b, inv);
 
             if (next != null) {
                 currentOperation = new CraftingOperation(next);
@@ -381,6 +393,46 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                 processor.updateProgressBar(inv, 22, currentOperation);
             }
         }
+    }
+
+    /**
+     * This method wraps {@link #findNextRecipe(BlockMenu)} with a negative-result
+     * cache: if the previous scan for this machine found no matching recipe at
+     * all and neither the input contents nor the recipe list changed since, the
+     * full scan is skipped and null is returned directly.
+     * <p>
+     * Only the "no recipe matched" case is cached. The "recipe matched but the
+     * output slots are full" case is deliberately not cached, since the output
+     * side can change at any time and must be re-evaluated on every tick.
+     *
+     * @param b
+     *            The machine {@link Block}
+     * @param inv
+     *            The machine's {@link BlockMenu}
+     *
+     * @return The next {@link MachineRecipe} or null
+     */
+    @Nullable
+    private MachineRecipe findNextRecipeCached(@Nonnull Block b, @Nonnull BlockMenu inv) {
+        int[] inputSlots = getInputSlots();
+        BlockPosition position = new BlockPosition(b);
+        FailedRecipeScan failed = failedScans.get(position);
+
+        if (failed != null && failed.isStillValid(inv, inputSlots, recipes.size())) {
+            return null;
+        }
+
+        RecipeScan scan = scanForRecipe(inv, inputSlots);
+
+        if (scan.matchedNothing()) {
+            failedScans.put(position, FailedRecipeScan.capture(inv, inputSlots, recipes.size()));
+        } else {
+            // A recipe matched (and either started or is output-jammed):
+            // this position must not serve a cached "no recipe" result.
+            failedScans.remove(position);
+        }
+
+        return scan.recipe();
     }
 
     /**
@@ -408,9 +460,22 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
     }
 
     protected MachineRecipe findNextRecipe(BlockMenu inv) {
+        return scanForRecipe(inv, getInputSlots()).recipe();
+    }
+
+    /**
+     * The result of scanning a machine's inputs against the recipe list.
+     * Carries the matched {@link MachineRecipe} (or null) and whether any
+     * recipe matched the inputs at all, so that callers can distinguish
+     * "nothing matches" from "matched, but the output is full".
+     */
+    private record RecipeScan(@Nullable MachineRecipe recipe, boolean matchedNothing) {}
+
+    @ParametersAreNonnullByDefault
+    private RecipeScan scanForRecipe(BlockMenu inv, int[] inputSlots) {
         Map<Integer, ItemStack> inventory = new HashMap<>();
 
-        for (int slot : getInputSlots()) {
+        for (int slot : inputSlots) {
             ItemStack item = inv.getItemInSlot(slot);
 
             if (item != null) {
@@ -422,7 +487,7 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
 
         for (MachineRecipe recipe : recipes) {
             for (ItemStack input : recipe.getInput()) {
-                for (int slot : getInputSlots()) {
+                for (int slot : inputSlots) {
                     if (SlimefunUtils.isItemSimilar(inventory.get(slot), input, true)) {
                         found.put(slot, input.getAmount());
                         break;
@@ -432,19 +497,73 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
 
             if (found.size() == recipe.getInput().length) {
                 if (!InvUtils.fitAll(inv.toInventory(), recipe.getOutput(), getOutputSlots())) {
-                    return null;
+                    return new RecipeScan(null, false);
                 }
 
                 for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
                     inv.consumeItem(entry.getKey(), entry.getValue());
                 }
 
-                return recipe;
+                return new RecipeScan(recipe, false);
             } else {
                 found.clear();
             }
         }
 
-        return null;
+        return new RecipeScan(null, true);
+    }
+
+    /**
+     * A snapshot of a machine's input contents at a point in time where no
+     * recipe matched them, together with the size of the recipe list at that
+     * time (so recipe registrations at runtime invalidate the snapshot).
+     */
+    private static final class FailedRecipeScan {
+
+        private final ItemStack[] inputs;
+        private final int recipeCount;
+
+        private FailedRecipeScan(@Nonnull ItemStack[] inputs, int recipeCount) {
+            this.inputs = inputs;
+            this.recipeCount = recipeCount;
+        }
+
+        @Nonnull
+        @ParametersAreNonnullByDefault
+        static FailedRecipeScan capture(BlockMenu inv, int[] inputSlots, int recipeCount) {
+            ItemStack[] snapshot = new ItemStack[inputSlots.length];
+
+            for (int i = 0; i < inputSlots.length; i++) {
+                ItemStack item = inv.getItemInSlot(inputSlots[i]);
+
+                if (item != null) {
+                    snapshot[i] = item.clone();
+                }
+            }
+
+            return new FailedRecipeScan(snapshot, recipeCount);
+        }
+
+        @ParametersAreNonnullByDefault
+        boolean isStillValid(BlockMenu inv, int[] inputSlots, int currentRecipeCount) {
+            if (recipeCount != currentRecipeCount || inputSlots.length != inputs.length) {
+                return false;
+            }
+
+            for (int i = 0; i < inputSlots.length; i++) {
+                ItemStack current = inv.getItemInSlot(inputSlots[i]);
+                ItemStack cached = inputs[i];
+
+                if (cached == null || current == null) {
+                    if (cached != current) {
+                        return false;
+                    }
+                } else if (current.getAmount() != cached.getAmount() || !current.isSimilar(cached)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }
