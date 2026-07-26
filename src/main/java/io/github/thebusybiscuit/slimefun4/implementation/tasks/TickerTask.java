@@ -1,10 +1,12 @@
 package io.github.thebusybiscuit.slimefun4.implementation.tasks;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,6 +65,23 @@ public class TickerTask implements Runnable {
     private boolean running = false;
 
     /**
+     * A buffered synchronized tick. Holds everything needed to run the synchronized
+     * part of a {@link BlockTicker} on the main Thread later.
+     */
+    private static final class SynchronizedTick {
+
+        private final Location location;
+        private final SlimefunItem item;
+        private final Config data;
+
+        SynchronizedTick(@Nonnull Location location, @Nonnull SlimefunItem item, @Nonnull Config data) {
+            this.location = location;
+            this.item = item;
+            this.data = data;
+        }
+    }
+
+    /**
      * This method starts the {@link TickerTask} on an asynchronous schedule.
      * 
      * @param plugin
@@ -93,6 +112,7 @@ public class TickerTask implements Runnable {
             running = true;
             Slimefun.getProfiler().start();
             Set<BlockTicker> tickers = new HashSet<>();
+            List<SynchronizedTick> synchronizedTicks = new ArrayList<>();
 
             // Remove any deleted blocks
             Iterator<Map.Entry<Location, Boolean>> removals = deletionQueue.entrySet().iterator();
@@ -108,7 +128,7 @@ public class TickerTask implements Runnable {
             // Run our ticker code
             if (!halted) {
                 for (Map.Entry<ChunkPosition, Set<Location>> entry : tickingLocations.entrySet()) {
-                    tickChunk(entry.getKey(), tickers, entry.getValue());
+                    tickChunk(entry.getKey(), tickers, entry.getValue(), synchronizedTicks);
                 }
             }
 
@@ -118,6 +138,24 @@ public class TickerTask implements Runnable {
                 Map.Entry<Location, Location> entry = moves.next();
                 BlockStorage.moveLocationInfoUnsafely(entry.getKey(), entry.getValue());
                 moves.remove();
+            }
+
+            /*
+             * Run all synchronized ticks in a single scheduler submission instead of
+             * one submission per block. The relative order of blocks is preserved,
+             * each block still gets its own timestamp and its own try/catch in tickBlock().
+             */
+            if (!synchronizedTicks.isEmpty()) {
+                Slimefun.runSync(() -> {
+                    for (SynchronizedTick tick : synchronizedTicks) {
+                        /**
+                         * We are inserting a new timestamp because synchronized actions
+                         * are always ran with a 50ms delay (1 game tick)
+                         */
+                        Block b = tick.location.getBlock();
+                        tickBlock(tick.location, b, tick.item, tick.data, System.nanoTime());
+                    }
+                });
             }
 
             // Start a new tick cycle for every BlockTicker
@@ -134,12 +172,12 @@ public class TickerTask implements Runnable {
     }
 
     @ParametersAreNonnullByDefault
-    private void tickChunk(ChunkPosition chunk, Set<BlockTicker> tickers, Set<Location> locations) {
+    private void tickChunk(ChunkPosition chunk, Set<BlockTicker> tickers, Set<Location> locations, List<SynchronizedTick> synchronizedTicks) {
         try {
             // Only continue if the Chunk is actually loaded
             if (chunk.isLoaded()) {
                 for (Location l : locations) {
-                    tickLocation(tickers, l);
+                    tickLocation(tickers, l, synchronizedTicks);
                 }
             }
         } catch (ArrayIndexOutOfBoundsException | NumberFormatException x) {
@@ -147,7 +185,7 @@ public class TickerTask implements Runnable {
         }
     }
 
-    private void tickLocation(@Nonnull Set<BlockTicker> tickers, @Nonnull Location l) {
+    private void tickLocation(@Nonnull Set<BlockTicker> tickers, @Nonnull Location l, @Nonnull List<SynchronizedTick> synchronizedTicks) {
         Config data = BlockStorage.getLocationInfo(l);
         SlimefunItem item = SlimefunItem.getById(data.getString("id"));
 
@@ -157,14 +195,9 @@ public class TickerTask implements Runnable {
                     Slimefun.getProfiler().scheduleEntries(1);
                     item.getBlockTicker().update();
 
-                    /**
-                     * We are inserting a new timestamp because synchronized actions
-                     * are always ran with a 50ms delay (1 game tick)
-                     */
-                    Slimefun.runSync(() -> {
-                        Block b = l.getBlock();
-                        tickBlock(l, b, item, data, System.nanoTime());
-                    });
+                    // Buffered: all synchronized blocks are ticked in a single scheduler
+                    // submission at the end of this run (see run()).
+                    synchronizedTicks.add(new SynchronizedTick(l, item, data));
                 } else {
                     long timestamp = Slimefun.getProfiler().newEntry();
                     item.getBlockTicker().update();
