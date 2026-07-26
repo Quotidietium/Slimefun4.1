@@ -445,6 +445,7 @@ public class SlimefunItem implements Placeable {
 
             Slimefun.getRegistry().getAllSlimefunItems().add(this);
             Slimefun.getRegistry().getSlimefunItemIds().put(id, this);
+            Slimefun.getRegistry().getSlimefunItemMaterials().add(itemStackTemplate.getType());
 
             // Items that are "not-configurable" cannot be configured.
             if (!(this instanceof NotConfigurable)) {
@@ -1157,8 +1158,8 @@ public class SlimefunItem implements Placeable {
             return null;
         }
 
-        var delegate = slimefunItemStack.item();
-        if (delegate.getType() == Material.AIR) {
+        // Read the template Material directly instead of cloning the delegate via #item().
+        if (slimefunItemStack.getType() == Material.AIR) {
             return null;
         }
 
@@ -1177,6 +1178,17 @@ public class SlimefunItem implements Placeable {
             return null;
         }
 
+        /*
+         * Fast negative lookup: if no registered SlimefunItem template uses this Material,
+         * no item of this type can ever resolve to a SlimefunItem (see the Material check
+         * further below), so we can skip the PersistentDataContainer read entirely. This
+         * makes the overwhelmingly common case (a vanilla item, possibly with ItemMeta,
+         * that is not a SlimefunItem) resolve in a single Set lookup.
+         */
+        if (!Slimefun.getRegistry().getSlimefunItemMaterials().contains(item.getType())) {
+            return null;
+        }
+
         Optional<String> itemID = Slimefun.getItemDataService().getItemData(item);
         SlimefunItem sfItem = itemID.map(SlimefunItem::getById).orElse(null);
 
@@ -1184,7 +1196,8 @@ public class SlimefunItem implements Placeable {
         // Without this, a forged cheap item carrying a high-value "slimefun_item" PDC value
         // (set via NBT tools) would be treated as that SlimefunItem, bypassing recipe/charge
         // checks and enabling item/economy duplication.
-        if (sfItem != null && sfItem.getItem().getType() != item.getType()) {
+        // We compare against the private template field directly to avoid cloning it via #getItem().
+        if (sfItem != null && sfItem.itemStackTemplate.getType() != item.getType()) {
             return null;
         }
 

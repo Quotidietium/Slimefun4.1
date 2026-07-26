@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
@@ -28,6 +29,13 @@ import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
  *
  */
 public class BlockInfoConfig extends Config {
+
+    /**
+     * A shared {@link Gson} instance. {@link Gson} is thread-safe for serialization,
+     * so we can reuse a single instance instead of building a new one on every
+     * {@link #toJSON()} call.
+     */
+    private static final Gson GSON = new GsonBuilder().create();
 
     private final Map<String, String> data;
 
@@ -115,7 +123,7 @@ public class BlockInfoConfig extends Config {
 
     @Nonnull
     public String toJSON() {
-        return new GsonBuilder().create().toJson(data);
+        return GSON.toJson(data);
     }
 
 }

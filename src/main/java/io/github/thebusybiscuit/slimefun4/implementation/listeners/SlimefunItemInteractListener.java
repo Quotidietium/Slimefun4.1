@@ -52,8 +52,12 @@ public class SlimefunItemInteractListener implements Listener {
     @EventHandler
     public void onRightClick(PlayerInteractEvent e) {
         if (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            // Exclude the Debug Fish here because it is handled in a seperate Listener
-            if (SlimefunUtils.isItemSimilar(e.getItem(), SlimefunItems.DEBUG_FISH.item(), true)) {
+            // Exclude the Debug Fish here because it is handled in a seperate Listener.
+            // Cheap pre-check: the Debug Fish can only match an item of the same Material,
+            // so we skip the template clone + full comparison for anything else.
+            ItemStack itemInHand = e.getItem();
+
+            if (itemInHand != null && itemInHand.getType() == SlimefunItems.DEBUG_FISH.getType() && SlimefunUtils.isItemSimilar(itemInHand, SlimefunItems.DEBUG_FISH.item(), true)) {
                 return;
             }
 

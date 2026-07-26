@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
 import org.bukkit.entity.Entity;
@@ -56,6 +57,15 @@ public final class SlimefunRegistry {
     private final Map<String, SlimefunItem> slimefunIds = new HashMap<>();
     private final List<SlimefunItem> slimefunItems = new ArrayList<>();
     private final List<SlimefunItem> enabledItems = new ArrayList<>();
+
+    /**
+     * A set of every {@link Material} used by the template of any registered
+     * {@link SlimefunItem}. This mirrors {@link #slimefunIds} and acts as a fast
+     * negative lookup in {@link SlimefunItem#getByItem(ItemStack)}: an item whose
+     * {@link Material} is not in this set can never resolve to a {@link SlimefunItem},
+     * so the (comparatively expensive) PersistentDataContainer read can be skipped.
+     */
+    private final Set<Material> slimefunItemMaterials = ConcurrentHashMap.newKeySet();
 
     private final List<ItemGroup> categories = new ArrayList<>();
     private final List<MultiBlock> multiblocks = new LinkedList<>();
@@ -295,6 +305,11 @@ public final class SlimefunRegistry {
     @Nonnull
     public Map<String, SlimefunItem> getSlimefunItemIds() {
         return slimefunIds;
+    }
+
+    @Nonnull
+    public Set<Material> getSlimefunItemMaterials() {
+        return slimefunItemMaterials;
     }
 
     @Nonnull
