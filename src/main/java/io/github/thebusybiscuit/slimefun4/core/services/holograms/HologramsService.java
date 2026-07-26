@@ -1,9 +1,11 @@
 package io.github.thebusybiscuit.slimefun4.core.services.holograms;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -49,6 +51,13 @@ public class HologramsService {
     private static final long PURGE_RATE = 45L * 20L;
 
     /**
+     * How long a cached {@link Hologram} may go without a main-thread
+     * re-validation when its label has not changed. This bounds how long an
+     * externally removed hologram can stay missing when updates are skipped.
+     */
+    private static final long REVALIDATE_AFTER = TimeUnit.SECONDS.toMillis(30);
+
+    /**
      * Our {@link Plugin} instance
      */
     private final Plugin plugin;
@@ -64,9 +73,10 @@ public class HologramsService {
     private final NamespacedKey persistentDataKey;
 
     /**
-     * Our cache to save {@link Entity} lookups
+     * Our cache to save {@link Entity} lookups.
+     * (concurrent: also read from async threads for the label-skip shortcut)
      */
-    private final Map<BlockPosition, Hologram> cache = new HashMap<>();
+    private final Map<BlockPosition, Hologram> cache = new ConcurrentHashMap<>();
 
     /**
      * This constructs a new {@link HologramsService}.
@@ -317,6 +327,23 @@ public class HologramsService {
      */
     public void setHologramLabel(@Nonnull Location loc, @Nullable String label) {
         Validate.notNull(loc, "Location must not be null");
+
+        /*
+         * Performance shortcut: Hologram labels (e.g. energy network status)
+         * are updated once per network tick, but their text rarely changes.
+         * If the cached hologram already shows this exact label and it was
+         * confirmed alive recently, we can skip the main-thread scheduler
+         * submission entirely. Holograms that were removed externally are
+         * re-validated (and respawned) at least every REVALIDATE_AFTER
+         * milliseconds, since an expired last-access forces the normal path.
+         */
+        Hologram cached = cache.get(new BlockPosition(loc));
+
+        if (cached != null
+            && Objects.equals(cached.getLabel(), label)
+            && System.currentTimeMillis() - cached.getLastAccess() < REVALIDATE_AFTER) {
+            return;
+        }
 
         updateHologram(loc, hologram -> hologram.setLabel(label));
     }

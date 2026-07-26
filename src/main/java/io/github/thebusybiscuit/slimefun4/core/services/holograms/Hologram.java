@@ -31,13 +31,15 @@ class Hologram {
 
     /**
      * The timestamp of when the {@link ArmorStand} was last accessed.
+     * (volatile: also read from async threads for the label-skip shortcut)
      */
-    private long lastAccess;
+    private volatile long lastAccess;
 
     /**
      * The label of this {@link Hologram}.
+     * (volatile: also read from async threads for the label-skip shortcut)
      */
-    private String label;
+    private volatile String label;
 
     /**
      * This creates a new {@link Hologram} for the given {@link UUID}.
@@ -89,6 +91,27 @@ class Hologram {
      */
     boolean hasExpired() {
         return System.currentTimeMillis() - lastAccess > EXPIRES_AFTER;
+    }
+
+    /**
+     * This returns the currently cached label without touching the {@link ArmorStand}.
+     * Safe to call from any Thread.
+     *
+     * @return The current label or null
+     */
+    @Nullable
+    String getLabel() {
+        return label;
+    }
+
+    /**
+     * This returns the timestamp of the last confirmed access to the
+     * {@link ArmorStand}. Safe to call from any Thread.
+     *
+     * @return The last access timestamp (milliseconds), 0 if despawned
+     */
+    long getLastAccess() {
+        return lastAccess;
     }
 
     /**
