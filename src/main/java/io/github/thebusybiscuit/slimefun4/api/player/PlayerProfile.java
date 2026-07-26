@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.api.player;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -57,7 +59,7 @@ import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
  */
 public class PlayerProfile {
 
-    private static final Map<UUID, Boolean> loading = new ConcurrentHashMap<>();
+    private static final Map<UUID, List<Consumer<PlayerProfile>>> loading = new ConcurrentHashMap<>();
 
     private final UUID ownerId;
     private final String name;
@@ -380,33 +382,75 @@ public class PlayerProfile {
         // If we're already loading, we don't want to spin up a whole new thread and load the profile again/more
         // This can very easily cause CPU, memory and thread exhaustion if the profile is large
         // See #4011, #4116
-        if (loading.containsKey(uuid)) {
+        List<Consumer<PlayerProfile>> newQueue = new ArrayList<>();
+        List<Consumer<PlayerProfile>> queue = loading.putIfAbsent(uuid, newQueue);
+
+        if (queue != null) {
             Debug.log(TestCase.PLAYER_PROFILE_DATA, "Attempted to get PlayerProfile ({}) while loading", uuid);
 
-            // We can't easily consume the callback so we will throw it away in this case
-            // This will mean that if a user has attempted to do an action like open a block while
-            // their profile is still loading. Instead of it opening after a second or whatever when the
-            // profile is loaded, they will have to explicitly re-click the block/item/etc.
-            // This isn't the best but I think it's totally reasonable.
+            /*
+             * Instead of dropping the callback (which could silently void actions
+             * that already consumed resources, e.g. a research that took its XP
+             * cost), we queue it and run it once the profile has finished loading.
+             * The monitor on the queue is shared with the loading thread, which
+             * removes the loading flag and flushes the queue atomically.
+             */
+            synchronized (queue) {
+                PlayerProfile loaded = Slimefun.getRegistry().getPlayerProfiles().get(uuid);
+
+                if (loaded != null) {
+                    // Loading finished in the meantime, no need to queue
+                    callback.accept(loaded);
+                } else {
+                    queue.add(callback);
+                }
+            }
+
             return false;
         }
 
-        loading.put(uuid, true);
         Slimefun.getThreadService().newThread(Slimefun.instance(), "PlayerProfile#get(" + uuid + ")", () -> {
-            PlayerData data = Slimefun.getPlayerStorage().loadPlayerData(p.getUniqueId());
+            PlayerProfile loadedProfile = null;
 
-            AsyncProfileLoadEvent event = new AsyncProfileLoadEvent(new PlayerProfile(p, data));
-            Bukkit.getPluginManager().callEvent(event);
+            try {
+                PlayerData data = Slimefun.getPlayerStorage().loadPlayerData(p.getUniqueId());
 
-            Slimefun.getRegistry().getPlayerProfiles().put(uuid, event.getProfile());
+                AsyncProfileLoadEvent event = new AsyncProfileLoadEvent(new PlayerProfile(p, data));
+                Bukkit.getPluginManager().callEvent(event);
 
-            // Make sure we call this after we put the PlayerProfile into the registry.
-            // Otherwise, we end up with a race condition where the profile is not in the map just _yet_
-            // but the loading flag is gone and we can end up loading it a second time (and thus can dupe items)
-            // Fixes https://github.com/Slimefun/Slimefun4/issues/4130
-            loading.remove(uuid);
+                loadedProfile = event.getProfile();
+                Slimefun.getRegistry().getPlayerProfiles().put(uuid, loadedProfile);
+            } catch (Exception | LinkageError x) {
+                Slimefun.logger().log(Level.SEVERE, x, () -> "Failed to load the PlayerProfile for " + uuid);
+            } finally {
+                /*
+                 * Make sure we remove the loading flag after we put the PlayerProfile
+                 * into the registry. Otherwise, we end up with a race condition where
+                 * the profile is not in the map just _yet_ but the loading flag is gone
+                 * and we can end up loading it a second time (and thus can dupe items).
+                 * Fixes https://github.com/Slimefun/Slimefun4/issues/4130
+                 *
+                 * The flag removal and the queue flush happen under the queue's
+                 * monitor so no callback can slip in between and get lost. A finally
+                 * block also guarantees the flag is cleared even if loading failed,
+                 * otherwise the profile could never be loaded again (soft-lock).
+                 */
+                synchronized (newQueue) {
+                    loading.remove(uuid, newQueue);
 
-            callback.accept(event.getProfile());
+                    if (loadedProfile != null) {
+                        for (Consumer<PlayerProfile> queuedCallback : newQueue) {
+                            queuedCallback.accept(loadedProfile);
+                        }
+                    }
+
+                    newQueue.clear();
+                }
+            }
+
+            if (loadedProfile != null) {
+                callback.accept(loadedProfile);
+            }
         });
 
         return false;
@@ -427,28 +471,35 @@ public class PlayerProfile {
 
         UUID uuid = p.getUniqueId();
 
-        // If we're already loading, we don't want to spin up a whole new thread and load the profile again/more
-        // This can very easily cause CPU, memory and thread exhaustion if the profile is large
-        // See #4011, #4116
-        if (loading.containsKey(uuid)) {
-            Debug.log(TestCase.PLAYER_PROFILE_DATA, "Attempted to request PlayerProfile ({}) while loading", uuid);
-            return false;
-        }
-
         if (!Slimefun.getRegistry().getPlayerProfiles().containsKey(uuid)) {
-            loading.put(uuid, true);
-            // Should probably prevent multiple requests for the same profile in the future
+            // If we're already loading, we don't want to spin up a whole new thread and load the profile again/more
+            // This can very easily cause CPU, memory and thread exhaustion if the profile is large
+            // See #4011, #4116
+            List<Consumer<PlayerProfile>> newQueue = new ArrayList<>();
+
+            if (loading.putIfAbsent(uuid, newQueue) != null) {
+                Debug.log(TestCase.PLAYER_PROFILE_DATA, "Attempted to request PlayerProfile ({}) while loading", uuid);
+                return false;
+            }
+
             Slimefun.getThreadService().newThread(Slimefun.instance(), "PlayerProfile#request(" + uuid + ")", () -> {
-                PlayerData data = Slimefun.getPlayerStorage().loadPlayerData(uuid);
+                try {
+                    PlayerData data = Slimefun.getPlayerStorage().loadPlayerData(uuid);
 
-                PlayerProfile pp = new PlayerProfile(p, data);
-                Slimefun.getRegistry().getPlayerProfiles().put(uuid, pp);
-
-                // Make sure we call this after we put the PlayerProfile into the registry.
-                // Otherwise, we end up with a race condition where the profile is not in the map just _yet_
-                // but the loading flag is gone and we can end up loading it a second time (and thus can dupe items)
-                // Fixes https://github.com/Slimefun/Slimefun4/issues/4130
-                loading.remove(uuid);
+                    PlayerProfile pp = new PlayerProfile(p, data);
+                    Slimefun.getRegistry().getPlayerProfiles().put(uuid, pp);
+                } catch (Exception | LinkageError x) {
+                    Slimefun.logger().log(Level.SEVERE, x, () -> "Failed to load the PlayerProfile for " + uuid);
+                } finally {
+                    // Make sure we remove the loading flag after we put the PlayerProfile into the registry.
+                    // Otherwise, we end up with a race condition where the profile is not in the map just _yet_
+                    // but the loading flag is gone and we can end up loading it a second time (and thus can dupe items)
+                    // Fixes https://github.com/Slimefun/Slimefun4/issues/4130
+                    //
+                    // The finally block also guarantees the flag is cleared even if
+                    // loading failed, otherwise the profile could never be loaded again.
+                    loading.remove(uuid, newQueue);
+                }
             });
 
             return false;
@@ -487,7 +538,9 @@ public class PlayerProfile {
             if (line.startsWith(ChatColors.color("&7ID: ")) && line.indexOf('#') != -1) {
                 String[] splitLine = CommonPatterns.HASH.split(line);
 
-                if (CommonPatterns.NUMERIC.matcher(splitLine[1]).matches()) {
+                // String#split drops trailing empty strings, so a line ending in
+                // '#' would leave us with a single element - guard against that
+                if (splitLine.length == 2 && CommonPatterns.NUMERIC.matcher(splitLine[1]).matches()) {
                     id = OptionalInt.of(Integer.parseInt(splitLine[1]));
                     uuid = splitLine[0].replace(ChatColors.color("&7ID: "), "");
                 }
