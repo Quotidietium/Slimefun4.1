@@ -163,13 +163,27 @@ public class SlimefunProfiler {
 
         long elapsedTime = System.nanoTime() - timestamp;
 
-        executor.execute(() -> {
+        if (requests.isEmpty()) {
+            /*
+             * Nobody is currently inspecting our timings, so we can merge this entry
+             * right here on the calling Thread. This avoids allocating a lambda and
+             * paying for an executor round-trip for every single ticked block.
+             * The resulting data is identical (timings is a ConcurrentHashMap).
+             */
             ProfiledBlock block = new ProfiledBlock(l, item);
 
             // Merge (if we have multiple samples for whatever reason)
             timings.merge(block, elapsedTime, Long::sum);
             queued.decrementAndGet();
-        });
+        } else {
+            executor.execute(() -> {
+                ProfiledBlock block = new ProfiledBlock(l, item);
+
+                // Merge (if we have multiple samples for whatever reason)
+                timings.merge(block, elapsedTime, Long::sum);
+                queued.decrementAndGet();
+            });
+        }
 
         return elapsedTime;
     }
