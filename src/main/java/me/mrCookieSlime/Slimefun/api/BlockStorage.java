@@ -7,8 +7,12 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -58,7 +62,17 @@ public class BlockStorage {
     private final World world;
     private final Map<Location, Config> storage = new ConcurrentHashMap<>();
     private final Map<Location, BlockMenu> inventories = new ConcurrentHashMap<>();
-    private final Map<String, Config> blocksCache = new ConcurrentHashMap<>();
+
+    /*
+     * Deferred persistence: block data writes are pure in-memory operations.
+     * Locations with modified data are marked dirty and any file-key removals
+     * (deleted blocks / id changes) are recorded, so the JSON serialization
+     * and the per-id .sfb file update only happen once per save() cycle
+     * instead of on every single value change.
+     */
+    private final Set<Location> dirtyBlocks = ConcurrentHashMap.newKeySet();
+    private final Map<Location, Set<String>> pendingFileDeletions = new ConcurrentHashMap<>();
+    private final Object persistenceLock = new Object();
 
     private static int chunkChanges = 0;
     private static boolean universalInventoriesLoaded = false;
@@ -288,7 +302,9 @@ public class BlockStorage {
     }
 
     public void computeChanges() {
-        changes = blocksCache.size();
+        synchronized (persistenceLock) {
+            changes = dirtyBlocks.size() + pendingFileDeletions.size();
+        }
 
         Map<Location, BlockMenu> inventories2 = new HashMap<>(inventories);
         for (Map.Entry<Location, BlockMenu> entry : inventories2.entrySet()) {
@@ -313,10 +329,59 @@ public class BlockStorage {
         }
 
         Slimefun.logger().log(Level.INFO, "Saving block data for world \"{0}\" ({1} change(s) queued)", new Object[] { world.getName(), changes });
-        Map<String, Config> cache = new HashMap<>(blocksCache);
 
-        for (Map.Entry<String, Config> entry : cache.entrySet()) {
-            blocksCache.remove(entry.getKey());
+        /*
+         * Drain the pending writes under a lock so no deletion can be lost to a
+         * concurrent write, then serialize everything outside the lock.
+         * Writers that come in after the drain simply land in the next save cycle.
+         */
+        Map<Location, Set<String>> deletions;
+        Set<Location> dirty;
+
+        synchronized (persistenceLock) {
+            deletions = new HashMap<>(pendingFileDeletions);
+            pendingFileDeletions.clear();
+            dirty = new HashSet<>(dirtyBlocks);
+            dirtyBlocks.clear();
+        }
+
+        // The per-id .sfb file Configs are only loaded for ids we actually touched
+        Map<String, Config> touchedFiles = new HashMap<>();
+
+        // 1. File-key removals first (a deleted or re-ided block may be re-written below)
+        for (Map.Entry<Location, Set<String>> entry : deletions.entrySet()) {
+            String serializedLocation = serializeLocation(entry.getKey());
+
+            for (String id : entry.getValue()) {
+                getOrLoadBlockFile(touchedFiles, id).setValue(serializedLocation, null);
+            }
+        }
+
+        // 2. Serialize all dirty blocks (the live storage map is the source of truth)
+        for (Location l : dirty) {
+            Config cfg = storage.get(l);
+
+            if (cfg == null) {
+                // The block was deleted again after being marked dirty,
+                // its removal is handled by the deletions above (if any).
+                continue;
+            }
+
+            String id = cfg.getString("id");
+
+            if (id == null) {
+                /*
+                 * This Block is no longer valid...
+                 * Fixes #1577
+                 */
+                continue;
+            }
+
+            getOrLoadBlockFile(touchedFiles, id).setValue(serializeLocation(l), serializeBlockInfo(cfg));
+        }
+
+        // 3. Write every touched file (atomically) or delete it if no keys remain
+        for (Map.Entry<String, Config> entry : touchedFiles.entrySet()) {
             Config cfg = entry.getValue();
 
             if (cfg.getKeys().isEmpty()) {
@@ -352,6 +417,26 @@ public class BlockStorage {
         }
 
         changes = 0;
+    }
+
+    /**
+     * This returns the in-memory view of the per-id .sfb file for the given item id,
+     * loading it from disk (and creating the parent directory) on first access.
+     *
+     * @param touchedFiles
+     *            The per-save cache of already loaded file {@link Config}s
+     * @param id
+     *            The {@link SlimefunItem} id whose .sfb file to load
+     *
+     * @return The file {@link Config} for that id
+     */
+    @Nonnull
+    private Config getOrLoadBlockFile(@Nonnull Map<String, Config> touchedFiles, @Nonnull String id) {
+        return touchedFiles.computeIfAbsent(id, key -> {
+            File dir = new File(PATH_BLOCKS + world.getName());
+            dir.mkdirs();
+            return new Config(PATH_BLOCKS + world.getName() + '/' + key + ".sfb");
+        });
     }
 
     public void saveAndRemove() {
@@ -572,26 +657,56 @@ public class BlockStorage {
             return;
         }
 
-        storage.storage.put(l, cfg);
+        Config previous = storage.storage.put(l, cfg);
         String id = cfg.getString("id");
-        BlockMenuPreset preset = BlockMenuPreset.getPreset(id);
+        boolean idChanged = previous != null && !Objects.equals(previous.getString("id"), id);
 
-        if (preset != null) {
-            if (BlockMenuPreset.isUniversalInventory(id)) {
-                Slimefun.getRegistry().getUniversalInventories().computeIfAbsent(id, key -> new UniversalBlockMenu(preset));
-            } else if (!storage.hasInventory(l)) {
-                File file = new File(PATH_INVENTORIES + serializeLocation(l) + ".sfi");
+        if (previous == null || idChanged) {
+            if (idChanged) {
+                /*
+                 * The block id changed in place (e.g. via #store(...) without a
+                 * prior delete): make sure the old id's .sfb file drops this
+                 * location, otherwise a stale duplicate entry would survive the
+                 * next save and could "revive" the old block on the next load.
+                 */
+                storage.markForFileDeletion(l, previous.getString("id"));
+            }
 
-                if (file.exists()) {
-                    BlockMenu inventory = new BlockMenu(preset, l, new io.github.bakedlibs.dough.config.Config(file));
-                    storage.inventories.put(l, inventory);
-                } else {
-                    storage.loadInventory(l, preset);
+            // Menu Presets never change at runtime, so the (comparatively costly)
+            // preset lookup and inventory setup only needs to happen for newly
+            // stored blocks or when the id actually changed.
+            BlockMenuPreset preset = BlockMenuPreset.getPreset(id);
+
+            if (preset != null) {
+                if (BlockMenuPreset.isUniversalInventory(id)) {
+                    Slimefun.getRegistry().getUniversalInventories().computeIfAbsent(id, key -> new UniversalBlockMenu(preset));
+                } else if (!storage.hasInventory(l)) {
+                    File file = new File(PATH_INVENTORIES + serializeLocation(l) + ".sfi");
+
+                    if (file.exists()) {
+                        BlockMenu inventory = new BlockMenu(preset, l, new io.github.bakedlibs.dough.config.Config(file));
+                        storage.inventories.put(l, inventory);
+                    } else {
+                        storage.loadInventory(l, preset);
+                    }
                 }
             }
         }
 
-        refreshCache(storage, l, id, serializeBlockInfo(cfg), updateTicker);
+        if (updateTicker && id != null) {
+            SlimefunItem item = SlimefunItem.getById(id);
+
+            if (item != null
+                && l.getWorld() != null
+                && item.isTicking()
+                && !item.isDisabledIn(l.getWorld())
+            ) {
+                Slimefun.getTickerTask().enableTicker(l);
+            }
+        }
+
+        // The expensive JSON serialization + file update is deferred to save()
+        storage.dirtyBlocks.add(l);
     }
 
     public static void setBlockInfo(Block b, String json, boolean updateTicker) {
@@ -664,7 +779,8 @@ public class BlockStorage {
         Config cfg = storage.storage.get(l);
 
         if (cfg != null && cfg.getString("id") != null) {
-            refreshCache(storage, l, cfg.getString("id"), null, destroy);
+            storage.markForFileDeletion(l, cfg.getString("id"));
+            storage.dirtyBlocks.remove(l);
             storage.storage.remove(l);
         }
 
@@ -718,35 +834,31 @@ public class BlockStorage {
             menu.move(to);
         }
 
-        refreshCache(storage, from, previousData.getString("id"), null, true);
+        storage.markForFileDeletion(from, previousData.getString("id"));
+        storage.dirtyBlocks.remove(from);
         storage.storage.remove(from);
 
         Slimefun.getTickerTask().disableTicker(from);
     }
 
-    private static void refreshCache(BlockStorage storage, Location l, String key, String value, boolean updateTicker) {
-        if (key == null) {
-            /**
-             * This Block is no longer valid...
-             * Fixes #1577
-             */
+    /**
+     * This records that the given {@link Location} must be removed from the
+     * .sfb file of the given item id on the next {@link #save()}.
+     * The removal is deferred so that high-frequency writes stay pure
+     * in-memory operations.
+     *
+     * @param l
+     *            The {@link Location} whose file entry should be removed
+     * @param id
+     *            The item id under which the entry was stored, null is ignored
+     */
+    private void markForFileDeletion(@Nonnull Location l, @Nullable String id) {
+        if (id == null) {
             return;
         }
 
-        Config cfg = storage.blocksCache.computeIfAbsent(key, k -> new Config(PATH_BLOCKS + l.getWorld().getName() + '/' + key + ".sfb"));
-        cfg.setValue(serializeLocation(l), value);
-
-        if (updateTicker) {
-            SlimefunItem item = SlimefunItem.getById(key);
-
-            if (item != null
-                && value != null
-                && l.getWorld() != null
-                && item.isTicking()
-                && !item.isDisabledIn(l.getWorld())
-            ) {
-                Slimefun.getTickerTask().enableTicker(l);
-            }
+        synchronized (persistenceLock) {
+            pendingFileDeletions.computeIfAbsent(l, k -> ConcurrentHashMap.newKeySet()).add(id);
         }
     }
 
