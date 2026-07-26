@@ -132,13 +132,15 @@ public class BackpackListener implements Listener {
                     if (e.getClick().isShiftClick() && !isAllowed(slimefunBackpack, e.getCurrentItem())) {
                         e.setCancelled(true);
                     }
-                } else if (!isAllowed(slimefunBackpack, e.getCursor())) {
+                } else if (!isAllowed(slimefunBackpack, e.getCursor()) || !isAllowed(slimefunBackpack, e.getCurrentItem())) {
                     /*
                      * Clicking inside the backpack GUI may place the item held on the cursor
-                     * into the backpack (or swap it with the clicked slot's content).
-                     * The previous check only looked at the clicked slot's item, which is
-                     * null for empty slots - allowing disallowed items (e.g. shulker boxes
-                     * or nested backpacks) to be placed into empty slots.
+                     * into the backpack (or swap it with the clicked slot's content), so the
+                     * cursor item must be checked - previously only the clicked slot's item
+                     * was checked, which is null for empty slots and allowed disallowed items
+                     * (e.g. shulker boxes or nested backpacks) to be placed into empty slots.
+                     * The clicked item is still checked as well: interacting with a disallowed
+                     * item that somehow ended up inside the backpack stays blocked.
                      */
                     e.setCancelled(true);
                 }
