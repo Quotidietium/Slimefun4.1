@@ -91,7 +91,12 @@ public class CoolerListener implements Listener {
      */
     private void takeJuiceFromCooler(@Nonnull Player p, @Nonnull ItemStack cooler) {
         PlayerProfile.getBackpack(cooler, backpack -> {
-            if (backpack != null) {
+            /*
+             * Only the owner (or an admin with the bypass permission) may benefit
+             * from a cooler - same check as BackpackListener#openBackpack().
+             * Without it, a stolen cooler keeps feeding the thief.
+             */
+            if (backpack != null && (p.getUniqueId().equals(backpack.getOwnerId()) || p.hasPermission("slimefun.inventory.bypass"))) {
                 Slimefun.runSync(() -> consumeJuice(p, cooler, backpack));
             }
         });
