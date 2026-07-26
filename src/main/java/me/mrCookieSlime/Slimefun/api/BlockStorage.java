@@ -659,8 +659,12 @@ public class BlockStorage {
             throw new IllegalStateException("World \"" + l.getWorld().getName() + "\" seems to have been deleted. Do not call unsafe methods directly!");
         }
 
-        if (hasBlockInfo(l)) {
-            refreshCache(storage, l, getLocationInfo(l).getString("id"), null, destroy);
+        // Read the block data once and reuse it, instead of looking it up
+        // separately via hasBlockInfo(...) and getLocationInfo(...).
+        Config cfg = storage.storage.get(l);
+
+        if (cfg != null && cfg.getString("id") != null) {
+            refreshCache(storage, l, cfg.getString("id"), null, destroy);
             storage.storage.remove(l);
         }
 
@@ -696,12 +700,15 @@ public class BlockStorage {
      */
     @ParametersAreNonnullByDefault
     public static void moveLocationInfoUnsafely(Location from, Location to) {
-        if (!hasBlockInfo(from)) {
+        // Read the block data once and reuse it, instead of looking it up
+        // separately via hasBlockInfo(...) and getLocationInfo(...).
+        BlockStorage storage = getStorage(from.getWorld());
+        Config previousData = storage == null ? null : storage.storage.get(from);
+
+        if (previousData == null || previousData.getString("id") == null) {
             return;
         }
 
-        BlockStorage storage = getStorage(from.getWorld());
-        Config previousData = getLocationInfo(from);
         setBlockInfo(to, previousData, true);
 
         if (storage.inventories.containsKey(from)) {
