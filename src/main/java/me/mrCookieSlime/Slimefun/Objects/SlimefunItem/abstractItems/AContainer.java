@@ -32,6 +32,7 @@ import io.github.thebusybiscuit.slimefun4.core.attributes.MachineProcessHolder;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.core.machines.MachineProcessor;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.handlers.SimpleBlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.operations.CraftingOperation;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
@@ -106,6 +107,20 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
     @Override
     public MachineProcessor<CraftingOperation> getMachineProcessor() {
         return processor;
+    }
+
+    /**
+     * Drops the negative recipe-scan cache entry for the given {@link Location}.
+     * This is called when the machine is removed without going through its
+     * {@link BlockBreakHandler} (e.g. terminated by the TickerTask after
+     * repeated errors), so that a new machine placed at the same spot does
+     * not inherit a stale "no recipe" verdict.
+     *
+     * @param l
+     *            The {@link Location} of the removed machine
+     */
+    public void clearRecipeCache(@Nonnull Location l) {
+        failedScans.remove(new BlockPosition(l));
     }
 
     protected void constructMenu(BlockMenuPreset preset) {
@@ -376,7 +391,16 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                     inv.replaceExistingItem(22, CustomItemStack.create(Material.BLACK_STAINED_GLASS_PANE, " "));
 
                     for (ItemStack output : currentOperation.getResults()) {
-                        inv.pushItem(output.clone(), getOutputSlots());
+                        ItemStack leftover = inv.pushItem(output.clone(), getOutputSlots());
+
+                        if (leftover != null) {
+                            /*
+                             * The output slots filled up between the recipe check (fitAll)
+                             * and now (e.g. a Player shift-clicked items into them).
+                             * Drop the excess instead of voiding it.
+                             */
+                            Slimefun.runSync(() -> b.getWorld().dropItemNaturally(b.getLocation(), leftover));
+                        }
                     }
 
                     processor.endOperation(b);

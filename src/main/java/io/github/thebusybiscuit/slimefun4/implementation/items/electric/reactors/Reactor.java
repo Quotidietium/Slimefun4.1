@@ -1,7 +1,7 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.reactors;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -75,7 +75,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
     // No coolant border
     private static final int[] border_4 = { 25, 34, 43 };
 
-    private final Set<Location> explosionsQueue = new HashSet<>();
+    private final Set<Location> explosionsQueue = ConcurrentHashMap.newKeySet();
     private final MachineProcessor<FuelOperation> processor = new MachineProcessor<>(this);
 
     @ParametersAreNonnullByDefault
@@ -377,7 +377,12 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         ItemStack result = operation.getResult();
 
         if (result != null) {
-            inv.pushItem(result.clone(), getOutputSlots());
+            ItemStack leftover = inv.pushItem(result.clone(), getOutputSlots());
+
+            if (leftover != null) {
+                // The output slot is full - drop the byproduct instead of voiding it
+                Slimefun.runSync(() -> l.getWorld().dropItemNaturally(l, leftover));
+            }
         }
 
         if (accessPort != null) {

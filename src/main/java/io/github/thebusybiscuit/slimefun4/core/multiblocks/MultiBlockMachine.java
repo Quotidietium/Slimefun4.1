@@ -193,6 +193,21 @@ public abstract class MultiBlockMachine extends SlimefunItem implements NotPlace
      */
     @ParametersAreNonnullByDefault
     protected void handleCraftedItem(ItemStack outputItem, Block block, Inventory blockInv) {
+        /*
+         * Machines with a crafting delay call this a few seconds AFTER the input
+         * was consumed. The dispenser may have been broken in the meantime, in
+         * which case "blockInv" is a stale reference to an orphaned TileEntity -
+         * writing into it would void the items. Re-resolve the inventory from the
+         * block's current state and fall back to dropping the output if the
+         * container is gone.
+         */
+        if (block.getState() instanceof Container container) {
+            blockInv = container.getInventory();
+        } else {
+            SlimefunUtils.spawnItem(block.getLocation(), outputItem, ItemSpawnReason.MULTIBLOCK_MACHINE_OVERFLOW, true);
+            return;
+        }
+
         Inventory outputInv = findOutputInventory(outputItem, block, blockInv);
 
         if (outputInv != null) {

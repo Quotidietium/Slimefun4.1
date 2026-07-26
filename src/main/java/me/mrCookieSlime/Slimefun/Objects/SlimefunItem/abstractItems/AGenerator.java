@@ -161,7 +161,12 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
                 ItemStack fuel = operation.getIngredient();
 
                 if (isBucket(fuel)) {
-                    inv.pushItem(new ItemStack(Material.BUCKET), getOutputSlots());
+                    ItemStack leftover = inv.pushItem(new ItemStack(Material.BUCKET), getOutputSlots());
+
+                    if (leftover != null) {
+                        // The output slots are full - drop the empty bucket instead of voiding it
+                        Slimefun.runSync(() -> l.getWorld().dropItemNaturally(l, leftover));
+                    }
                 }
 
                 inv.replaceExistingItem(22, CustomItemStack.create(Material.BLACK_STAINED_GLASS_PANE, " "));

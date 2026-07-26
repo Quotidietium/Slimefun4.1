@@ -27,11 +27,14 @@ import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.blocks.ChunkPosition;
 import io.github.thebusybiscuit.slimefun4.api.ErrorReport;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
+import io.github.thebusybiscuit.slimefun4.core.attributes.MachineProcessHolder;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
+import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.AContainer;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
+import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 
 /**
  * The {@link TickerTask} is responsible for ticking every {@link BlockTicker},
@@ -245,8 +248,35 @@ public class TickerTask implements Runnable {
             Slimefun.logger().log(Level.SEVERE, " ");
             bugs.remove(position);
 
+            /*
+             * Terminate the machine properly, mirroring its BlockBreakHandler:
+             * end any ongoing operation so it cannot be "resumed" by a new
+             * machine placed at this location (its ingredients were consumed
+             * long ago - resuming would produce free outputs), and clear any
+             * cached machine state (e.g. AContainer's negative recipe scans)
+             * so the next machine at this spot starts with a clean slate.
+             */
+            if (item instanceof MachineProcessHolder<?> processHolder) {
+                processHolder.getMachineProcessor().endOperation(l);
+            }
+
+            if (item instanceof AContainer container) {
+                container.clearRecipeCache(l);
+            }
+
+            BlockMenu menu = BlockStorage.getInventory(l);
+
+            Bukkit.getScheduler().scheduleSyncDelayedTask(Slimefun.instance(), () -> {
+                if (menu != null) {
+                    // Drop the machine's contents like a normal block break would
+                    int[] inventorySlots = menu.getPreset().getInventorySlots().stream().mapToInt(Integer::intValue).toArray();
+                    menu.dropItems(l, inventorySlots);
+                }
+
+                l.getBlock().setType(Material.AIR);
+            });
+
             BlockStorage.deleteLocationInfoUnsafely(l, true);
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Slimefun.instance(), () -> l.getBlock().setType(Material.AIR));
         } else {
             bugs.put(position, errors);
         }
