@@ -92,6 +92,16 @@ public final class TeleportationManager {
 
                     int slot = teleporterInventory[index];
                     Location l = waypoint.getLocation();
+
+                    if (l.getWorld() == null) {
+                        /*
+                         * The waypoint's world is not loaded (anymore). Skip it -
+                         * dereferencing it would throw and leave the Player stuck
+                         * in #teleporterUsers with no GUI and no close handler.
+                         */
+                        continue;
+                    }
+
                     double time = NumberUtils.reparseDouble(0.5 * getTeleportationTime(complexity, source, l));
 
                     // @formatter:off
@@ -117,7 +127,15 @@ public final class TeleportationManager {
                     index++;
                 }
 
-                Slimefun.runSync(() -> menu.open(p));
+                Slimefun.runSync(() -> {
+                    if (p.isOnline()) {
+                        menu.open(p);
+                    } else {
+                        // The Player left before the profile finished loading,
+                        // the close handler will never fire so clean up here
+                        teleporterUsers.remove(p.getUniqueId());
+                    }
+                });
             });
         }
     }
@@ -155,7 +173,7 @@ public final class TeleportationManager {
      */
     public int getTeleportationTime(int complexity, @Nonnull Location source, @Nonnull Location destination) {
         Validate.notNull(source, "Source cannot be null");
-        Validate.notNull(source, "Destination cannot be null");
+        Validate.notNull(destination, "Destination cannot be null");
 
         if (complexity < 100) {
             return 100;
