@@ -189,23 +189,29 @@ public class TickerTask implements Runnable {
         Config data = BlockStorage.getLocationInfo(l);
         SlimefunItem item = SlimefunItem.getById(data.getString("id"));
 
-        if (item != null && item.getBlockTicker() != null) {
+        if (item == null) {
+            return;
+        }
+
+        BlockTicker blockTicker = item.getBlockTicker();
+
+        if (blockTicker != null) {
             try {
-                if (item.getBlockTicker().isSynchronized()) {
+                if (blockTicker.isSynchronized()) {
                     Slimefun.getProfiler().scheduleEntries(1);
-                    item.getBlockTicker().update();
+                    blockTicker.update();
 
                     // Buffered: all synchronized blocks are ticked in a single scheduler
                     // submission at the end of this run (see run()).
                     synchronizedTicks.add(new SynchronizedTick(l, item, data));
                 } else {
                     long timestamp = Slimefun.getProfiler().newEntry();
-                    item.getBlockTicker().update();
+                    blockTicker.update();
                     Block b = l.getBlock();
                     tickBlock(l, b, item, data, timestamp);
                 }
 
-                tickers.add(item.getBlockTicker());
+                tickers.add(blockTicker);
             } catch (Exception x) {
                 reportErrors(l, item, x);
             }
