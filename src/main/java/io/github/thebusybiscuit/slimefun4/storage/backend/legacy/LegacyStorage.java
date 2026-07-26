@@ -84,7 +84,7 @@ public class LegacyStorage implements Storage {
         Config waypointsFile = new Config("data-storage/Slimefun/waypoints/" + uuid + ".yml");
 
         // Save research
-        playerFile.setValue("rearches", null);
+        playerFile.setValue("researches", null);
         for (Research research : Slimefun.getRegistry().getResearches()) {
             // Save the research if it's researched
             if (data.getResearches().contains(research)) {
