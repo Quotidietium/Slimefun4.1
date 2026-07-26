@@ -699,7 +699,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                 String[] script = CommonPatterns.DASH.split(code == null ? DEFAULT_SCRIPT : code);
 
                 String indexData = data.getString("index");
-                int index = (indexData == null ? 0 : Integer.parseInt(indexData)) + 1;
+                int index = 0;
+
+                if (indexData != null) {
+                    try {
+                        index = Integer.parseInt(indexData) + 1;
+                    } catch (NumberFormatException x) {
+                        // Corrupted "index" entry, restart the script from the beginning
+                        index = 0;
+                    }
+                }
 
                 if (index >= script.length) {
                     index = 0;
