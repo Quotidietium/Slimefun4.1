@@ -91,7 +91,11 @@ public class EnhancedFurnaceListener implements Listener {
                     // amount may resolve to 0 when the result slot is already full. ItemStack cannot
                     // be constructed with amount 0 (throws IllegalArgumentException), so skip in that case.
                     if (amount > 0) {
-                        e.setResult(new ItemStack(item.getType(), amount));
+                        // Clone the recipe output so its ItemMeta (display name, lore, ...)
+                        // survives - a plain new ItemStack(type, amount) would strip it.
+                        ItemStack newResult = item.clone();
+                        newResult.setAmount(amount);
+                        e.setResult(newResult);
                     }
                 }
             }
