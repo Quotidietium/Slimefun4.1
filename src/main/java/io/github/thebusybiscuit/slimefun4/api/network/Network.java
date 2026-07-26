@@ -135,6 +135,8 @@ public abstract class Network {
         Validate.isTrue(l.getWorld().getUID().equals(worldId), "Networks cannot exist in multiple worlds!");
 
         if (positions.add(BlockPosition.getAsLong(l))) {
+            // Keep the NetworkManager's chunk index in sync so lookups stay fast.
+            manager.registerNetworkChunk(this, l);
             markDirty(l);
         }
     }
@@ -165,13 +167,13 @@ public abstract class Network {
     public boolean connectsTo(@Nonnull Location l) {
         Validate.notNull(l, "The Location cannot be null.");
 
-        if (this.regulator.equals(l)) {
-            return true;
-        } else if (!l.getWorld().getUID().equals(this.worldId)) {
+        // Cheap check first: a Location in another World can never be part of this Network.
+        if (!l.getWorld().getUID().equals(this.worldId)) {
             return false;
-        } else {
-            return positions.contains(BlockPosition.getAsLong(l));
         }
+
+        // The regulator is always part of 'positions', so a single Set lookup covers it too.
+        return positions.contains(BlockPosition.getAsLong(l));
     }
 
     private @Nullable NetworkComponent getCurrentClassification(@Nonnull Location l) {

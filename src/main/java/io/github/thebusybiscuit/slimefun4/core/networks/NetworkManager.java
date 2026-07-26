@@ -3,7 +3,11 @@ package io.github.thebusybiscuit.slimefun4.core.networks;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 
@@ -50,6 +54,69 @@ public class NetworkManager {
      * if insertions come at a slight cost.
      */
     private final List<Network> networks = new CopyOnWriteArrayList<>();
+
+    /**
+     * A spatial index mapping (world, chunk) to the {@link Network Networks} that occupy
+     * that chunk. This allows {@link #getNetworkFromLocation(Location, Class)} and
+     * {@link #getNetworksFromLocation(Location, Class)} to only inspect the handful of
+     * {@link Network Networks} in the relevant chunk, instead of linearly scanning every
+     * {@link Network} on the {@link Server} for each lookup.
+     * <p>
+     * The index is a <em>superset</em> filter: candidates are always confirmed via
+     * {@link Network#connectsTo(Location)}, so correctness never depends on the index
+     * being perfectly precise, only on it containing every {@link Network} that could
+     * connect to a given {@link Location}.
+     */
+    private final Map<UUID, Map<Long, CopyOnWriteArrayList<Network>>> networksByChunk = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks which chunk keys each {@link Network} has been registered under, so they can
+     * all be removed again in {@link #unregisterNetwork(Network)}.
+     */
+    private final Map<Network, Set<Long>> chunksPerNetwork = new ConcurrentHashMap<>();
+
+    /**
+     * A fallback list for {@link Network Networks} that could not be added to the spatial
+     * index because their regulator {@link Location} is unavailable. This should always be
+     * empty in production, but some consumers (e.g. mocked {@link Network Networks} in unit
+     * tests) register a {@link Network} without a regulator. These are looked up linearly,
+     * exactly like the pre-index behaviour.
+     */
+    private final List<Network> unindexedNetworks = new CopyOnWriteArrayList<>();
+
+    /**
+     * Computes a unique key for the chunk containing the given {@link Location}.
+     *
+     * @param l
+     *            The {@link Location}
+     *
+     * @return A key uniquely identifying the chunk (within one world)
+     */
+    static long chunkKey(@Nonnull Location l) {
+        return ((long) (l.getBlockX() >> 4) << 32) | ((l.getBlockZ() >> 4) & 0xffffffffL);
+    }
+
+    /**
+     * Registers a {@link Network} under the chunk containing the given {@link Location}.
+     * This is called internally whenever a {@link Network} starts occupying a new chunk.
+     * <p>
+     * <strong>This is for internal use only.</strong>
+     *
+     * @param network
+     *            The {@link Network} to index
+     * @param l
+     *            A {@link Location} that is part of the {@link Network}
+     */
+    public void registerNetworkChunk(@Nonnull Network network, @Nonnull Location l) {
+        long chunkKey = chunkKey(l);
+
+        networksByChunk
+            .computeIfAbsent(l.getWorld().getUID(), k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(chunkKey, k -> new CopyOnWriteArrayList<>())
+            .addIfAbsent(network);
+
+        chunksPerNetwork.computeIfAbsent(network, k -> ConcurrentHashMap.newKeySet()).add(chunkKey);
+    }
 
     /**
      * This creates a new {@link NetworkManager} with the given capacity.
@@ -127,7 +194,26 @@ public class NetworkManager {
 
         Validate.notNull(type, "Type must not be null");
 
-        for (Network network : networks) {
+        // Always check the (normally empty) fallback list of networks without a regulator.
+        for (Network network : unindexedNetworks) {
+            if (type.isInstance(network) && network.connectsTo(l)) {
+                return Optional.of(type.cast(network));
+            }
+        }
+
+        Map<Long, CopyOnWriteArrayList<Network>> worldMap = networksByChunk.get(l.getWorld().getUID());
+
+        if (worldMap == null) {
+            return Optional.empty();
+        }
+
+        List<Network> candidates = worldMap.get(chunkKey(l));
+
+        if (candidates == null) {
+            return Optional.empty();
+        }
+
+        for (Network network : candidates) {
             if (type.isInstance(network) && network.connectsTo(l)) {
                 return Optional.of(type.cast(network));
             }
@@ -140,13 +226,32 @@ public class NetworkManager {
     public <T extends Network> List<T> getNetworksFromLocation(@Nullable Location l, @Nonnull Class<T> type) {
         if (l == null) {
             // No networks here, if the location does not even exist
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         Validate.notNull(type, "Type must not be null");
         List<T> list = new ArrayList<>();
 
-        for (Network network : networks) {
+        // Always check the (normally empty) fallback list of networks without a regulator.
+        for (Network network : unindexedNetworks) {
+            if (type.isInstance(network) && network.connectsTo(l)) {
+                list.add(type.cast(network));
+            }
+        }
+
+        Map<Long, CopyOnWriteArrayList<Network>> worldMap = networksByChunk.get(l.getWorld().getUID());
+
+        if (worldMap == null) {
+            return list;
+        }
+
+        List<Network> candidates = worldMap.get(chunkKey(l));
+
+        if (candidates == null) {
+            return list;
+        }
+
+        for (Network network : candidates) {
             if (type.isInstance(network) && network.connectsTo(l)) {
                 list.add(type.cast(network));
             }
@@ -164,6 +269,17 @@ public class NetworkManager {
     public void registerNetwork(@Nonnull Network network) {
         Validate.notNull(network, "Cannot register a null Network");
         networks.add(network);
+
+        Location regulator = network.getRegulator();
+
+        if (regulator != null) {
+            // Index the Network under the chunk of its regulator.
+            registerNetworkChunk(network, regulator);
+        } else {
+            // A Network without a regulator cannot be indexed, so we fall back to a
+            // linear lookup for it (should never happen outside of unit tests).
+            unindexedNetworks.add(network);
+        }
     }
 
     /**
@@ -175,6 +291,34 @@ public class NetworkManager {
     public void unregisterNetwork(@Nonnull Network network) {
         Validate.notNull(network, "Cannot unregister a null Network");
         networks.remove(network);
+        unindexedNetworks.remove(network);
+
+        // Remove the Network from the chunk index again.
+        Set<Long> chunks = chunksPerNetwork.remove(network);
+
+        if (chunks != null) {
+            Location regulator = network.getRegulator();
+
+            if (regulator == null) {
+                return;
+            }
+
+            Map<Long, CopyOnWriteArrayList<Network>> worldMap = networksByChunk.get(regulator.getWorld().getUID());
+
+            if (worldMap != null) {
+                for (Long chunkKey : chunks) {
+                    List<Network> bucket = worldMap.get(chunkKey);
+
+                    if (bucket != null) {
+                        bucket.remove(network);
+
+                        if (bucket.isEmpty()) {
+                            worldMap.remove(chunkKey, bucket);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
