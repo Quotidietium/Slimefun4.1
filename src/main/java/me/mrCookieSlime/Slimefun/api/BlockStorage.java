@@ -74,6 +74,14 @@ public class BlockStorage {
     private final Map<Location, Set<String>> pendingFileDeletions = new ConcurrentHashMap<>();
     private final Object persistenceLock = new Object();
 
+    /*
+     * A persistent in-memory view of the per-id .sfb files, shared across
+     * save cycles. Keeping the parsed file Config around avoids re-parsing
+     * every touched .sfb file from disk on every save; the file itself is
+     * still only written during save().
+     */
+    private final Map<String, Config> blockFiles = new ConcurrentHashMap<>();
+
     private static int chunkChanges = 0;
     private static boolean universalInventoriesLoaded = false;
 
@@ -345,15 +353,17 @@ public class BlockStorage {
             dirtyBlocks.clear();
         }
 
-        // The per-id .sfb file Configs are only loaded for ids we actually touched
-        Map<String, Config> touchedFiles = new HashMap<>();
+        // The per-id .sfb file views are cached persistently (see blockFiles);
+        // only the ids touched in this cycle are written back to disk.
+        Set<String> touchedIds = new HashSet<>();
 
         // 1. File-key removals first (a deleted or re-ided block may be re-written below)
         for (Map.Entry<Location, Set<String>> entry : deletions.entrySet()) {
             String serializedLocation = serializeLocation(entry.getKey());
 
             for (String id : entry.getValue()) {
-                getOrLoadBlockFile(touchedFiles, id).setValue(serializedLocation, null);
+                getBlockFile(id).setValue(serializedLocation, null);
+                touchedIds.add(id);
             }
         }
 
@@ -377,14 +387,26 @@ public class BlockStorage {
                 continue;
             }
 
-            getOrLoadBlockFile(touchedFiles, id).setValue(serializeLocation(l), serializeBlockInfo(cfg));
+            getBlockFile(id).setValue(serializeLocation(l), serializeBlockInfo(cfg));
+            touchedIds.add(id);
         }
 
         // 3. Write every touched file (atomically) or delete it if no keys remain
-        for (Map.Entry<String, Config> entry : touchedFiles.entrySet()) {
-            Config cfg = entry.getValue();
+        for (String id : touchedIds) {
+            Config cfg = blockFiles.get(id);
+
+            if (cfg == null) {
+                // Cannot happen, but stay defensive.
+                continue;
+            }
 
             if (cfg.getKeys().isEmpty()) {
+                /*
+                 * Drop the cached view as well, otherwise a block of this id
+                 * added later would resurrect stale keys into a fresh file.
+                 */
+                blockFiles.remove(id);
+
                 File file = cfg.getFile();
 
                 if (file.exists()) {
@@ -422,17 +444,17 @@ public class BlockStorage {
     /**
      * This returns the in-memory view of the per-id .sfb file for the given item id,
      * loading it from disk (and creating the parent directory) on first access.
+     * The view is cached persistently in {@link #blockFiles}, so later save
+     * cycles do not have to re-parse the file from disk.
      *
-     * @param touchedFiles
-     *            The per-save cache of already loaded file {@link Config}s
      * @param id
      *            The {@link SlimefunItem} id whose .sfb file to load
      *
      * @return The file {@link Config} for that id
      */
     @Nonnull
-    private Config getOrLoadBlockFile(@Nonnull Map<String, Config> touchedFiles, @Nonnull String id) {
-        return touchedFiles.computeIfAbsent(id, key -> {
+    private Config getBlockFile(@Nonnull String id) {
+        return blockFiles.computeIfAbsent(id, key -> {
             File dir = new File(PATH_BLOCKS + world.getName());
             dir.mkdirs();
             return new Config(PATH_BLOCKS + world.getName() + '/' + key + ".sfb");
@@ -441,6 +463,7 @@ public class BlockStorage {
 
     public void saveAndRemove() {
         save();
+        blockFiles.clear();
         saveChunks();
         isMarkedForRemoval.set(true);
     }
