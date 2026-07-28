@@ -959,6 +959,9 @@ public class BlockStorage {
                 storage.dirtyBlocks.remove(l);
                 storage.storage.remove(l);
             }
+
+            // A new block at this spot must start with a clean error count
+            Slimefun.getTickerTask().resetErrorCount(l);
         }
 
         if (destroy) {

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -66,7 +67,14 @@ public class TickerTask implements Runnable {
 
     private int tickRate;
     private volatile boolean halted = false;
-    private volatile boolean running = false;
+
+    /*
+     * Bukkit may overlap executions of an asynchronous timer task whose
+     * previous run overran its period. This flag must therefore be flipped
+     * atomically (compareAndSet), otherwise two Threads could both pass the
+     * check and tick the same blocks concurrently.
+     */
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     /**
      * A buffered synchronized tick. Holds everything needed to run the synchronized
@@ -102,18 +110,17 @@ public class TickerTask implements Runnable {
      * This method resets this {@link TickerTask} to run again.
      */
     private void reset() {
-        running = false;
+        running.set(false);
     }
 
     @Override
     public void run() {
         try {
             // If this method is actually still running... DON'T
-            if (running) {
+            if (!running.compareAndSet(false, true)) {
                 return;
             }
 
-            running = true;
             Slimefun.getProfiler().start();
             Set<BlockTicker> tickers = new HashSet<>();
             List<SynchronizedTick> synchronizedTicks = new ArrayList<>();
@@ -204,6 +211,15 @@ public class TickerTask implements Runnable {
                     tickLocation(tickers, l, synchronizedTicks);
                 }
             }
+        } catch (IllegalStateException x) {
+            /*
+             * The ChunkPosition's WeakReference to its World was garbage collected.
+             * The entry is dead weight (its Locations can never tick again), so
+             * drop it instead of letting it kill every following tick cycle.
+             */
+            if (tickingLocations.remove(chunk, locations)) {
+                Slimefun.logger().log(Level.WARNING, x, () -> "Removed a ticking chunk whose World is no longer available: " + chunk);
+            }
         } catch (ArrayIndexOutOfBoundsException | NumberFormatException x) {
             Slimefun.logger().log(Level.SEVERE, x, () -> "An Exception has occurred while trying to resolve Chunk: " + chunk);
         }
@@ -287,6 +303,15 @@ public class TickerTask implements Runnable {
 
             BlockMenu menu = BlockStorage.getInventory(l);
 
+            /*
+             * Notify any networks claiming this location, mirroring what the
+             * NetworkListener does for a normal break. A terminated regulator's
+             * Network would otherwise leak: never ticked again (the ticker is
+             * gone) yet still registered, with markDirty events piling up in
+             * its queue forever.
+             */
+            Slimefun.getNetworkManager().updateAllNetworks(l);
+
             Bukkit.getScheduler().scheduleSyncDelayedTask(Slimefun.instance(), () -> {
                 if (menu != null) {
                     // Drop the machine's contents like a normal block break would
@@ -322,7 +347,7 @@ public class TickerTask implements Runnable {
     public void awaitIdle() {
         long deadline = System.currentTimeMillis() + 5_000;
 
-        while (running && System.currentTimeMillis() < deadline) {
+        while (running.get() && System.currentTimeMillis() < deadline) {
             try {
                 Thread.sleep(10);
             } catch (InterruptedException x) {
@@ -368,6 +393,22 @@ public class TickerTask implements Runnable {
             Validate.notNull(entry.getValue(), "Boolean toDestroy in locations cannot be null");
         }
         deletionQueue.putAll(locations);
+    }
+
+    /**
+     * Forgets the error count of the given {@link Location}.
+     * Called when a block's data is deleted: without this, a machine placed
+     * later at the same spot would inherit the previous block's error count -
+     * it would be terminated without ever generating an ErrorReport (those
+     * are only written for the first error), and the count would leak.
+     *
+     * @param l
+     *            The {@link Location} whose error count should be reset
+     */
+    public void resetErrorCount(@Nonnull Location l) {
+        Validate.notNull(l, "Location must not be null!");
+
+        bugs.remove(new BlockPosition(l));
     }
 
     /**
@@ -504,7 +545,18 @@ public class TickerTask implements Runnable {
     public void removeTickingLocations(@Nonnull World world) {
         Validate.notNull(world, "The World cannot be null");
 
-        tickingLocations.keySet().removeIf(chunk -> chunk.getWorld().getUID().equals(world.getUID()));
+        tickingLocations.keySet().removeIf(chunk -> {
+            try {
+                World chunkWorld = chunk.getWorld();
+                return chunkWorld == null || chunkWorld.getUID().equals(world.getUID());
+            } catch (IllegalStateException x) {
+                /*
+                 * The ChunkPosition's WeakReference to its World was collected:
+                 * a dead entry that belongs to an unloaded World either way.
+                 */
+                return true;
+            }
+        });
     }
 
     /**
@@ -519,29 +571,24 @@ public class TickerTask implements Runnable {
         ChunkPosition chunk = new ChunkPosition(l.getWorld(), l.getBlockX() >> 4, l.getBlockZ() >> 4);
 
         /*
-          Note that all the values in #tickingLocations must be thread-safe.
-          Thus, the choice is between the CHM KeySet or a synchronized set.
-          The CHM KeySet was chosen since it at least permits multiple concurrent
-          reads without blocking.
-        */
-        Set<Location> newValue = ConcurrentHashMap.newKeySet();
-        Set<Location> oldValue = tickingLocations.putIfAbsent(chunk, newValue);
-
-        /**
-         * This is faster than doing computeIfAbsent(...)
-         * on a ConcurrentHashMap because it won't block the Thread for too long
+         * One atomic compute: a concurrent disableTicker() emptying and
+         * removing the chunk entry can no longer make a freshly added
+         * Location vanish together with the removed Set.
          */
-        if (oldValue != null) {
-            oldValue.add(l);
-        } else {
-            newValue.add(l);
-        }
+        tickingLocations.compute(chunk, (key, locations) -> {
+            if (locations == null) {
+                locations = ConcurrentHashMap.newKeySet();
+            }
+
+            locations.add(l);
+            return locations;
+        });
     }
 
     /**
      * This method disables the ticker at the given {@link Location} and removes it from our internal
      * "queue".
-     * 
+     *
      * @param l
      *            The {@link Location} to remove
      */
@@ -549,22 +596,17 @@ public class TickerTask implements Runnable {
         Validate.notNull(l, "Location cannot be null!");
 
         ChunkPosition chunk = new ChunkPosition(l.getWorld(), l.getBlockX() >> 4, l.getBlockZ() >> 4);
-        Set<Location> locations = tickingLocations.get(chunk);
 
-        if (locations != null) {
+        /*
+         * One atomic computeIfPresent: removing the Location and removing the
+         * (then empty) chunk entry happen as a single action, so a concurrent
+         * enableTicker() for the same chunk can neither lose its entry nor
+         * resurrect an empty Set.
+         */
+        tickingLocations.computeIfPresent(chunk, (key, locations) -> {
             locations.remove(l);
-
-            /*
-             * Remove the chunk entry only if it is still mapped to THIS (now empty)
-             * Set. A plain remove(chunk) is a check-then-act race: a concurrent
-             * enableTicker() may have picked up this Set reference and be about to
-             * add a Location to it - the entry would vanish with the Set and the
-             * newly added machine would never tick.
-             */
-            if (locations.isEmpty()) {
-                tickingLocations.remove(chunk, locations);
-            }
-        }
+            return locations.isEmpty() ? null : locations;
+        });
     }
 
 }
