@@ -59,7 +59,28 @@ import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
  */
 public class PlayerProfile {
 
-    private static final Map<UUID, List<Consumer<PlayerProfile>>> loading = new ConcurrentHashMap<>();
+    private static final Map<UUID, List<QueuedProfileCallback>> loading = new ConcurrentHashMap<>();
+
+    /**
+     * How often loading a {@link PlayerProfile} is attempted before giving up
+     * and invoking the failure handlers instead of the callbacks.
+     */
+    private static final int MAX_LOAD_ATTEMPTS = 3;
+
+    /**
+     * A queued {@link PlayerProfile} callback together with an optional failure
+     * handler which is run when the Profile could not be loaded at all.
+     */
+    private static final class QueuedProfileCallback {
+
+        private final Consumer<PlayerProfile> callback;
+        private final Runnable failureHandler;
+
+        QueuedProfileCallback(@Nonnull Consumer<PlayerProfile> callback, @Nullable Runnable failureHandler) {
+            this.callback = callback;
+            this.failureHandler = failureHandler;
+        }
+    }
 
     private final UUID ownerId;
     private final String name;
@@ -362,10 +383,30 @@ public class PlayerProfile {
      *            The {@link OfflinePlayer} who's {@link PlayerProfile} to retrieve
      * @param callback
      *            The callback with the {@link PlayerProfile}
-     * 
+     *
      * @return If the {@link OfflinePlayer} was cached or not.
      */
     public static boolean get(@Nonnull OfflinePlayer p, @Nonnull Consumer<PlayerProfile> callback) {
+        return get(p, callback, null);
+    }
+
+    /**
+     * Get the {@link PlayerProfile} for a {@link OfflinePlayer} asynchronously.
+     * <p>
+     * If the Profile could not be loaded even after retrying, the given
+     * {@link Runnable} is run on the main Thread instead of the callback, so
+     * callers can compensate (e.g. refund a cost they already took).
+     *
+     * @param p
+     *            The {@link OfflinePlayer} who's {@link PlayerProfile} to retrieve
+     * @param callback
+     *            The callback with the {@link PlayerProfile}
+     * @param failureHandler
+     *            A {@link Runnable} run on the main Thread when loading failed, or null
+     *
+     * @return If the {@link OfflinePlayer} was cached or not.
+     */
+    public static boolean get(@Nonnull OfflinePlayer p, @Nonnull Consumer<PlayerProfile> callback, @Nullable Runnable failureHandler) {
         Validate.notNull(p, "Cannot get a PlayerProfile for: null!");
         UUID uuid = p.getUniqueId();
 
@@ -382,8 +423,8 @@ public class PlayerProfile {
         // If we're already loading, we don't want to spin up a whole new thread and load the profile again/more
         // This can very easily cause CPU, memory and thread exhaustion if the profile is large
         // See #4011, #4116
-        List<Consumer<PlayerProfile>> newQueue = new ArrayList<>();
-        List<Consumer<PlayerProfile>> queue = loading.putIfAbsent(uuid, newQueue);
+        List<QueuedProfileCallback> newQueue = new ArrayList<>();
+        List<QueuedProfileCallback> queue = loading.putIfAbsent(uuid, newQueue);
 
         if (queue != null) {
             Debug.log(TestCase.PLAYER_PROFILE_DATA, "Attempted to get PlayerProfile ({}) while loading", uuid);
@@ -402,7 +443,7 @@ public class PlayerProfile {
                     // Loading finished in the meantime, no need to queue
                     callback.accept(loaded);
                 } else {
-                    queue.add(callback);
+                    queue.add(new QueuedProfileCallback(callback, failureHandler));
                 }
             }
 
@@ -410,50 +451,106 @@ public class PlayerProfile {
         }
 
         Slimefun.getThreadService().newThread(Slimefun.instance(), "PlayerProfile#get(" + uuid + ")", () -> {
-            PlayerProfile loadedProfile = null;
+            PlayerProfile loadedProfile = loadProfile(p, uuid);
 
+            /*
+             * Make sure we remove the loading flag after we put the PlayerProfile
+             * into the registry (loadProfile does that). Otherwise, we end up with
+             * a race condition where the profile is not in the map just _yet_ but
+             * the loading flag is gone and we can end up loading it a second time
+             * (and thus can dupe items).
+             * Fixes https://github.com/Slimefun/Slimefun4/issues/4130
+             *
+             * The flag removal and the queue flush happen under the queue's
+             * monitor so no callback can slip in between and get lost. The flag is
+             * also cleared when loading failed, otherwise the profile could never
+             * be loaded again (soft-lock).
+             */
+            synchronized (newQueue) {
+                loading.remove(uuid, newQueue);
+
+                for (QueuedProfileCallback queuedCallback : newQueue) {
+                    deliver(queuedCallback, loadedProfile, uuid);
+                }
+
+                newQueue.clear();
+            }
+
+            deliver(new QueuedProfileCallback(callback, failureHandler), loadedProfile, uuid);
+        });
+
+        return false;
+    }
+
+    /**
+     * Loads the {@link PlayerProfile} for the given {@link UUID}, retrying up to
+     * {@value #MAX_LOAD_ATTEMPTS} times before giving up. A transient I/O hiccup
+     * (e.g. a briefly locked file) must not void the callbacks of actions that
+     * already consumed resources.
+     *
+     * @param p
+     *            The {@link OfflinePlayer} to load the Profile for
+     * @param uuid
+     *            The {@link UUID} of that Player
+     *
+     * @return The loaded {@link PlayerProfile}, or null if all attempts failed
+     */
+    @Nullable
+    private static PlayerProfile loadProfile(@Nonnull OfflinePlayer p, @Nonnull UUID uuid) {
+        for (int attempt = 1; attempt <= MAX_LOAD_ATTEMPTS; attempt++) {
             try {
-                PlayerData data = Slimefun.getPlayerStorage().loadPlayerData(p.getUniqueId());
+                PlayerData data = Slimefun.getPlayerStorage().loadPlayerData(uuid);
 
                 AsyncProfileLoadEvent event = new AsyncProfileLoadEvent(new PlayerProfile(p, data));
                 Bukkit.getPluginManager().callEvent(event);
 
-                loadedProfile = event.getProfile();
-                Slimefun.getRegistry().getPlayerProfiles().put(uuid, loadedProfile);
+                PlayerProfile profile = event.getProfile();
+                Slimefun.getRegistry().getPlayerProfiles().put(uuid, profile);
+                return profile;
             } catch (Exception | LinkageError x) {
-                Slimefun.logger().log(Level.SEVERE, x, () -> "Failed to load the PlayerProfile for " + uuid);
-            } finally {
-                /*
-                 * Make sure we remove the loading flag after we put the PlayerProfile
-                 * into the registry. Otherwise, we end up with a race condition where
-                 * the profile is not in the map just _yet_ but the loading flag is gone
-                 * and we can end up loading it a second time (and thus can dupe items).
-                 * Fixes https://github.com/Slimefun/Slimefun4/issues/4130
-                 *
-                 * The flag removal and the queue flush happen under the queue's
-                 * monitor so no callback can slip in between and get lost. A finally
-                 * block also guarantees the flag is cleared even if loading failed,
-                 * otherwise the profile could never be loaded again (soft-lock).
-                 */
-                synchronized (newQueue) {
-                    loading.remove(uuid, newQueue);
+                if (attempt < MAX_LOAD_ATTEMPTS) {
+                    int currentAttempt = attempt;
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Failed to load the PlayerProfile for " + uuid + " (attempt " + currentAttempt + '/' + MAX_LOAD_ATTEMPTS + "), retrying...");
 
-                    if (loadedProfile != null) {
-                        for (Consumer<PlayerProfile> queuedCallback : newQueue) {
-                            queuedCallback.accept(loadedProfile);
-                        }
+                    try {
+                        // Give the transient cause (file lock, I/O hiccup) a moment to pass
+                        Thread.sleep(100L * attempt);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        return null;
                     }
-
-                    newQueue.clear();
+                } else {
+                    Slimefun.logger().log(Level.SEVERE, x, () -> "Failed to load the PlayerProfile for " + uuid + " after " + MAX_LOAD_ATTEMPTS + " attempts");
                 }
             }
+        }
 
-            if (loadedProfile != null) {
-                callback.accept(loadedProfile);
+        return null;
+    }
+
+    /**
+     * Runs a queued callback once loading finished - or its failure handler when
+     * the {@link PlayerProfile} could not be loaded at all. Any failure is
+     * isolated so the remaining callbacks are still served.
+     *
+     * @param queuedCallback
+     *            The {@link QueuedProfileCallback} to run
+     * @param profile
+     *            The loaded {@link PlayerProfile}, or null when loading failed
+     * @param uuid
+     *            The {@link UUID} of the Player (for logging)
+     */
+    private static void deliver(@Nonnull QueuedProfileCallback queuedCallback, @Nullable PlayerProfile profile, @Nonnull UUID uuid) {
+        try {
+            if (profile != null) {
+                queuedCallback.callback.accept(profile);
+            } else if (queuedCallback.failureHandler != null) {
+                // Compensation (e.g. refunds) must happen on the main Thread
+                Slimefun.runSync(queuedCallback.failureHandler);
             }
-        });
-
-        return false;
+        } catch (Exception | LinkageError x) {
+            Slimefun.logger().log(Level.SEVERE, x, () -> "A PlayerProfile callback for " + uuid + " threw an exception");
+        }
     }
 
     /**
@@ -475,7 +572,7 @@ public class PlayerProfile {
             // If we're already loading, we don't want to spin up a whole new thread and load the profile again/more
             // This can very easily cause CPU, memory and thread exhaustion if the profile is large
             // See #4011, #4116
-            List<Consumer<PlayerProfile>> newQueue = new ArrayList<>();
+            List<QueuedProfileCallback> newQueue = new ArrayList<>();
 
             if (loading.putIfAbsent(uuid, newQueue) != null) {
                 Debug.log(TestCase.PLAYER_PROFILE_DATA, "Attempted to request PlayerProfile ({}) while loading", uuid);
