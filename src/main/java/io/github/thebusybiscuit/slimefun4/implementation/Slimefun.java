@@ -104,6 +104,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.Anvi
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.BrewingStandListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.CartographyTableListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.CauldronListener;
+import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.CrafterListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.CraftingTableListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.GrindstoneListener;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting.SmithingTableListener;
@@ -651,6 +652,11 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         new PiglinListener(this);
         new SmithingTableListener(this);
         new JoinListener(this);
+
+        if (Slimefun.getMinecraftVersion().isAtLeast(MinecraftVersion.MINECRAFT_1_21)) {
+            // The Crafter (and its CrafterCraftEvent) only exists on Minecraft 1.21+
+            new CrafterListener(this);
+        }
 
         // Item-specific Listeners
         new CoolerListener(this, (Cooler) SlimefunItems.COOLER.getItem());
