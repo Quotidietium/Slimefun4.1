@@ -41,6 +41,15 @@ public class SoulboundListener implements Listener {
 
     @EventHandler
     public void onDamage(PlayerDeathEvent e) {
+        if (e.getKeepInventory()) {
+            /*
+             * The inventory is kept on death, so nothing must be stored away and
+             * returned on respawn - doing so would duplicate the items (most
+             * notably the cursor item, which is re-added with addItem()).
+             */
+            return;
+        }
+
         Map<Integer, ItemStack> items = new HashMap<>();
         Player p = e.getEntity();
 
