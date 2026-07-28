@@ -64,6 +64,15 @@ public abstract class Network {
     protected final Set<Location> terminusNodes = ConcurrentHashMap.newKeySet();
 
     /**
+     * Whether this {@link Network} is still registered at its {@link NetworkManager}.
+     * Checked by the manager before indexing new chunks for this Network: the
+     * asynchronous discovery may still be running while the Network was already
+     * unregistered (e.g. its regulator was broken), and without this flag it
+     * would re-enter the chunk index as an unremovable "zombie".
+     */
+    private volatile boolean registered = true;
+
+    /**
      * This constructs a new {@link Network} at the given {@link Location}.
      * 
      * @param manager
@@ -148,7 +157,7 @@ public abstract class Network {
     /**
      * This method marks the given {@link Location} as dirty and adds it to a {@link Queue}
      * to handle this update.
-     * 
+     *
      * @param l
      *            The {@link Location} to update
      */
@@ -158,6 +167,29 @@ public abstract class Network {
         } else {
             nodeQueue.add(l.clone());
         }
+    }
+
+    /**
+     * Forces the given {@link Location} to be classified from scratch.
+     * Unlike {@link #markDirty(Location)}, this first evicts the Location from all
+     * classification sets, so the next {@link #discoverStep()} will see an actual
+     * classification CHANGE (instead of skipping the Location because its
+     * classification stayed the same) and fire
+     * {@link #onClassificationChange(Location, NetworkComponent, NetworkComponent)}
+     * again.
+     *
+     * Intended for TERMINUS-type nodes (e.g. a generator that should re-join its
+     * network after a transient failure): evicting a CONNECTOR this way would
+     * bypass the "connector change requires a full rebuild" rule.
+     *
+     * @param l
+     *            The {@link Location} to re-classify
+     */
+    protected void reclassify(@Nonnull Location l) {
+        regulatorNodes.remove(l);
+        connectorNodes.remove(l);
+        terminusNodes.remove(l);
+        nodeQueue.add(l.clone());
     }
 
     /**
@@ -260,11 +292,28 @@ public abstract class Network {
 
     /**
      * This returns the {@link Location} of the regulator block for this {@link Network}
-     * 
+     *
      * @return The {@link Location} of our regulator
      */
     public @Nonnull Location getRegulator() {
         return regulator;
+    }
+
+    /**
+     * Whether this {@link Network} is still registered at its {@link NetworkManager}.
+     *
+     * @return Whether this Network is still registered
+     */
+    public final boolean isRegistered() {
+        return registered;
+    }
+
+    /**
+     * Marks this {@link Network} as unregistered.
+     * <strong>For internal use by the {@link NetworkManager} only.</strong>
+     */
+    public final void markAsUnregistered() {
+        registered = false;
     }
 
     /**

@@ -120,6 +120,16 @@ public class NetworkManager {
         long chunkKey = chunkKey(l);
 
         synchronized (chunkIndexLock) {
+            /*
+             * The Network may have been unregistered (its regulator broken) while
+             * its asynchronous discovery was still running. Indexing it now would
+             * create a "zombie" entry that no code path can ever remove again.
+             * The flag is flipped inside the same lock, so the check is exact.
+             */
+            if (!network.isRegistered()) {
+                return;
+            }
+
             networksByChunk
                 .computeIfAbsent(l.getWorld().getUID(), k -> new ConcurrentHashMap<>())
                 .computeIfAbsent(chunkKey, k -> new CopyOnWriteArrayList<>())
@@ -305,6 +315,13 @@ public class NetworkManager {
         unindexedNetworks.remove(network);
 
         synchronized (chunkIndexLock) {
+            /*
+             * Flip the registered flag inside the lock: a concurrently running
+             * registerNetworkChunk (from the Network's asynchronous discovery)
+             * will now reliably skip instead of re-indexing a dead Network.
+             */
+            network.markAsUnregistered();
+
             // Remove the Network from the chunk index again.
             Set<Long> chunks = chunksPerNetwork.remove(network);
 
