@@ -293,14 +293,24 @@ final class CargoUtils {
                 if (currentAmount < maxStackSize) {
                     int amount = currentAmount + stack.getAmount();
 
-                    itemInSlot.setAmount(Math.min(amount, maxStackSize));
+                    /*
+                     * Work on a copy and commit it in one call: mutating the live
+                     * slot ItemStack first and adjusting the remainder afterwards
+                     * would leave the slot increased AND the remainder unadjusted
+                     * if the menu's onItemStackChange hook throws mid-way
+                     * (duplicating the merged amount).
+                     */
+                    ItemStack newSlotItem = itemInSlot.clone();
+                    newSlotItem.setAmount(Math.min(amount, maxStackSize));
+
+                    menu.replaceExistingItem(slot, newSlotItem);
+
                     if (amount > maxStackSize) {
                         stack.setAmount(amount - maxStackSize);
                     } else {
                         stack = null;
                     }
 
-                    menu.replaceExistingItem(slot, itemInSlot);
                     return stack;
                 } else if (smartFill) {
                     return stack;

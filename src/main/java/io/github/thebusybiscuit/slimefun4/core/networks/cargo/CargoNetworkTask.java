@@ -67,24 +67,30 @@ class CargoNetworkTask implements Runnable {
     public void run() {
         long timestamp = System.nanoTime();
 
-        try {
-            /**
-             * All operations happen here: Everything gets iterated from the Input Nodes.
-             * (Apart from ChestTerminal Buses)
+        /**
+         * All operations happen here: Everything gets iterated from the Input Nodes.
+         * (Apart from ChestTerminal Buses)
+         */
+        SlimefunItem inputNode = SlimefunItems.CARGO_INPUT_NODE.getItem();
+        for (Map.Entry<Location, Integer> entry : inputs.entrySet()) {
+            long nodeTimestamp = System.nanoTime();
+            Location input = entry.getKey();
+
+            /*
+             * Isolate failures to the node that caused them: one broken node
+             * (e.g. an addon's menu throwing) must not stop the whole network
+             * from ticking, and routeItems() guarantees that any withdrawn
+             * item is always returned somewhere.
              */
-            SlimefunItem inputNode = SlimefunItems.CARGO_INPUT_NODE.getItem();
-            for (Map.Entry<Location, Integer> entry : inputs.entrySet()) {
-                long nodeTimestamp = System.nanoTime();
-                Location input = entry.getKey();
+            try {
                 Optional<Block> attachedBlock = network.getAttachedBlock(input);
-
                 attachedBlock.ifPresent(block -> routeItems(input, block, entry.getValue(), outputs));
-
-                // This will prevent this timings from showing up for the Cargo Manager
-                timestamp += Slimefun.getProfiler().closeEntry(entry.getKey(), inputNode, nodeTimestamp);
+            } catch (Exception | LinkageError x) {
+                Slimefun.logger().log(Level.SEVERE, x, () -> "An Exception was caught while ticking a Cargo node @ " + new BlockPosition(input));
             }
-        } catch (Exception | LinkageError x) {
-            Slimefun.logger().log(Level.SEVERE, x, () -> "An Exception was caught while ticking a Cargo network @ " + new BlockPosition(network.getRegulator()));
+
+            // This will prevent this timings from showing up for the Cargo Manager
+            timestamp += Slimefun.getProfiler().closeEntry(entry.getKey(), inputNode, nodeTimestamp);
         }
 
         // Submit a timings report
@@ -101,10 +107,21 @@ class CargoNetworkTask implements Runnable {
 
         ItemStack stack = slot.getItem();
         int previousSlot = slot.getInt();
-        List<Location> destinations = outputNodes.get(frequency);
 
-        if (destinations != null) {
-            stack = distributeItem(stack, inputNode, destinations);
+        try {
+            List<Location> destinations = outputNodes.get(frequency);
+
+            if (destinations != null) {
+                stack = distributeItem(stack, inputNode, destinations);
+            }
+        } catch (Exception | LinkageError x) {
+            /*
+             * The item was already withdrawn from the source slot and only
+             * exists in this local variable now - letting the exception escape
+             * would void it. Log it and fall through to the re-insertion
+             * below, so a withdrawn item always ends up back somewhere.
+             */
+            Slimefun.logger().log(Level.SEVERE, x, () -> "Cargo distribution failed @ " + new BlockPosition(inputNode) + ", returning the item to its source");
         }
 
         if (stack != null) {
@@ -138,6 +155,13 @@ class CargoNetworkTask implements Runnable {
                 } else if (!manager.isItemDeletionEnabled()) {
                     SlimefunUtils.spawnItem(inputTarget.getLocation().add(0, 1, 0), item, ItemSpawnReason.CARGO_OVERFLOW);
                 }
+            } else if (!manager.isItemDeletionEnabled()) {
+                /*
+                 * Neither the cached Inventory nor a menu exists anymore (e.g. the
+                 * container was broken mid-tick) - drop the item instead of voiding it.
+                 */
+                Slimefun.logger().log(Level.WARNING, "Cargo could not return an item to its source @ {0}, dropping it instead", new BlockPosition(inputTarget.getLocation()));
+                SlimefunUtils.spawnItem(inputTarget.getLocation().add(0, 1, 0), item, ItemSpawnReason.CARGO_OVERFLOW);
             }
         }
     }
@@ -175,8 +199,18 @@ class CargoNetworkTask implements Runnable {
             Optional<Block> target = network.getAttachedBlock(output);
 
             if (target.isPresent()) {
-                ItemStackWrapper wrapper = ItemStackWrapper.wrap(item);
-                item = CargoUtils.insert(network, inventories, output.getBlock(), target.get(), smartFill, item, wrapper);
+                try {
+                    ItemStackWrapper wrapper = ItemStackWrapper.wrap(item);
+                    item = CargoUtils.insert(network, inventories, output.getBlock(), target.get(), smartFill, item, wrapper);
+                } catch (Exception | LinkageError x) {
+                    /*
+                     * Isolate the failure to this one output node. The item was not
+                     * committed (DirtyChestMenu runs its mutation hooks before
+                     * placing anything), so it is safe to simply try the next
+                     * output - the remaining stack stays with this task.
+                     */
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Cargo could not insert into output @ " + new BlockPosition(output) + ", trying the next output");
+                }
 
                 if (item == null) {
                     if (roundrobin) {
