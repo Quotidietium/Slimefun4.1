@@ -198,46 +198,61 @@ public class BackpackListener implements Listener {
 
     @ParametersAreNonnullByDefault
     private void openBackpack(Player p, ItemStack item, PlayerProfile profile, int size) {
-        ItemMeta meta = item.getItemMeta();
-
-        // The lore (and the "ID: <ID>" line) may be missing if the item was stripped/edited.
-        // ItemMeta.getLore() returns null when there is no lore.
-        if (meta == null || !meta.hasLore()) {
-            return;
-        }
-
-        List<String> lore = meta.getLore();
-
-        for (int line = 0; line < lore.size(); line++) {
-            if (lore.get(line).equals(ChatColor.GRAY + "ID: <ID>")) {
-                setBackpackId(p, item, line, profile.createBackpack(size).getId());
-                break;
-            }
-        }
-
         /*
-         * If the current Player is already viewing a backpack (for whatever reason),
-         * terminate that view.
+         * This runs inside a PlayerProfile callback, which may execute on the
+         * asynchronous profile-loading Thread. Item meta edits, inventory
+         * views and sounds must all happen on the main Thread.
          */
-        if (markBackpackDirty(p)) {
-            p.closeInventory();
-        }
+        Slimefun.runSync(() -> {
+            if (!p.isOnline()) {
+                return;
+            }
 
-        // Check if someone else is currently viewing this backpack
-        if (!backpacks.containsValue(item)) {
-            PlayerProfile.getBackpack(item, backpack -> {
-                // Only the owner (or an admin with the bypass permission) may open a backpack.
-                // Without this check, a forged lore line ("ID: <victim-uuid>#<id>") would allow
-                // anyone to open and loot arbitrary players' backpacks (IDOR).
-                if (backpack != null && (p.getUniqueId().equals(backpack.getOwnerId()) || p.hasPermission("slimefun.inventory.bypass"))) {
-                    SoundEffect.BACKPACK_OPEN_SOUND.playAt(p.getLocation(), SoundCategory.PLAYERS);
-                    backpacks.put(p.getUniqueId(), item);
-                    backpack.open(p);
+            ItemMeta meta = item.getItemMeta();
+
+            // The lore (and the "ID: <ID>" line) may be missing if the item was stripped/edited.
+            // ItemMeta.getLore() returns null when there is no lore.
+            if (meta == null || !meta.hasLore()) {
+                return;
+            }
+
+            List<String> lore = meta.getLore();
+
+            for (int line = 0; line < lore.size(); line++) {
+                if (lore.get(line).equals(ChatColor.GRAY + "ID: <ID>")) {
+                    setBackpackId(p, item, line, profile.createBackpack(size).getId());
+                    break;
                 }
-            });
-        } else {
-            Slimefun.getLocalization().sendMessage(p, "backpack.already-open", true);
-        }
+            }
+
+            /*
+             * If the current Player is already viewing a backpack (for whatever reason),
+             * terminate that view.
+             */
+            if (markBackpackDirty(p)) {
+                p.closeInventory();
+            }
+
+            // Check if someone else is currently viewing this backpack
+            if (!backpacks.containsValue(item)) {
+                PlayerProfile.getBackpack(item, backpack -> {
+                    // Only the owner (or an admin with the bypass permission) may open a backpack.
+                    // Without this check, a forged lore line ("ID: <victim-uuid>#<id>") would allow
+                    // anyone to open and loot arbitrary players' backpacks (IDOR).
+                    if (backpack != null && (p.getUniqueId().equals(backpack.getOwnerId()) || p.hasPermission("slimefun.inventory.bypass"))) {
+                        Slimefun.runSync(() -> {
+                            if (p.isOnline()) {
+                                SoundEffect.BACKPACK_OPEN_SOUND.playAt(p.getLocation(), SoundCategory.PLAYERS);
+                                backpacks.put(p.getUniqueId(), item);
+                                backpack.open(p);
+                            }
+                        });
+                    }
+                });
+            } else {
+                Slimefun.getLocalization().sendMessage(p, "backpack.already-open", true);
+            }
+        });
     }
 
     /**
