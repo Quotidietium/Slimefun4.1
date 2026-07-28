@@ -278,7 +278,16 @@ public class PlayerProfile {
     }
 
     public @Nonnull PlayerBackpack createBackpack(int size) {
-        int nextId = this.data.getBackpacks().size(); // Size is not 0 indexed so next ID can just be the current size
+        /*
+         * The next free id is max-key + 1, NOT the map size: once a backpack in
+         * the middle was removed (e.g. via an addon), size() would collide with
+         * an existing id and silently overwrite that backpack's contents.
+         */
+        int nextId = 0;
+
+        for (int id : this.data.getBackpacks().keySet()) {
+            nextId = Math.max(nextId, id + 1);
+        }
 
         PlayerBackpack backpack = PlayerBackpack.newBackpack(this.ownerId, nextId, size);
         this.data.addBackpack(backpack);

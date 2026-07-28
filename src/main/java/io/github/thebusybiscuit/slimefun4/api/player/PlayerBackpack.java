@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -189,23 +190,42 @@ public class PlayerBackpack {
 
     /**
      * This will change the current size of this Backpack to the specified size.
-     * 
+     *
      * @param size
      *            The new size for this Backpack
+     *
+     * @throws IllegalStateException
+     *             When shrinking the Backpack would destroy items
      */
     public void setSize(int size) {
         if (size < 9 || size > 54 || size % 9 != 0) {
             throw new IllegalArgumentException("Invalid size! Size must be one of: [9, 18, 27, 36, 45, 54]");
         }
 
-        this.size = size;
+        if (size < this.inventory.getSize()) {
+            // Refuse to shrink when that would destroy items beyond the new bounds
+            for (int slot = size; slot < this.inventory.getSize(); slot++) {
+                ItemStack item = this.inventory.getItem(slot);
+
+                if (item != null && item.getType() != Material.AIR) {
+                    throw new IllegalStateException("Cannot shrink this Backpack: Slots beyond the new size are not empty!");
+                }
+            }
+        }
 
         Inventory inv = Bukkit.createInventory(null, size, "Backpack [" + size + " Slots]");
 
-        for (int slot = 0; slot < this.inventory.getSize(); slot++) {
+        /*
+         * Copy at most as many slots as the new inventory offers - previously the
+         * loop ran over the OLD inventory size, which threw (and left this Backpack
+         * in a half-updated state) whenever the Backpack was shrunk.
+         */
+        for (int slot = 0; slot < Math.min(this.inventory.getSize(), size); slot++) {
             inv.setItem(slot, this.inventory.getItem(slot));
         }
 
+        // Only swap the state over once the new inventory is fully populated
+        this.size = size;
         this.inventory = inv;
 
         markDirty();
