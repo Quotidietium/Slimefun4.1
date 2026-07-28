@@ -25,7 +25,12 @@ import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
  */
 public class DeathpointListener implements Listener {
 
-    private final DateTimeFormatter format = DateTimeFormatter.ofPattern("(MMM dd, yyyy @ hh:mm)", Locale.ROOT);
+    /*
+     * Second precision (and a 24 hour clock): the waypoint id is derived from
+     * this name, so two deaths within the same minute would collide and the
+     * second deathpoint would silently be rejected as a duplicate.
+     */
+    private final DateTimeFormatter format = DateTimeFormatter.ofPattern("(MMM dd, yyyy @ HH:mm:ss)", Locale.ROOT);
 
     public DeathpointListener(@Nonnull Slimefun plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
