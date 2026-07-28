@@ -1,9 +1,9 @@
 package me.mrCookieSlime.Slimefun.api;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
@@ -19,12 +19,17 @@ import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 /**
  * This class is used to speed up parsing of a {@link JsonObject} that is stored at
  * a given {@link Location}.
- * 
- * This simply utilises a {@link HashMap} to cache the data and then provides the same getters
- * as a normal {@link Config}.
- * 
+ *
+ * This utilises a {@link ConcurrentHashMap} to cache the data and then provides the
+ * same getters as a normal {@link Config}.
+ * The Map MUST be concurrent: block data is written from the asynchronous ticker
+ * Thread (e.g. energy networks updating their charge) while the auto-save Thread
+ * serialises it via {@link #getKeys()}. A plain HashMap would throw a
+ * ConcurrentModificationException mid-serialisation, aborting the whole save cycle
+ * and permanently losing that cycle's queued changes.
+ *
  * @author creator3
- * 
+ *
  * @see BlockStorage
  *
  */
@@ -40,12 +45,21 @@ public class BlockInfoConfig extends Config {
     private final Map<String, String> data;
 
     public BlockInfoConfig() {
-        this(new HashMap<>());
+        this(new ConcurrentHashMap<>());
     }
 
     public BlockInfoConfig(Map<String, String> data) {
         super(null, null);
-        this.data = data;
+
+        if (data == null) {
+            // EmptyBlockData passes null here (it overrides every accessor anyway)
+            this.data = new ConcurrentHashMap<>();
+        } else if (data instanceof ConcurrentHashMap<String, String> concurrent) {
+            this.data = concurrent;
+        } else {
+            // See the class-level javadoc: the backing Map must be concurrent
+            this.data = new ConcurrentHashMap<>(data);
+        }
     }
 
     @Nonnull

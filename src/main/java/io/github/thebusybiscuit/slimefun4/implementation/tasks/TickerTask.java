@@ -122,7 +122,20 @@ public class TickerTask implements Runnable {
             Iterator<Map.Entry<Location, Boolean>> removals = deletionQueue.entrySet().iterator();
             while (removals.hasNext()) {
                 Map.Entry<Location, Boolean> entry = removals.next();
-                BlockStorage.deleteLocationInfoUnsafely(entry.getKey(), entry.getValue());
+
+                /*
+                 * Isolate failures to the single entry: deleteLocationInfoUnsafely()
+                 * throws for Locations whose World was already unloaded. Without a
+                 * per-entry guard the exception would abort this whole run() - and
+                 * since the offending entry is never removed, every following run
+                 * would die on the same entry, permanently stalling all ticking.
+                 */
+                try {
+                    BlockStorage.deleteLocationInfoUnsafely(entry.getKey(), entry.getValue());
+                } catch (Exception | LinkageError x) {
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Could not delete block data @ " + new BlockPosition(entry.getKey()) + ", dropping the queue entry");
+                }
+
                 removals.remove();
             }
 
@@ -140,7 +153,14 @@ public class TickerTask implements Runnable {
             Iterator<Map.Entry<Location, Location>> moves = movingQueue.entrySet().iterator();
             while (moves.hasNext()) {
                 Map.Entry<Location, Location> entry = moves.next();
-                BlockStorage.moveLocationInfoUnsafely(entry.getKey(), entry.getValue());
+
+                // Same per-entry isolation as the deletion queue above
+                try {
+                    BlockStorage.moveLocationInfoUnsafely(entry.getKey(), entry.getValue());
+                } catch (Exception | LinkageError x) {
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Could not move block data @ " + new BlockPosition(entry.getKey()) + ", dropping the queue entry");
+                }
+
                 moves.remove();
             }
 

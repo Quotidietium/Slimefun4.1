@@ -697,7 +697,16 @@ public class BlockStorage {
             writer.beginObject();
 
             for (String key : cfg.getKeys()) {
-                writer.name(key).value(cfg.getString(key));
+                String value = cfg.getString(key);
+
+                /*
+                 * The value may have been removed concurrently between the keySet
+                 * snapshot and this read - never write a JSON null, it would fail
+                 * to parse back (and take the whole block's data down with it).
+                 */
+                if (value != null) {
+                    writer.name(key).value(value);
+                }
             }
 
             writer.endObject();
@@ -884,7 +893,14 @@ public class BlockStorage {
         BlockStorage storage = getStorage(l.getWorld());
 
         if (storage == null) {
-            throw new IllegalStateException("World \"" + l.getWorld().getName() + "\" seems to have been deleted. Do not call unsafe methods directly!");
+            /*
+             * The World was already unloaded (and its BlockStorage removed).
+             * There is nothing left to delete - the data on disk was saved
+             * during unload. Throwing here would kill the caller's queue
+             * processing, so just warn and move on.
+             */
+            Slimefun.logger().log(Level.WARNING, "Could not delete block data @ {0}: World \"{1}\" is no longer loaded", new Object[] { new BlockPosition(l), l.getWorld().getName() });
+            return;
         }
 
         // Read the block data once and reuse it, instead of looking it up
