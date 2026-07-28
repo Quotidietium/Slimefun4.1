@@ -1,11 +1,11 @@
 package io.github.thebusybiscuit.slimefun4.api.gps;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -56,7 +56,14 @@ public class GPSNetwork {
     private final int[] border = { 0, 1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53 };
     private final int[] inventory = { 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43 };
 
-    private final Map<UUID, Set<Location>> transmitters = new HashMap<>();
+    /**
+     * All currently online {@link GPSTransmitter Transmitters} per owning {@link UUID}.
+     * <p>
+     * Both the {@link Map} and its {@link Set} values are thread-safe: transmitters
+     * register themselves from the asynchronous ticker Thread while the control panel
+     * and the {@link TeleportationManager} read them from any Thread.
+     */
+    private final Map<UUID, Set<Location>> transmitters = new ConcurrentHashMap<>();
     private final TeleportationManager teleportation = new TeleportationManager();
 
     private final ResourceManager resourceManager;
@@ -83,13 +90,28 @@ public class GPSNetwork {
      *            Whether that {@link GPSTransmitter} is online
      */
     public void updateTransmitter(@Nonnull Location l, @Nonnull UUID uuid, boolean online) {
-        Set<Location> set = transmitters.computeIfAbsent(uuid, id -> new HashSet<>());
+        /*
+         * The whole update runs inside compute() so it is atomic per owner:
+         * a transmitter ticking on the async Thread cannot interleave with a
+         * concurrent removal on the main Thread and get lost in an orphaned Set.
+         */
+        transmitters.compute(uuid, (id, set) -> {
+            if (online) {
+                if (set == null) {
+                    set = ConcurrentHashMap.newKeySet();
+                }
 
-        if (online) {
-            set.add(l);
-        } else {
-            set.remove(l);
-        }
+                set.add(l);
+                return set;
+            } else if (set != null) {
+                set.remove(l);
+
+                // Players without any online transmitters should not linger in this Map
+                return set.isEmpty() ? null : set;
+            } else {
+                return null;
+            }
+        });
     }
 
     /**
@@ -251,9 +273,19 @@ public class GPSNetwork {
                     break;
                 }
 
+                Location l = waypoint.getLocation();
+
+                if (l.getWorld() == null) {
+                    /*
+                     * The waypoint's world is not loaded (anymore). Skip it -
+                     * dereferencing it would throw, just like the Teleporter
+                     * skips such waypoints.
+                     */
+                    continue;
+                }
+
                 int slot = inventory[index];
 
-                Location l = waypoint.getLocation();
                 menu.addItem(slot, CustomItemStack.create(waypoint.getIcon(), waypoint.getName().replace("player:death ", ""), "&8\u21E8 &7World: &f" + l.getWorld().getName(), "&8\u21E8 &7X: &f" + l.getX(), "&8\u21E8 &7Y: &f" + l.getY(), "&8\u21E8 &7Z: &f" + l.getZ(), "", "&8\u21E8 &cClick to delete"));
                 menu.addMenuClickHandler(slot, (pl, s, item, action) -> {
                     profile.removeWaypoint(waypoint);
@@ -266,7 +298,16 @@ public class GPSNetwork {
                 index++;
             }
 
-            menu.open(p);
+            /*
+             * This callback may run on the asynchronous profile-loading Thread
+             * (when the profile was not cached yet), so make sure the menu is
+             * opened on the main Thread and only if the Player is still online.
+             */
+            Slimefun.runSync(() -> {
+                if (p.isOnline()) {
+                    menu.open(p);
+                }
+            });
         });
     }
 
@@ -322,7 +363,12 @@ public class GPSNetwork {
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (!event.isCancelled()) {
-                    String id = ChatColor.stripColor(ChatColors.color(event.getName())).toUpperCase(Locale.ROOT).replace(' ', '_');
+                    /*
+                     * The id becomes a YAML key, so dots must be filtered out:
+                     * a dot is the path separator and would silently mangle the
+                     * waypoint (and any waypoint nested "below" it) on save.
+                     */
+                    String id = ChatColor.stripColor(ChatColors.color(event.getName())).toUpperCase(Locale.ROOT).replace(' ', '_').replace('.', '_');
 
                     for (Waypoint wp : profile.getWaypoints()) {
                         if (wp.getId().equals(id)) {
