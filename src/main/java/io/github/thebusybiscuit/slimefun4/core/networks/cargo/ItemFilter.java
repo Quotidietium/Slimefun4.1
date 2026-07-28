@@ -61,6 +61,18 @@ class ItemFilter implements Predicate<ItemStack> {
     private boolean dirty = false;
 
     /**
+     * How often {@link #update(Block)} may fail in a row before giving up.
+     * While giving up, the filter stays in its fail-closed state until the
+     * node's configuration changes and marks it dirty again.
+     */
+    private static final int MAX_FAILED_UPDATES = 3;
+
+    /**
+     * The amount of consecutive failed {@link #update(Block)} attempts.
+     */
+    private int failedUpdates = 0;
+
+    /**
      * This creates a new {@link ItemFilter} for the given {@link Block}.
      * This will copy all settings from that {@link Block} to this filter.
      * 
@@ -123,10 +135,25 @@ class ItemFilter implements Predicate<ItemStack> {
                     }
                 }
             } catch (Exception | LinkageError x) {
+                /*
+                 * Fail closed: reject everything and stay dirty so the next tick
+                 * retries the update. Continuing with a half-populated snapshot
+                 * could silently turn a blacklist into "allow everything".
+                 * After MAX_FAILED_UPDATES consecutive failures we give up (and
+                 * stay closed) until the node's configuration changes, otherwise
+                 * a persistently broken node would spam an error report per tick.
+                 */
+                clear(false);
+                failedUpdates++;
                 item.error("Something went wrong while updating the ItemFilter for this cargo node.", x);
+
+                if (failedUpdates < MAX_FAILED_UPDATES) {
+                    return;
+                }
             }
         }
 
+        this.failedUpdates = 0;
         this.dirty = false;
     }
 
