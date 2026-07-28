@@ -515,6 +515,7 @@ public class PlayerProfile {
 
                 PlayerProfile profile = event.getProfile();
                 Slimefun.getRegistry().getPlayerProfiles().put(uuid, profile);
+                markForDeletionIfOffline(uuid, profile);
                 return profile;
             } catch (Exception | LinkageError x) {
                 if (attempt < MAX_LOAD_ATTEMPTS) {
@@ -563,6 +564,25 @@ public class PlayerProfile {
     }
 
     /**
+     * If the Player quit while their profile was still loading asynchronously,
+     * the quit listener never saw this profile and could not mark it for
+     * deletion - it would stay in memory forever. Check on the main Thread and
+     * mark it for deletion if the Player is no longer online.
+     *
+     * @param uuid
+     *            The {@link UUID} of the Player
+     * @param profile
+     *            The freshly loaded {@link PlayerProfile}
+     */
+    private static void markForDeletionIfOffline(@Nonnull UUID uuid, @Nonnull PlayerProfile profile) {
+        Slimefun.runSync(() -> {
+            if (Bukkit.getPlayer(uuid) == null) {
+                profile.markForDeletion();
+            }
+        });
+    }
+
+    /**
      * This requests an instance of {@link PlayerProfile} to be loaded for the given {@link OfflinePlayer}.
      * This method will return true if the {@link PlayerProfile} was already found.
      * 
@@ -594,6 +614,7 @@ public class PlayerProfile {
 
                     PlayerProfile pp = new PlayerProfile(p, data);
                     Slimefun.getRegistry().getPlayerProfiles().put(uuid, pp);
+                    markForDeletionIfOffline(uuid, pp);
                 } catch (Exception | LinkageError x) {
                     Slimefun.logger().log(Level.SEVERE, x, () -> "Failed to load the PlayerProfile for " + uuid);
                 } finally {
