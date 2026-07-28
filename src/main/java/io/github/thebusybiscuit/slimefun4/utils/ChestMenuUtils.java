@@ -9,6 +9,7 @@ import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ClickAction;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -54,6 +55,20 @@ public final class ChestMenuUtils {
 
         @Override
         public boolean onClick(InventoryClickEvent e, Player p, int slot, ItemStack cursor, ClickAction action) {
+            /*
+             * Number keys and the offhand swap bypass the cursor entirely: they can
+             * place items INTO the output slot directly. Only allow them when their
+             * swap source is empty, i.e. when they would purely take items out.
+             */
+            if (e.getClick() == ClickType.NUMBER_KEY) {
+                ItemStack hotbarItem = p.getInventory().getItem(e.getHotbarButton());
+                return hotbarItem == null || hotbarItem.getType() == Material.AIR;
+            }
+
+            if (e.getClick() == ClickType.SWAP_OFFHAND) {
+                return p.getInventory().getItemInOffHand().getType() == Material.AIR;
+            }
+
             return cursor == null || cursor.getType() == null || cursor.getType() == Material.AIR;
         }
     };
