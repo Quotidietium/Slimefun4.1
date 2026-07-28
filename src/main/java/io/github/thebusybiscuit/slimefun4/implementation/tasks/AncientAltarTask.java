@@ -160,6 +160,19 @@ public class AncientAltarTask implements Runnable {
             listener.getAltarsInUse().remove(b.getLocation());
         }
 
+        /*
+         * Return every item that was already consumed from a pedestal.
+         * The item entities were removed in checkPedestal(), so without
+         * dropping them back here they would simply cease to exist.
+         */
+        for (ItemStack consumed : items) {
+            if (consumed != null) {
+                dropLocation.getWorld().dropItemNaturally(dropLocation, consumed);
+            }
+        }
+
+        items.clear();
+
         // This should re-enable altar blocks on craft failure.
         listener.getAltarsInUse().remove(altar.getLocation());
         SoundEffect.ANCIENT_ALTAR_ITEM_DROP_SOUND.playAt(dropLocation, SoundCategory.BLOCKS);
