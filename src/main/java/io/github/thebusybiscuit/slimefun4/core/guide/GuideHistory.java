@@ -26,6 +26,13 @@ import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
  */
 public class GuideHistory {
 
+    /**
+     * The maximum amount of entries a {@link GuideHistory} can hold. Without a
+     * bound, a Player clicking through the guide for hours would grow this
+     * {@link Deque} (and the {@link PlayerProfile}'s memory) without limit.
+     */
+    private static final int MAX_HISTORY_SIZE = 200;
+
     private final PlayerProfile profile;
     private final Deque<GuideEntry<?>> queue = new LinkedList<>();
     private int mainMenuPage = 1;
@@ -105,18 +112,18 @@ public class GuideHistory {
      */
     public void add(@Nonnull SlimefunItem item) {
         Validate.notNull(item, "Cannot add a non-existing SlimefunItem to the GuideHistory!");
-        queue.add(new GuideEntry<>(item, 0));
+        addEntry(new GuideEntry<>(item, 0));
     }
 
     /**
      * This method stores the given search term in this {@link GuideHistory}.
-     * 
+     *
      * @param searchTerm
      *            The term that the {@link Player} searched for
      */
     public void add(@Nonnull String searchTerm) {
         Validate.notNull(searchTerm, "Cannot add an empty Search Term to the GuideHistory!");
-        queue.add(new GuideEntry<>(searchTerm, 0));
+        addEntry(new GuideEntry<>(searchTerm, 0));
     }
 
     private <T> void refresh(@Nonnull T object, int page) {
@@ -128,8 +135,21 @@ public class GuideHistory {
         if (lastEntry != null && lastEntry.getIndexedObject().equals(object)) {
             lastEntry.setPage(page);
         } else {
-            queue.add(new GuideEntry<>(object, page));
+            addEntry(new GuideEntry<>(object, page));
         }
+    }
+
+    /**
+     * Appends an entry, evicting the oldest entry when {@link #MAX_HISTORY_SIZE}
+     * is reached (the history is a "most recent first" backlog, the oldest entry
+     * is the least useful one).
+     */
+    private void addEntry(@Nonnull GuideEntry<?> entry) {
+        if (queue.size() >= MAX_HISTORY_SIZE) {
+            queue.removeFirst();
+        }
+
+        queue.add(entry);
     }
 
     /**
