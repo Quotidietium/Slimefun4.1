@@ -57,21 +57,33 @@ public class AutoSavingService {
 
         while (iterator.hasNext()) {
             PlayerProfile profile = iterator.next();
+            boolean saved = true;
 
             if (profile.isDirty()) {
                 players++;
-                profile.save();
 
-                Debug.log(TestCase.PLAYER_PROFILE_DATA, "Saved data for {} ({})",
-                    profile.getPlayer() != null ? profile.getPlayer().getName() : "Unknown", profile.getUUID()
-                );
+                try {
+                    profile.save();
+
+                    Debug.log(TestCase.PLAYER_PROFILE_DATA, "Saved data for {} ({})",
+                        profile.getPlayer() != null ? profile.getPlayer().getName() : "Unknown", profile.getUUID()
+                    );
+                } catch (Exception | LinkageError x) {
+                    /*
+                     * One broken profile must not abort the whole auto-save run (an
+                     * uncaught exception would even cancel this repeating task).
+                     * The profile stays dirty, so the next cycle retries it.
+                     */
+                    saved = false;
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Could not auto-save the PlayerProfile for " + profile.getUUID() + ", will retry on the next cycle");
+                }
             }
 
             // Remove the PlayerProfile from memory if the player has left the server (marked from removal)
             // and they're still not on the server
             // At this point, we've already saved their profile so we can safely remove it
             // without worry for having a data sync issue (e.g. data is changed but then we try to re-load older data)
-            if (profile.isMarkedForDeletion() && profile.getPlayer() == null) {
+            if (saved && profile.isMarkedForDeletion() && profile.getPlayer() == null) {
                 iterator.remove();
 
                 Debug.log(TestCase.PLAYER_PROFILE_DATA, "Removed data from memory for {}",

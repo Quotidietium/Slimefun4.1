@@ -432,7 +432,12 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         // Save all Player Profiles that are still in memory
         PlayerProfile.iterator().forEachRemaining(profile -> {
             if (profile.isDirty()) {
-                profile.save();
+                try {
+                    profile.save();
+                } catch (Exception | LinkageError x) {
+                    // One broken profile must not prevent the remaining ones from being saved
+                    getLogger().log(Level.SEVERE, x, () -> "Could not save the PlayerProfile for " + profile.getUUID() + " while disabling Slimefun");
+                }
             }
         });
 

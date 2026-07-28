@@ -16,6 +16,11 @@ import com.google.common.annotations.Beta;
 
 import javax.annotation.Nonnull;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -130,8 +135,47 @@ public class LegacyStorage implements Storage {
             waypointsFile.setValue(waypoint.getId() + ".name", waypoint.getName());
         }
 
-        // Save files
-        playerFile.save();
-        waypointsFile.save();
+        // Save files (atomically - a crash mid-write must not corrupt the previous state)
+        if (!saveAtomically(playerFile) | !saveAtomically(waypointsFile)) {
+            // | on purpose: attempt BOTH files, then report
+            throw new UncheckedIOException(new IOException("Could not save the player data for " + uuid + " (disk full?), the profile stays dirty and will be retried"));
+        }
+    }
+
+    /**
+     * Writes a {@link Config} to disk via a temporary file and an atomic move
+     * (with a plain replace as fallback for filesystems that do not support
+     * atomic moves), the same strategy {@code BlockStorage} uses for .sfb files.
+     *
+     * @param config
+     *            The {@link Config} to write
+     *
+     * @return Whether the file was successfully written
+     */
+    private boolean saveAtomically(@Nonnull Config config) {
+        File target = config.getFile();
+        File tmpFile = new File(target.getParentFile(), target.getName() + ".tmp");
+
+        config.save(tmpFile);
+
+        if (!tmpFile.exists()) {
+            // Config.save() swallowed an IOException (e.g. disk full) - nothing to move
+            Slimefun.logger().log(Level.SEVERE, "Could not write a temporary file for \"{0}\" (disk full?), will retry on the next save cycle", target.getName());
+            return false;
+        }
+
+        try {
+            Files.move(tmpFile.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            return true;
+        } catch (IOException x) {
+            try {
+                // Some filesystems do not support atomic moves - fall back to a plain replace
+                Files.move(tmpFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return true;
+            } catch (IOException x2) {
+                Slimefun.logger().log(Level.SEVERE, x2, () -> "An Error occurred while saving player data to \"" + target.getName() + "\", will retry on the next save cycle");
+                return false;
+            }
+        }
     }
 }
