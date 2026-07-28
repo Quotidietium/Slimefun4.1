@@ -27,6 +27,14 @@ public class WorldListener implements Listener {
 
     @EventHandler
     public void onWorldUnload(WorldUnloadEvent e) {
+        /*
+         * Flush any pending deletions/moves for this World into its BlockStorage
+         * BEFORE saving: queued entries would otherwise die with the in-memory
+         * state and the data on disk would resurrect blocks that were actually
+         * broken (dropping their inventories a second time).
+         */
+        Slimefun.getTickerTask().drainQueues(e.getWorld());
+
         BlockStorage storage = BlockStorage.getStorage(e.getWorld());
 
         if (storage != null) {

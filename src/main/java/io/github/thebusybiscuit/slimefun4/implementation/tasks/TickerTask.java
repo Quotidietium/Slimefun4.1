@@ -371,13 +371,60 @@ public class TickerTask implements Runnable {
     }
 
     /**
+     * Drains every queued deletion and move that belongs to the given {@link World}.
+     * This must be called BEFORE that World's {@link BlockStorage} is saved and
+     * removed on unload: pending queue entries would otherwise never reach the
+     * in-memory state that gets saved, and blocks broken just before the unload
+     * would "resurrect" (with their inventories dropping again) when the World
+     * is loaded next time.
+     *
+     * @param world
+     *            The {@link World} whose queue entries should be processed now
+     */
+    public void drainQueues(@Nonnull World world) {
+        Validate.notNull(world, "The World cannot be null");
+
+        Iterator<Map.Entry<Location, Boolean>> removals = deletionQueue.entrySet().iterator();
+        while (removals.hasNext()) {
+            Map.Entry<Location, Boolean> entry = removals.next();
+            World entryWorld = entry.getKey().getWorld();
+
+            if (entryWorld != null && entryWorld.getUID().equals(world.getUID())) {
+                try {
+                    BlockStorage.deleteLocationInfoUnsafely(entry.getKey(), entry.getValue());
+                } catch (Exception | LinkageError x) {
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Could not delete block data @ " + new BlockPosition(entry.getKey()) + " during world unload");
+                }
+
+                removals.remove();
+            }
+        }
+
+        Iterator<Map.Entry<Location, Location>> moves = movingQueue.entrySet().iterator();
+        while (moves.hasNext()) {
+            Map.Entry<Location, Location> entry = moves.next();
+            World entryWorld = entry.getKey().getWorld();
+
+            if (entryWorld != null && entryWorld.getUID().equals(world.getUID())) {
+                try {
+                    BlockStorage.moveLocationInfoUnsafely(entry.getKey(), entry.getValue());
+                } catch (Exception | LinkageError x) {
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Could not move block data @ " + new BlockPosition(entry.getKey()) + " during world unload");
+                }
+
+                moves.remove();
+            }
+        }
+    }
+
+    /**
      * This method checks if the given {@link Location} has been reserved
      * by this {@link TickerTask}.
      * A reserved {@link Location} does not currently hold any data but will
      * be occupied upon the next tick.
      * Checking this ensures that our {@link Location} does not get treated like a normal
      * {@link Location} as it is theoretically "moving".
-     * 
+     *
      * @param l
      *            The {@link Location} to check
      * 
