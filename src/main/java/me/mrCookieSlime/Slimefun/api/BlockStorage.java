@@ -113,8 +113,33 @@ public class BlockStorage {
     public static BlockStorage getOrCreate(@Nonnull World world) {
         BlockStorage storage = Slimefun.getRegistry().getWorlds().get(world.getName());
 
+        if (storage != null && storage.isMarkedForRemoval()) {
+            /*
+             * The World was unloaded and its BlockStorage is only waiting for the
+             * next TickerTask cycle to be dropped from the registry. If the World
+             * gets loaded again before that happens, reusing this instance would
+             * leave the World with a "dead" storage: the ticker drops it on the
+             * next run and every write afterwards silently goes nowhere.
+             * Evict it (atomically, so a racing removal is fine) and load fresh.
+             */
+            if (Slimefun.getRegistry().getWorlds().remove(world.getName(), storage)) {
+                storage = null;
+            } else {
+                storage = Slimefun.getRegistry().getWorlds().get(world.getName());
+            }
+        }
+
         if (storage == null) {
-            return new BlockStorage(world);
+            BlockStorage fresh = new BlockStorage(world);
+
+            /*
+             * The constructor skips its own registration when another Thread
+             * registered an instance for this World in the meantime. Always
+             * return the actually registered instance, never a half-initialised
+             * one that no code path will ever save or load.
+             */
+            BlockStorage registered = Slimefun.getRegistry().getWorlds().get(world.getName());
+            return registered != null ? registered : fresh;
         } else {
             return storage;
         }
