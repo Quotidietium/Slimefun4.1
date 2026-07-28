@@ -185,6 +185,12 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
         Slimefun.runSync(() -> {
             users.add(player.getUniqueId());
 
+            /*
+             * Close the floor selector before teleporting: leaving it open would
+             * allow teleporting again from anywhere without standing on a plate.
+             */
+            player.closeInventory();
+
             float yaw = player.getEyeLocation().getYaw() + 180;
 
             if (yaw > 180) {
@@ -197,6 +203,14 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
             PaperLib.teleportAsync(player, destination).thenAccept(teleported -> {
                 if (teleported.booleanValue()) {
                     player.sendTitle(ChatColor.WHITE + ChatColors.color(floor.getName()), null, 20, 60, 20);
+                } else {
+                    /*
+                     * The teleport failed, so the Player never lands on a plate
+                     * that would consume their entry - remove it here, otherwise
+                     * their next legitimate plate usage would be swallowed.
+                     * This callback may run on any Thread, hence the runSync.
+                     */
+                    Slimefun.runSync(() -> users.remove(player.getUniqueId()));
                 }
             });
         });
