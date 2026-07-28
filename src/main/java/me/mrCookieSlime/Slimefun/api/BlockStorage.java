@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -90,7 +91,14 @@ public class BlockStorage {
      */
     private final Map<String, Config> blockFiles = new ConcurrentHashMap<>();
 
-    private static int chunkChanges = 0;
+    private static final AtomicInteger chunkChanges = new AtomicInteger();
+
+    /**
+     * Serialises concurrent {@link #saveChunks()} calls: it is invoked both from
+     * the asynchronous auto-save Thread and (per unloading World) from the main
+     * Thread, and all callers share the same temporary file.
+     */
+    private static final Object chunkSaveLock = new Object();
     private static boolean universalInventoriesLoaded = false;
 
     private int changes = 0;
@@ -551,7 +559,16 @@ public class BlockStorage {
     }
 
     public static void saveChunks() {
-        if (chunkChanges > 0) {
+        synchronized (chunkSaveLock) {
+            /*
+             * Reset the counter up front: writes that happen while we are
+             * saving must count towards the NEXT cycle, not be swallowed
+             * by this one.
+             */
+            if (chunkChanges.getAndSet(0) <= 0) {
+                return;
+            }
+
             File chunks = new File(PATH_CHUNKS + "chunks.sfc");
             File tmpFile = new File(PATH_CHUNKS + "chunks.temp");
             Config cfg = new Config(tmpFile);
@@ -575,8 +592,6 @@ public class BlockStorage {
                     Slimefun.logger().log(Level.SEVERE, x2, () -> "An Error occurred while saving chunk data for Slimefun " + Slimefun.getVersion());
                 }
             }
-
-            chunkChanges = 0;
         }
     }
 
@@ -1138,11 +1153,15 @@ public class BlockStorage {
             }
 
             String key = serializeChunk(world, x, z);
-            BlockInfoConfig cfg = Slimefun.getRegistry().getChunks().get(key);
+            Map<String, BlockInfoConfig> chunks = Slimefun.getRegistry().getChunks();
+            BlockInfoConfig cfg = chunks.get(key);
 
             if (cfg == null) {
-                cfg = new BlockInfoConfig();
-                Slimefun.getRegistry().getChunks().put(key, cfg);
+                // Atomic: two Threads must never end up writing to two
+                // different instances where only one is actually stored
+                BlockInfoConfig fresh = new BlockInfoConfig();
+                BlockInfoConfig existing = chunks.putIfAbsent(key, fresh);
+                cfg = existing != null ? existing : fresh;
             }
 
             return cfg;
@@ -1154,16 +1173,19 @@ public class BlockStorage {
 
     public static void setChunkInfo(World world, int x, int z, String key, String value) {
         String serializedChunk = serializeChunk(world, x, z);
-        BlockInfoConfig cfg = Slimefun.getRegistry().getChunks().get(serializedChunk);
+        Map<String, BlockInfoConfig> chunks = Slimefun.getRegistry().getChunks();
+        BlockInfoConfig cfg = chunks.get(serializedChunk);
 
         if (cfg == null) {
-            cfg = new BlockInfoConfig();
-            Slimefun.getRegistry().getChunks().put(serializedChunk, cfg);
+            // Atomic: see getChunkInfo(...)
+            BlockInfoConfig fresh = new BlockInfoConfig();
+            BlockInfoConfig existing = chunks.putIfAbsent(serializedChunk, fresh);
+            cfg = existing != null ? existing : fresh;
         }
 
         cfg.setValue(key, value);
 
-        chunkChanges++;
+        chunkChanges.incrementAndGet();
     }
 
     public static boolean hasChunkInfo(World world, int x, int z) {
