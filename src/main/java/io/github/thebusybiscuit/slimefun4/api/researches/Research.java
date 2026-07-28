@@ -283,7 +283,7 @@ public class Research implements Keyed {
 
     /**
      * Unlocks this {@link Research} for the specified {@link Player}.
-     * 
+     *
      * @param p
      *            The {@link Player} for which to unlock this {@link Research}
      * @param isInstant
@@ -292,7 +292,25 @@ public class Research implements Keyed {
      *            A callback which will be run when the {@link Research} animation completed
      */
     public void unlock(@Nonnull Player p, boolean isInstant, @Nullable Consumer<Player> callback) {
-        PlayerProfile.get(p, new PlayerResearchTask(this, isInstant, callback));
+        unlock(p, isInstant, callback, null);
+    }
+
+    /**
+     * Unlocks this {@link Research} for the specified {@link Player}.
+     *
+     * @param p
+     *            The {@link Player} for which to unlock this {@link Research}
+     * @param isInstant
+     *            Whether to unlock this {@link Research} instantly
+     * @param callback
+     *            A callback which will be run when the {@link Research} animation completed
+     * @param failureHandler
+     *            A {@link Runnable} run on the main Thread when the {@link PlayerProfile}
+     *            could not be loaded at all (so the {@link Research} was never unlocked),
+     *            allowing callers to compensate any cost they already took
+     */
+    public void unlock(@Nonnull Player p, boolean isInstant, @Nullable Consumer<Player> callback, @Nullable Runnable failureHandler) {
+        PlayerProfile.get(p, new PlayerResearchTask(this, isInstant, callback), failureHandler);
     }
 
     /**

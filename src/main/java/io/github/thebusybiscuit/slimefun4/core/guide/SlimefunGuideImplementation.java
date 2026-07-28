@@ -73,7 +73,15 @@ public interface SlimefunGuideImplementation {
             p.setLevel(p.getLevel() - research.getCost());
 
             boolean skipLearningAnimation = Slimefun.getRegistry().isLearningAnimationDisabled() || !SlimefunGuideSettings.hasLearningAnimationEnabled(p);
-            research.unlock(p, skipLearningAnimation, callback);
+            research.unlock(p, skipLearningAnimation, callback, () -> {
+                /*
+                 * The PlayerProfile could not be loaded (even after retrying), so
+                 * the research was never unlocked - refund the levels we took.
+                 */
+                if (p.isOnline()) {
+                    p.setLevel(p.getLevel() + research.getCost());
+                }
+            });
         }
     }
 
