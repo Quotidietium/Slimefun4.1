@@ -109,7 +109,8 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
         onFinish(p);
 
         // Check if the Server and the Player have enabled fireworks for researches
-        if (Slimefun.getRegistry().isResearchFireworkEnabled() && SlimefunGuideSettings.hasFireworksEnabled(p)) {
+        // (the Player may have logged off while the research animation was playing)
+        if (p.isOnline() && Slimefun.getRegistry().isResearchFireworkEnabled() && SlimefunGuideSettings.hasFireworksEnabled(p)) {
             FireworkUtils.launchRandom(p, 1);
         }
     }
