@@ -103,7 +103,17 @@ public interface EnergyNetComponent extends ItemAttribute {
         String charge = data.getString("energy-charge");
 
         if (charge != null) {
-            return Integer.parseInt(charge);
+            try {
+                return Integer.parseInt(charge);
+            } catch (NumberFormatException x) {
+                /*
+                 * Corrupted charge data (crashed write, manual editing, ...).
+                 * Treat it as empty instead of letting the exception tear down
+                 * the whole network tick - the next setCharge() call overwrites
+                 * the broken value anyway.
+                 */
+                return 0;
+            }
         } else {
             return 0;
         }

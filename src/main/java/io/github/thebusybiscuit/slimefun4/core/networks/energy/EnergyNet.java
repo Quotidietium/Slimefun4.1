@@ -3,11 +3,14 @@ package io.github.thebusybiscuit.slimefun4.core.networks.energy;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongConsumer;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -16,6 +19,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 
+import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.thebusybiscuit.slimefun4.api.ErrorReport;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.network.Network;
@@ -50,6 +54,14 @@ public class EnergyNet extends Network implements HologramOwner {
     private final Map<Location, EnergyNetProvider> generators = new HashMap<>();
     private final Map<Location, EnergyNetComponent> capacitors = new HashMap<>();
     private final Map<Location, EnergyNetComponent> consumers = new HashMap<>();
+
+    /**
+     * Components that failed during a previous tick. Used to rate-limit
+     * {@link ErrorReport}s to one per failure streak: a persistently broken
+     * component is retried every tick (so it heals itself once fixed), but it
+     * must not write a new report file every single time.
+     */
+    private final Set<Location> failedComponents = ConcurrentHashMap.newKeySet();
 
     protected EnergyNet(@Nonnull Location l) {
         super(Slimefun.getNetworkManager(), l);
@@ -102,15 +114,22 @@ public class EnergyNet extends Network implements HologramOwner {
 
         if (component == null) {
             return null;
-        } else {
-            return switch (component.getEnergyComponentType()) {
-                case CONNECTOR,
-                    CAPACITOR -> NetworkComponent.CONNECTOR;
-                case CONSUMER,
-                    GENERATOR -> NetworkComponent.TERMINUS;
-                default -> null;
-            };
         }
+
+        EnergyNetComponentType type = component.getEnergyComponentType();
+
+        if (type == null) {
+            // An addon violated the @Nonnull contract - treat it as "not part of the network"
+            return null;
+        }
+
+        return switch (type) {
+            case CONNECTOR,
+                CAPACITOR -> NetworkComponent.CONNECTOR;
+            case CONSUMER,
+                GENERATOR -> NetworkComponent.TERMINUS;
+            default -> null;
+        };
     }
 
     @Override
@@ -118,6 +137,7 @@ public class EnergyNet extends Network implements HologramOwner {
         if (from == NetworkComponent.TERMINUS) {
             generators.remove(l);
             consumers.remove(l);
+            failedComponents.remove(l);
         }
 
         EnergyNetComponent component = getComponent(l);
@@ -152,6 +172,35 @@ public class EnergyNet extends Network implements HologramOwner {
             return;
         }
 
+        /*
+         * When two previously separate Networks get joined (a cable now connects
+         * both regulators), both Networks discover the same components and each
+         * regulator keeps ticking its own Network: generators would be ticked
+         * twice (double fuel consumption) and capacitors settled by whichever
+         * Network runs first. Arbitrate deterministically - among all EnergyNets
+         * claiming this regulator, only the one with the "smallest" regulator
+         * location may tick, the others show the multiple-regulator warning.
+         */
+        List<EnergyNet> claiming = Slimefun.getNetworkManager().getNetworksFromLocation(b.getLocation(), EnergyNet.class);
+
+        if (claiming.size() > 1) {
+            Location primary = null;
+
+            for (EnergyNet network : claiming) {
+                Location candidate = network.getRegulator();
+
+                if (primary == null || compareLocations(candidate, primary) < 0) {
+                    primary = candidate;
+                }
+            }
+
+            if (!regulator.equals(primary)) {
+                updateHologram(b, "&4Multiple Energy Regulators connected");
+                Slimefun.getProfiler().closeEntry(b.getLocation(), SlimefunItems.ENERGY_REGULATOR.getItem(), timestamp.get());
+                return;
+            }
+        }
+
         super.tick();
 
         if (connectorNodes.isEmpty() && terminusNodes.isEmpty()) {
@@ -166,22 +215,35 @@ public class EnergyNet extends Network implements HologramOwner {
             for (Map.Entry<Location, EnergyNetComponent> entry : consumers.entrySet()) {
                 Location loc = entry.getKey();
                 EnergyNetComponent component = entry.getValue();
-                int capacity = component.getCapacity();
-                int charge = component.getCharge(loc);
 
-                if (charge < capacity) {
-                    int availableSpace = capacity - charge;
-                    demand = NumberUtils.flowSafeAddition(demand, availableSpace);
+                /*
+                 * Isolate every single consumer: one broken component (corrupt
+                 * charge data, a misbehaving addon) must not abort the whole
+                 * settlement loop - energy charged before the exception would
+                 * never be subtracted again, effectively duplicating it each tick.
+                 */
+                try {
+                    int capacity = component.getCapacity();
+                    int charge = component.getCharge(loc);
 
-                    if (remainingEnergy > 0) {
-                        if (remainingEnergy > availableSpace) {
-                            component.setCharge(loc, capacity);
-                            remainingEnergy -= availableSpace;
-                        } else {
-                            component.setCharge(loc, charge + remainingEnergy);
-                            remainingEnergy = 0;
+                    if (charge < capacity) {
+                        int availableSpace = capacity - charge;
+                        demand = NumberUtils.flowSafeAddition(demand, availableSpace);
+
+                        if (remainingEnergy > 0) {
+                            if (remainingEnergy > availableSpace) {
+                                component.setCharge(loc, capacity);
+                                remainingEnergy -= availableSpace;
+                            } else {
+                                component.setCharge(loc, charge + remainingEnergy);
+                                remainingEnergy = 0;
+                            }
                         }
                     }
+
+                    failedComponents.remove(loc);
+                } catch (Exception | LinkageError x) {
+                    reportComponentFailure(x, loc, component);
                 }
             }
 
@@ -198,36 +260,50 @@ public class EnergyNet extends Network implements HologramOwner {
             Location loc = entry.getKey();
             EnergyNetComponent component = entry.getValue();
 
-            if (remainingEnergy > 0) {
-                int capacity = component.getCapacity();
+            try {
+                if (remainingEnergy > 0) {
+                    int capacity = component.getCapacity();
 
-                if (remainingEnergy > capacity) {
-                    component.setCharge(loc, capacity);
-                    remainingEnergy -= capacity;
+                    if (remainingEnergy > capacity) {
+                        component.setCharge(loc, capacity);
+                        remainingEnergy -= capacity;
+                    } else {
+                        component.setCharge(loc, remainingEnergy);
+                        remainingEnergy = 0;
+                    }
                 } else {
-                    component.setCharge(loc, remainingEnergy);
-                    remainingEnergy = 0;
+                    component.setCharge(loc, 0);
                 }
-            } else {
-                component.setCharge(loc, 0);
+
+                failedComponents.remove(loc);
+            } catch (Exception | LinkageError x) {
+                // The capacitor keeps its previous charge - nothing gained, nothing lost
+                reportComponentFailure(x, loc, component);
             }
         }
 
         for (Map.Entry<Location, EnergyNetProvider> entry : generators.entrySet()) {
             Location loc = entry.getKey();
             EnergyNetProvider component = entry.getValue();
-            int capacity = component.getCapacity();
 
-            if (remainingEnergy > 0) {
-                if (remainingEnergy > capacity) {
-                    component.setCharge(loc, capacity);
-                    remainingEnergy -= capacity;
+            try {
+                int capacity = component.getCapacity();
+
+                if (remainingEnergy > 0) {
+                    if (remainingEnergy > capacity) {
+                        component.setCharge(loc, capacity);
+                        remainingEnergy -= capacity;
+                    } else {
+                        component.setCharge(loc, remainingEnergy);
+                        remainingEnergy = 0;
+                    }
                 } else {
-                    component.setCharge(loc, remainingEnergy);
-                    remainingEnergy = 0;
+                    component.setCharge(loc, 0);
                 }
-            } else {
-                component.setCharge(loc, 0);
+
+                failedComponents.remove(loc);
+            } catch (Exception | LinkageError x) {
+                reportComponentFailure(x, loc, component);
             }
         }
     }
@@ -254,6 +330,15 @@ public class EnergyNet extends Network implements HologramOwner {
                     explodedBlocks.add(loc);
                     BlockStorage.clearBlockInfo(loc);
 
+                    /*
+                     * Evict the stale TERMINUS classification: this block's data is
+                     * queued for deletion. Without re-classification the location
+                     * would stay a TERMINUS forever, and a generator placed at this
+                     * spot later would never be noticed (classification never
+                     * "changes"), silently never joining the Network.
+                     */
+                    reclassify(loc);
+
                     Slimefun.runSync(() -> {
                         loc.getBlock().setType(Material.LAVA);
                         loc.getWorld().createExplosion(loc, 0F, false);
@@ -261,17 +346,16 @@ public class EnergyNet extends Network implements HologramOwner {
                 } else {
                     supply = NumberUtils.flowSafeAddition(supply, energy);
                 }
-            } catch (Exception | LinkageError throwable) {
-                explodedBlocks.add(loc);
-                new ErrorReport<>(throwable, loc, item);
 
+                // It worked - allow a fresh ErrorReport if it fails again later
+                failedComponents.remove(loc);
+            } catch (Exception | LinkageError throwable) {
                 /*
-                 * Queue the location for re-classification: without this, the
-                 * generator would silently drop out of the Network forever
-                 * (until someone breaks and replaces the block), even after the
-                 * underlying problem is fixed.
+                 * Keep the generator registered so it heals itself once the
+                 * underlying problem is fixed (removing it was permanent until a
+                 * rebuild), but let it contribute no energy this tick.
                  */
-                markDirty(loc);
+                reportComponentFailure(throwable, loc, item);
             }
 
             long time = Slimefun.getProfiler().closeEntry(loc, item, timestamp);
@@ -290,10 +374,43 @@ public class EnergyNet extends Network implements HologramOwner {
         int supply = 0;
 
         for (Map.Entry<Location, EnergyNetComponent> entry : capacitors.entrySet()) {
-            supply = NumberUtils.flowSafeAddition(supply, entry.getValue().getCharge(entry.getKey()));
+            Location loc = entry.getKey();
+            EnergyNetComponent component = entry.getValue();
+
+            try {
+                supply = NumberUtils.flowSafeAddition(supply, component.getCharge(loc));
+                failedComponents.remove(loc);
+            } catch (Exception | LinkageError x) {
+                // Contributes nothing this tick, but does not poison the whole network
+                reportComponentFailure(x, loc, component);
+            }
         }
 
         return supply;
+    }
+
+    /**
+     * Reports a failing {@link EnergyNetComponent}, rate-limited to one
+     * {@link ErrorReport} per failure streak (see {@link #failedComponents}).
+     */
+    private void reportComponentFailure(@Nonnull Throwable x, @Nonnull Location loc, @Nonnull EnergyNetComponent component) {
+        if (failedComponents.add(loc)) {
+            if (component instanceof SlimefunItem item) {
+                new ErrorReport<>(x, loc, item);
+            } else {
+                Slimefun.logger().log(Level.WARNING, x, () -> "An EnergyNet component failed @ " + new BlockPosition(loc));
+            }
+        }
+    }
+
+    /**
+     * Reports a failing generator, rate-limited to one {@link ErrorReport}
+     * per failure streak (see {@link #failedComponents}).
+     */
+    private void reportComponentFailure(@Nonnull Throwable x, @Nonnull Location loc, @Nonnull SlimefunItem item) {
+        if (failedComponents.add(loc)) {
+            new ErrorReport<>(x, loc, item);
+        }
     }
 
     private void updateHologram(@Nonnull Block b, double supply, double demand) {
@@ -304,6 +421,32 @@ public class EnergyNet extends Network implements HologramOwner {
             String netGain = NumberUtils.getCompactDouble(supply - demand);
             updateHologram(b, "&2&l+ &a" + netGain + " &7J &e\u26A1");
         }
+    }
+
+    /**
+     * A deterministic total order on {@link Location}s (World, then X, Y, Z),
+     * used to arbitrate between multiple regulators claiming the same Network.
+     */
+    private static int compareLocations(@Nonnull Location a, @Nonnull Location b) {
+        int result = a.getWorld().getUID().compareTo(b.getWorld().getUID());
+
+        if (result != 0) {
+            return result;
+        }
+
+        result = Integer.compare(a.getBlockX(), b.getBlockX());
+
+        if (result != 0) {
+            return result;
+        }
+
+        result = Integer.compare(a.getBlockY(), b.getBlockY());
+
+        if (result != 0) {
+            return result;
+        }
+
+        return Integer.compare(a.getBlockZ(), b.getBlockZ());
     }
 
     @Nullable
