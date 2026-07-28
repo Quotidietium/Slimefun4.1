@@ -69,75 +69,86 @@ public final class TeleportationManager {
 
     @ParametersAreNonnullByDefault
     public void openTeleporterGUI(Player p, UUID ownerUUID, Block b, int complexity) {
-        if (teleporterUsers.add(p.getUniqueId())) {
-            SoundEffect.TELEPORTATION_MANAGER_OPEN_GUI.playFor(p);
-            PlayerProfile.fromUUID(ownerUUID, profile -> {
-                ChestMenu menu = new ChestMenu("&3Teleporter");
-                menu.addMenuCloseHandler(pl -> teleporterUsers.remove(pl.getUniqueId()));
-
-                for (int slot : teleporterBorder) {
-                    menu.addItem(slot, ChestMenuUtils.getBackground(), ChestMenuUtils.getEmptyClickHandler());
-                }
-
-                menu.addItem(4, CustomItemStack.create(HeadTexture.GLOBE_OVERWORLD.getAsItemStack(), ChatColor.YELLOW + Slimefun.getLocalization().getMessage(p, "machines.TELEPORTER.gui.title")));
-                menu.addMenuClickHandler(4, ChestMenuUtils.getEmptyClickHandler());
-
-                Location source = new Location(b.getWorld(), b.getX() + 0.5D, b.getY() + 2D, b.getZ() + 0.5D);
-                int index = 0;
-
-                for (Waypoint waypoint : profile.getWaypoints()) {
-                    if (index >= teleporterInventory.length) {
-                        break;
-                    }
-
-                    int slot = teleporterInventory[index];
-                    Location l = waypoint.getLocation();
-
-                    if (l.getWorld() == null) {
-                        /*
-                         * The waypoint's world is not loaded (anymore). Skip it -
-                         * dereferencing it would throw and leave the Player stuck
-                         * in #teleporterUsers with no GUI and no close handler.
-                         */
-                        continue;
-                    }
-
-                    double time = NumberUtils.reparseDouble(0.5 * getTeleportationTime(complexity, source, l));
-
-                    // @formatter:off
-                    String[] lore = {
-                        "",
-                        "&8\u21E8 &7" + Slimefun.getLocalization().getResourceString(p, "tooltips.world") + ": &f" + l.getWorld().getName(),
-                        "&8\u21E8 &7X: &f" + l.getX(),
-                        "&8\u21E8 &7Y: &f" + l.getY(),
-                        "&8\u21E8 &7Z: &f" + l.getZ(),
-                        "&8\u21E8 &7" + Slimefun.getLocalization().getMessage(p, "machines.TELEPORTER.gui.time") + ": &f" + time + "s",
-                        "",
-                        "&8\u21E8 &c" + Slimefun.getLocalization().getMessage(p, "machines.TELEPORTER.gui.tooltip")
-                    };
-                    // @formatter:on
-
-                    menu.addItem(slot, CustomItemStack.create(waypoint.getIcon(), waypoint.getName().replace("player:death ", ""), lore));
-                    menu.addMenuClickHandler(slot, (pl, s, item, action) -> {
-                        pl.closeInventory();
-                        teleport(pl.getUniqueId(), complexity, source, l, false);
-                        return false;
-                    });
-
-                    index++;
-                }
-
-                Slimefun.runSync(() -> {
-                    if (p.isOnline()) {
-                        menu.open(p);
-                    } else {
-                        // The Player left before the profile finished loading,
-                        // the close handler will never fire so clean up here
-                        teleporterUsers.remove(p.getUniqueId());
-                    }
-                });
-            });
+        /*
+         * Check-only, do NOT commit here: if the profile fails to load, the
+         * callback below never runs and a prematurely added entry would linger
+         * in #teleporterUsers forever, soft-locking the Player from ever
+         * opening a teleporter GUI again. The claim happens atomically right
+         * before the menu opens.
+         */
+        if (teleporterUsers.contains(p.getUniqueId())) {
+            return;
         }
+
+        SoundEffect.TELEPORTATION_MANAGER_OPEN_GUI.playFor(p);
+        PlayerProfile.fromUUID(ownerUUID, profile -> {
+            ChestMenu menu = new ChestMenu("&3Teleporter");
+            menu.addMenuCloseHandler(pl -> teleporterUsers.remove(pl.getUniqueId()));
+
+            for (int slot : teleporterBorder) {
+                menu.addItem(slot, ChestMenuUtils.getBackground(), ChestMenuUtils.getEmptyClickHandler());
+            }
+
+            menu.addItem(4, CustomItemStack.create(HeadTexture.GLOBE_OVERWORLD.getAsItemStack(), ChatColor.YELLOW + Slimefun.getLocalization().getMessage(p, "machines.TELEPORTER.gui.title")));
+            menu.addMenuClickHandler(4, ChestMenuUtils.getEmptyClickHandler());
+
+            Location source = new Location(b.getWorld(), b.getX() + 0.5D, b.getY() + 2D, b.getZ() + 0.5D);
+            int index = 0;
+
+            for (Waypoint waypoint : profile.getWaypoints()) {
+                if (index >= teleporterInventory.length) {
+                    break;
+                }
+
+                int slot = teleporterInventory[index];
+                Location l = waypoint.getLocation();
+
+                if (l.getWorld() == null) {
+                    /*
+                     * The waypoint's world is not loaded (anymore). Skip it -
+                     * dereferencing it would throw and leave the Player stuck
+                     * in #teleporterUsers with no GUI and no close handler.
+                     */
+                    continue;
+                }
+
+                double time = NumberUtils.reparseDouble(0.5 * getTeleportationTime(complexity, source, l));
+
+                // @formatter:off
+                String[] lore = {
+                    "",
+                    "&8\u21E8 &7" + Slimefun.getLocalization().getResourceString(p, "tooltips.world") + ": &f" + l.getWorld().getName(),
+                    "&8\u21E8 &7X: &f" + l.getX(),
+                    "&8\u21E8 &7Y: &f" + l.getY(),
+                    "&8\u21E8 &7Z: &f" + l.getZ(),
+                    "&8\u21E8 &7" + Slimefun.getLocalization().getMessage(p, "machines.TELEPORTER.gui.time") + ": &f" + time + "s",
+                    "",
+                    "&8\u21E8 &c" + Slimefun.getLocalization().getMessage(p, "machines.TELEPORTER.gui.tooltip")
+                };
+                // @formatter:on
+
+                menu.addItem(slot, CustomItemStack.create(waypoint.getIcon(), waypoint.getName().replace("player:death ", ""), lore));
+                menu.addMenuClickHandler(slot, (pl, s, item, action) -> {
+                    pl.closeInventory();
+                    teleport(pl.getUniqueId(), complexity, source, l, false);
+                    return false;
+                });
+
+                index++;
+            }
+
+            Slimefun.runSync(() -> {
+                /*
+                 * Claim the slot and open the menu atomically on the main Thread:
+                 * a second GUI request that raced us here loses the add() and is
+                 * dropped, and if the Player left in the meantime nothing was
+                 * ever claimed, so there is nothing to clean up either.
+                 */
+                if (p.isOnline() && teleporterUsers.add(p.getUniqueId())) {
+                    menu.open(p);
+                }
+            });
+        });
     }
 
     @ParametersAreNonnullByDefault
