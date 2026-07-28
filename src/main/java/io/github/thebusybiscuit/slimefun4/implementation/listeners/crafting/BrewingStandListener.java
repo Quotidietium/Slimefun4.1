@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
@@ -50,6 +51,24 @@ public class BrewingStandListener implements SlimefunCraftingListener {
 
             if (e.getResult() == Result.DENY) {
                 Slimefun.getLocalization().sendMessage((Player) e.getWhoClicked(), "brewing_stand.not-working", true);
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onDrag(InventoryDragEvent e) {
+        Inventory topInventory = e.getView().getTopInventory();
+
+        if (topInventory.getType() == InventoryType.BREWING && topInventory.getHolder() instanceof BrewingStand) {
+            int topInventorySize = topInventory.getSize();
+
+            for (int rawSlot : e.getRawSlots()) {
+                if (rawSlot < topInventorySize && isUnallowed(e.getOldCursor())) {
+                    // Dragging is not an InventoryClickEvent, validate the dragged item separately
+                    e.setCancelled(true);
+                    Slimefun.getLocalization().sendMessage((Player) e.getWhoClicked(), "brewing_stand.not-working", true);
+                    return;
+                }
             }
         }
     }
