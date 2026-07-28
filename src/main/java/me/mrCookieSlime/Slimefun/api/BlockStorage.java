@@ -948,9 +948,17 @@ public class BlockStorage {
         Config cfg = storage.storage.get(l);
 
         if (cfg != null && cfg.getString("id") != null) {
-            storage.markForFileDeletion(l, cfg.getString("id"));
-            storage.dirtyBlocks.remove(l);
-            storage.storage.remove(l);
+            /*
+             * All three steps under one lock: save() drains the pending
+             * deletions under the same monitor, so it can never observe a
+             * half-deleted state (file-deletion recorded but data still
+             * present) and write the deleted block back to disk as a ghost.
+             */
+            synchronized (storage.persistenceLock) {
+                storage.markForFileDeletion(l, cfg.getString("id"));
+                storage.dirtyBlocks.remove(l);
+                storage.storage.remove(l);
+            }
         }
 
         if (destroy) {
@@ -1003,9 +1011,13 @@ public class BlockStorage {
             menu.move(to);
         }
 
-        storage.markForFileDeletion(from, previousData.getString("id"));
-        storage.dirtyBlocks.remove(from);
-        storage.storage.remove(from);
+        // Under one lock: same half-deleted-state protection as in
+        // deleteLocationInfoUnsafely(...) above
+        synchronized (storage.persistenceLock) {
+            storage.markForFileDeletion(from, previousData.getString("id"));
+            storage.dirtyBlocks.remove(from);
+            storage.storage.remove(from);
+        }
 
         Slimefun.getTickerTask().disableTicker(from);
     }
