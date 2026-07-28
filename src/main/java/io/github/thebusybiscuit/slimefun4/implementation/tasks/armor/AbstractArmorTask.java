@@ -32,7 +32,16 @@ public abstract class AbstractArmorTask implements Runnable {
                 continue;
             }
 
-            PlayerProfile.get(p, profile -> onPlayerTick(p, profile));
+            try {
+                PlayerProfile.get(p, profile -> onPlayerTick(p, profile));
+            } catch (Exception | LinkageError x) {
+                /*
+                 * Isolate every Player: one broken armor piece must not abort the
+                 * whole run (an uncaught exception would even cancel this
+                 * repeating task, silently disabling all armor handling forever).
+                 */
+                Slimefun.logger().log(Level.WARNING, x, () -> "An armor task failed for Player " + p.getName());
+            }
         }
 
         onTick();

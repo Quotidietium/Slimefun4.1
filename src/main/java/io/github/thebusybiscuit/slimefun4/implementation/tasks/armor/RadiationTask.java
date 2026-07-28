@@ -21,9 +21,9 @@ import org.bukkit.inventory.ItemStack;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The {@link RadiationTask} handles radioactivity for
@@ -34,7 +34,12 @@ import java.util.UUID;
 public class RadiationTask extends AbstractArmorTask {
 
     private static final int GRACE_PERIOD_DURATION = Slimefun.getCfg().getInt("options.radiation-grace-period");
-    private static final Map<UUID, Long> ACTIVE_GRACE_PERIODS = new HashMap<>();
+
+    /**
+     * Thread-safe: grace periods are granted from the main Thread (death event)
+     * while this task reads and expires them on its asynchronous Thread.
+     */
+    private static final Map<UUID, Long> ACTIVE_GRACE_PERIODS = new ConcurrentHashMap<>();
 
     private final RadiationSymptom[] symptoms = RadiationSymptom.values();
 
