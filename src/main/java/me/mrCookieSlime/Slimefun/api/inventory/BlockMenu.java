@@ -49,7 +49,9 @@ public class BlockMenu extends DirtyChestMenu {
     }
 
     public void save(Location l) {
-        if (!isDirty()) {
+        int unsavedChanges = changes.get();
+
+        if (unsavedChanges <= 0) {
             return;
         }
 
@@ -64,9 +66,10 @@ public class BlockMenu extends DirtyChestMenu {
             cfg.setValue(String.valueOf(slot), getItemInSlot(slot));
         }
 
-        cfg.save();
-
-        changes = 0;
+        if (saveAtomically(cfg)) {
+            // Only subtract what was written - changes made during the write stay pending
+            changes.addAndGet(-unsavedChanges);
+        }
     }
 
     public void move(Location l) {

@@ -1,6 +1,12 @@
 package me.mrCookieSlime.Slimefun.api.inventory;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -12,9 +18,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bakedlibs.dough.config.Config;
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.itemstack.ItemStackWrapper;
 
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu;
@@ -23,7 +31,12 @@ import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu;
 public class DirtyChestMenu extends ChestMenu {
 
     protected final BlockMenuPreset preset;
-    protected int changes = 1;
+
+    /**
+     * Thread-safe: menus are marked dirty on the main Thread while the
+     * auto-save reads and clears the counter from its asynchronous Thread.
+     */
+    protected final AtomicInteger changes = new AtomicInteger(1);
 
     public DirtyChestMenu(@Nonnull BlockMenuPreset preset) {
         super(preset.getTitle());
@@ -42,15 +55,15 @@ public class DirtyChestMenu extends ChestMenu {
     }
 
     public void markDirty() {
-        changes++;
+        changes.incrementAndGet();
     }
 
     public boolean isDirty() {
-        return changes > 0;
+        return changes.get() > 0;
     }
 
     public int getUnsavedChanges() {
-        return changes;
+        return changes.get();
     }
 
     @Nonnull
@@ -168,6 +181,43 @@ public class DirtyChestMenu extends ChestMenu {
 
         super.replaceExistingItem(slot, item);
         markDirty();
+    }
+
+    /**
+     * Writes a {@link Config} to disk via a temporary file and an atomic move
+     * (with a plain replace as fallback for filesystems that do not support
+     * atomic moves), so a crash mid-write cannot corrupt the previous state.
+     *
+     * @param config
+     *            The {@link Config} to write
+     *
+     * @return Whether the file was successfully written
+     */
+    protected static boolean saveAtomically(@Nonnull Config config) {
+        File target = config.getFile();
+        File tmpFile = new File(target.getParentFile(), target.getName() + ".tmp");
+
+        config.save(tmpFile);
+
+        if (!tmpFile.exists()) {
+            // Config.save() swallowed an IOException (e.g. disk full) - nothing to move
+            Slimefun.logger().log(Level.SEVERE, "Could not write a temporary file for \"{0}\" (disk full?), will retry on the next save cycle", target.getName());
+            return false;
+        }
+
+        try {
+            Files.move(tmpFile.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            return true;
+        } catch (IOException x) {
+            try {
+                // Some filesystems do not support atomic moves - fall back to a plain replace
+                Files.move(tmpFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return true;
+            } catch (IOException x2) {
+                Slimefun.logger().log(Level.SEVERE, x2, () -> "An Error occurred while saving inventory data to \"" + target.getName() + "\", will retry on the next save cycle");
+                return false;
+            }
+        }
     }
 
 }
