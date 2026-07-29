@@ -149,7 +149,10 @@ public final class TickerRunBench {
 
     private void awaitGuardClear(Field running, TickerTask task) {
         try {
-            while (running.getBoolean(task)) {
+            // TickerTask.running is an AtomicBoolean (the fork made it so to guard against
+            // Bukkit overlapping async tickers). Read it via reflection on the object, not as a
+            // primitive boolean.
+            while (((java.util.concurrent.atomic.AtomicBoolean) running.get(task)).get()) {
                 Thread.sleep(1);
             }
         } catch (IllegalAccessException | InterruptedException e) {
