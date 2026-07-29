@@ -116,12 +116,14 @@ public class TickerTask implements Runnable {
 
     @Override
     public void run() {
-        try {
-            // If this method is actually still running... DON'T
-            if (!running.compareAndSet(false, true)) {
-                return;
-            }
+        // If this method is actually still running... DON'T
+        if (!running.compareAndSet(false, true)) {
+            return;
+        }
 
+        long tickStart = System.nanoTime();
+
+        try {
             Slimefun.getProfiler().start();
             Set<BlockTicker> tickers = new HashSet<>();
             List<SynchronizedTick> synchronizedTicks = new ArrayList<>();
@@ -196,10 +198,15 @@ public class TickerTask implements Runnable {
             }
 
             reset();
-            Slimefun.getProfiler().stop();
         } catch (Exception | LinkageError x) {
             Slimefun.logger().log(Level.SEVERE, x, () -> "An Exception was caught while ticking the Block Tickers Task for Slimefun v" + Slimefun.getVersion());
             reset();
+        } finally {
+            // Records the tick's total elapsed time every tick (keeps the timings
+            // placeholder current) and resolves any pending /sf timings summary.
+            // Placed in finally so an exception mid-tick still records timing and
+            // clears the per-block collection state.
+            Slimefun.getProfiler().endTick(System.nanoTime() - tickStart);
         }
     }
 

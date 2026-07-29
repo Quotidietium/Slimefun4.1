@@ -73,8 +73,19 @@ public class SlimefunProfiler {
 
     /**
      * This boolean marks whether we are currently profiling or not.
+     * Only true on ticks where a summary was actually requested ({@link #requestSummary}),
+     * so per-block detail collection (and its per-block cost) happens on demand instead
+     * of on every single tick.
      */
     private volatile boolean isProfiling = false;
+
+    /**
+     * The total elapsed time of the most recently completed tick, recorded by
+     * {@link #endTick} on every tick regardless of whether per-block detail was
+     * collected. This keeps {@link #getTime()} (and the PlaceholderAPI timings
+     * placeholder) current without paying for per-block collection every tick.
+     */
+    private volatile long lastTickTotalElapsed;
 
     /**
      * This {@link AtomicInteger} holds the amount of blocks that still need to be
@@ -105,9 +116,21 @@ public class SlimefunProfiler {
      * This method starts the profiling, data from previous runs will be cleared.
      */
     public void start() {
-        isProfiling = true;
-        queued.set(0);
-        timings.clear();
+        /*
+         * Only collect per-block detail when somebody actually requested a summary
+         * (/sf timings). Otherwise newEntry()/closeEntry() stay on their cheap no-op
+         * path (they return 0 immediately while isProfiling is false) and the
+         * {@link TickerTask} records just the tick's total elapsed time via
+         * {@link #endTick}. This keeps {@link #getTime()} (and the PlaceholderAPI
+         * timings placeholder) current without paying for per-block collection on
+         * every single tick - the collection now happens only when it is needed.
+         */
+        isProfiling = !requests.isEmpty();
+
+        if (isProfiling) {
+            queued.set(0);
+            timings.clear();
+        }
     }
 
     /**
@@ -200,6 +223,27 @@ public class SlimefunProfiler {
         }
 
         executor.execute(this::finishReport);
+    }
+
+    /**
+     * Ends the current tick. Called by the {@link TickerTask} on every tick: it records
+     * the tick's total elapsed time (used by {@link #getTime()} / the PlaceholderAPI
+     * placeholder, kept current every tick) and, if this tick actually collected
+     * per-block detail, schedules the report that resolves pending summary requests.
+     *
+     * @param elapsedNanos
+     *            The total elapsed time of this tick in nanoseconds
+     */
+    public void endTick(long elapsedNanos) {
+        lastTickTotalElapsed = elapsedNanos;
+
+        if (isProfiling) {
+            isProfiling = false;
+
+            if (Slimefun.instance() != null && Slimefun.instance().isEnabled() && !requests.isEmpty()) {
+                executor.execute(this::finishReport);
+            }
+        }
     }
 
     private void finishReport() {
@@ -382,7 +426,10 @@ public class SlimefunProfiler {
 
     @Nonnull
     public String getTime() {
-        return NumberUtils.getAsMillis(totalElapsedTime);
+        // Uses the per-tick total recorded by endTick (kept current every tick) rather
+        // than the per-block-detail sum, so the PlaceholderAPI timings placeholder stays
+        // 实时 even on ticks where no per-block collection happened.
+        return NumberUtils.getAsMillis(lastTickTotalElapsed);
     }
 
     public int getTickRate() {
