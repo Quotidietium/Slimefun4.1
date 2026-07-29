@@ -127,6 +127,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.tasks.armor.SlimefunArm
 import io.github.thebusybiscuit.slimefun4.implementation.tasks.armor.SolarHelmetTask;
 import io.github.thebusybiscuit.slimefun4.integrations.IntegrationsManager;
 import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
 import io.papermc.lib.PaperLib;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.MenuListener;
@@ -372,6 +373,11 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
         logger.log(Level.INFO, "Loading Third-Party plugin integrations...");
         integrations.start();
         gitHubService.start(this);
+
+        // Periodically evict stale capacitor-texture cache entries (capacitors that were broken),
+        // so the cache tracks only capacitors that currently exist instead of growing unbounded on
+        // a long-lived server.
+        getServer().getScheduler().runTaskTimerAsynchronously(this, SlimefunUtils::clearStaleCapacitorTextures, 6000L, 6000L);
 
         // Hooray!
         logger.log(Level.INFO, "Slimefun has finished loading in {0}", getStartupTime(timestamp));

@@ -51,6 +51,8 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.altar.AncientPede
 import io.github.thebusybiscuit.slimefun4.implementation.tasks.CapacitorTextureUpdateTask;
 import io.github.thebusybiscuit.slimefun4.utils.itemstack.ItemStackWrapper;
 
+import me.mrCookieSlime.Slimefun.api.BlockStorage;
+
 /**
  * This utility class holds method that are directly linked to Slimefun.
  * It provides a very crucial method for {@link ItemStack} comparison, as well as a simple method
@@ -615,6 +617,26 @@ public final class SlimefunUtils {
         } else {
             return 3;
         }
+    }
+
+    /**
+     * Evicts {@link #capacitorTextureStages} entries for blocks that no longer exist (a capacitor
+     * was broken and its block data removed). The cache is purely an optimisation, so removing a
+     * still-live entry is harmless (it rebuilds on the next charge change) - this is why we err on
+     * the side of evicting when the block state can't be determined. The sweep bounds the cache to
+     * the capacitors that currently exist instead of every location that ever held one, which would
+     * otherwise grow without bound on a long-lived, busy server.
+     */
+    public static void clearStaleCapacitorTextures() {
+        capacitorTextureStages.keySet().removeIf(pos -> {
+            try {
+                // A removed block resolves to BlockStorage's empty data (no "id") -> evict it.
+                return BlockStorage.getLocationInfo(pos.toLocation(), "id") == null;
+            } catch (Exception x) {
+                // Unloaded chunk, gone world or any other issue - the block is effectively gone.
+                return true;
+            }
+        });
     }
 
     /**

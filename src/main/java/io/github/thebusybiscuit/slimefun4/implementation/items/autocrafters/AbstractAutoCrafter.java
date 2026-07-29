@@ -1,6 +1,7 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.autocrafters;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -443,9 +444,15 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
             boolean success = inv.addItem(recipe.getResult().clone()).isEmpty();
 
             if (success) {
-                // Fixes #2926 - Push leftover items to the inventory.
+                // Fixes #2926 - Push leftover items (e.g. empty buckets) back into the inventory.
+                // If the inventory filled up (the result just took the last free slot), drop the
+                // leftovers at the container instead of silently voiding them.
                 for (ItemStack leftoverItem : leftoverItems) {
-                    inv.addItem(leftoverItem);
+                    Map<Integer, ItemStack> rest = inv.addItem(leftoverItem);
+
+                    if (!rest.isEmpty()) {
+                        dropLeftover(inv, rest.values());
+                    }
                 }
             }
 
@@ -453,6 +460,30 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
         }
 
         return false;
+    }
+
+    @ParametersAreNonnullByDefault
+    private void dropLeftover(Inventory inv, Collection<ItemStack> items) {
+        InventoryHolder holder = inv.getHolder();
+        Location loc = null;
+
+        if (holder instanceof BlockState state) {
+            loc = state.getLocation();
+        } else if (holder instanceof Block block) {
+            loc = block.getLocation();
+        }
+
+        if (loc == null) {
+            // The inventory is not backed by a block (e.g. an entity or player inventory) - there
+            // is no safe location to drop at, so leave the leftover to be handled elsewhere.
+            return;
+        }
+
+        for (ItemStack item : items) {
+            if (item != null && item.getType() != Material.AIR) {
+                loc.getWorld().dropItemNaturally(loc, item);
+            }
+        }
     }
 
     /**

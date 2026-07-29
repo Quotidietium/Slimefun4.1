@@ -132,11 +132,13 @@ public class BlockPlacer extends SlimefunItem {
 
         if (owner == null) {
             /*
-             * If no owner was set, then we will fallback to the previous behaviour:
-             * Allowing block placers to bypass protection, newly placed Block placers
-             * will respect protection plugins.
+             * No owner was set (a legacy Block Placer from before owner-tracking, or corrupted
+             * data). There is no player whose permissions we could check, so we refuse to place
+             * rather than silently bypassing protection plugins. Newly placed Block Placers always
+             * record their owner (see #onPlace), so this only affects blocks that predate that
+             * feature - break and re-place them to restore automatic placement.
              */
-            return true;
+            return false;
         }
 
         // Get the corresponding OfflinePlayer
