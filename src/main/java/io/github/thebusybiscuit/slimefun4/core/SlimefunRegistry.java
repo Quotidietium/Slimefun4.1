@@ -103,11 +103,11 @@ public final class SlimefunRegistry {
      */
     private final Map<String, BlockInfoConfig> chunks = new ConcurrentHashMap<>();
     private final Map<SlimefunGuideMode, SlimefunGuideImplementation> guides = new EnumMap<>(SlimefunGuideMode.class);
-    private final Map<EntityType, Set<ItemStack>> mobDrops = new HashMap<>();
+    private final Map<EntityType, Set<ItemStack>> mobDrops = new ConcurrentHashMap<>();
 
     private final Map<String, BlockMenuPreset> blockMenuPresets = new HashMap<>();
     private final Map<String, UniversalBlockMenu> universalInventories = new ConcurrentHashMap<>();
-    private final Map<Class<? extends ItemHandler>, Set<ItemHandler>> globalItemHandlers = new HashMap<>();
+    private final Map<Class<? extends ItemHandler>, Set<ItemHandler>> globalItemHandlers = new ConcurrentHashMap<>();
 
     public void load(@Nonnull Slimefun plugin, @Nonnull Config cfg) {
         Validate.notNull(plugin, "The Plugin cannot be null!");

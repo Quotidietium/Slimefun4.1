@@ -272,12 +272,16 @@ public class TickerTask implements Runnable {
     @ParametersAreNonnullByDefault
     private void reportErrors(Location l, SlimefunItem item, Throwable x) {
         BlockPosition position = new BlockPosition(l);
-        int errors = bugs.getOrDefault(position, 0) + 1;
+
+        // Atomically increment: reportErrors runs on BOTH the async ticker thread and the main
+        // thread (synchronized ticks), so a non-atomic getOrDefault+put could drop updates (a
+        // machine never reaching the 4-error termination threshold) or generate duplicate
+        // ErrorReports for error #1.
+        int errors = bugs.merge(position, 1, Integer::sum);
 
         if (errors == 1) {
             // Generate a new Error-Report
             new ErrorReport<>(x, l, item);
-            bugs.put(position, errors);
         } else if (errors == 4) {
             Slimefun.logger().log(Level.SEVERE, "X: {0} Y: {1} Z: {2} ({3})", new Object[] { l.getBlockX(), l.getBlockY(), l.getBlockZ(), item.getId() });
             Slimefun.logger().log(Level.SEVERE, "has thrown 4 error messages in the last 4 Ticks, the Block has been terminated.");
@@ -323,8 +327,6 @@ public class TickerTask implements Runnable {
             });
 
             BlockStorage.deleteLocationInfoUnsafely(l, true);
-        } else {
-            bugs.put(position, errors);
         }
     }
 

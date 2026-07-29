@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -88,6 +89,18 @@ public class SoulboundListener implements Listener {
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent e) {
+        returnSoulboundItems(e.getPlayer());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        /*
+         * If the player died and disconnected before respawning, PlayerRespawnEvent never fired.
+         * Return the soulbound items to their inventory now so they are saved with the player's
+         * data instead of being stuck in memory (and lost if the entry is never drained). The
+         * map is drained by remove(), so a later respawn after reconnecting is a no-op and
+         * cannot duplicate anything.
+         */
         returnSoulboundItems(e.getPlayer());
     }
 

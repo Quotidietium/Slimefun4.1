@@ -166,9 +166,10 @@ public class RecipeType implements Keyed {
     private static void registerMobDrop(ItemStack[] recipe, ItemStack output) {
         String mob = ChatColor.stripColor(recipe[4].getItemMeta().getDisplayName()).toUpperCase(Locale.ROOT).replace(' ', '_');
         EntityType entity = EntityType.valueOf(mob);
-        Set<ItemStack> dropping = Slimefun.getRegistry().getMobDrops().getOrDefault(entity, new HashSet<>());
-        dropping.add(output);
-        Slimefun.getRegistry().getMobDrops().put(entity, dropping);
+
+        // computeIfAbsent is atomic on the (now concurrent) mobDrops map. The previous
+        // getOrDefault + put sequence could lose a concurrently-registered drop set entirely.
+        Slimefun.getRegistry().getMobDrops().computeIfAbsent(entity, e -> new HashSet<>()).add(output);
     }
 
     public static List<ItemStack> getRecipeInputs(MultiBlockMachine machine) {

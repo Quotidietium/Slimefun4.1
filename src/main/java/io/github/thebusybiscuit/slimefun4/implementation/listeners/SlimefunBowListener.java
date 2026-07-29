@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -37,6 +38,15 @@ public class SlimefunBowListener implements Listener {
 
     public void register(@Nonnull Slimefun plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+
+        // Periodically evict entries for arrows that vanished without a ProjectileHitEvent
+        // (they despawned, flew into an unloaded chunk, were /kill-ed, ...). Otherwise the map
+        // grows without bound on a busy archery server.
+        plugin.getServer().getScheduler().runTaskTimer(plugin, this::evictDeadProjectiles, 600L, 600L);
+    }
+
+    private void evictDeadProjectiles() {
+        projectiles.entrySet().removeIf(entry -> Bukkit.getEntity(entry.getKey()) == null);
     }
 
     /**

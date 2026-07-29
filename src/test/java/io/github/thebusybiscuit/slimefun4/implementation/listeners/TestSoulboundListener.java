@@ -6,6 +6,7 @@ import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
@@ -123,6 +124,51 @@ class TestSoulboundListener {
         listener.onRespawn(respawnEvent);
 
         Assertions.assertFalse(player.getInventory().contains(item.getType()));
+    }
+
+    @Test
+    @DisplayName("Test that dying then quitting before respawn still returns soulbound items (no dupe on later respawn)")
+    void testDeathThenQuitRestoresItems() {
+        PlayerMock player = server.addPlayer();
+        ItemStack item = CustomItemStack.create(Material.DIAMOND_SWORD, "&4Cool Sword");
+        SlimefunUtils.setSoulbound(item, true);
+        player.setItemOnCursor(item);
+
+        List<ItemStack> drops = new ArrayList<>();
+        drops.add(item.clone());
+
+        PlayerDeathEvent deathEvent = Mockito.mock(PlayerDeathEvent.class);
+        Mockito.when(deathEvent.getEntity()).thenReturn(player);
+        Mockito.when(deathEvent.getKeepInventory()).thenReturn(false);
+        Mockito.when(deathEvent.getDrops()).thenReturn(drops);
+
+        listener.onDamage(deathEvent);
+        Assertions.assertTrue(drops.isEmpty(), "Soulbound cursor item should be removed from the death drops");
+
+        // The player dies and disconnects before ever respawning (no PlayerRespawnEvent).
+        PlayerQuitEvent quitEvent = Mockito.mock(PlayerQuitEvent.class);
+        Mockito.when(quitEvent.getPlayer()).thenReturn(player);
+        listener.onQuit(quitEvent);
+
+        // The soulbound item must have been returned so it is saved with the player's data
+        // instead of being stuck in memory and lost.
+        Assertions.assertTrue(player.getInventory().contains(item.getType()), "Soulbound item should be returned to the inventory on quit-after-death");
+
+        // A later respawn (e.g. after reconnecting) must be a no-op: onQuit already drained the
+        // pending items, so it must not hand out a duplicate.
+        PlayerRespawnEvent respawnEvent = Mockito.mock(PlayerRespawnEvent.class);
+        Mockito.when(respawnEvent.getPlayer()).thenReturn(player);
+        listener.onRespawn(respawnEvent);
+
+        int count = 0;
+
+        for (ItemStack stack : player.getInventory().getContents()) {
+            if (stack != null && stack.getType() == Material.DIAMOND_SWORD) {
+                count += stack.getAmount();
+            }
+        }
+
+        Assertions.assertEquals(1, count, "Respawn after quit must not duplicate the soulbound item");
     }
 
     @Test
