@@ -5,17 +5,21 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineFuel;
 
@@ -43,10 +47,23 @@ public abstract class NetherStarReactor extends Reactor {
     @Override
     public void extraTick(@Nonnull Location l) {
         Slimefun.runSync(() -> {
-            for (Entity entity : l.getWorld().getNearbyEntities(l, 5, 5, 5, n -> n instanceof LivingEntity && n.isValid())) {
-                if (entity instanceof LivingEntity livingEntity) {
-                    livingEntity.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
+            OfflinePlayer owner = SlimefunUtils.getOwner(l);
+
+            // Respect claim protection: only wither entities the reactor's owner may attack, so a
+            // Nether Star Reactor at a claim border cannot wither a neighbour's mobs or players.
+            for (Entity entity : l.getWorld().getNearbyEntities(l, 5, 5, 5, n -> {
+                if (!(n instanceof LivingEntity) || !n.isValid()) {
+                    return false;
                 }
+
+                if (owner == null) {
+                    return true;
+                }
+
+                Interaction interaction = n instanceof Player ? Interaction.ATTACK_PLAYER : Interaction.ATTACK_ENTITY;
+                return Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), interaction);
+            })) {
+                ((LivingEntity) entity).addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
             }
         });
     }
