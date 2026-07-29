@@ -9,17 +9,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSpawnReason;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.networks.NetworkManager;
@@ -97,8 +101,37 @@ class CargoNetworkTask implements Runnable {
         Slimefun.getProfiler().closeEntry(network.getRegulator(), SlimefunItems.CARGO_MANAGER.getItem(), timestamp);
     }
 
+    @Nullable
+    @ParametersAreNonnullByDefault
+    private OfflinePlayer getOwner(Location node) {
+        String ownerId = BlockStorage.getLocationInfo(node, "owner");
+
+        if (ownerId == null) {
+            return null;
+        }
+
+        try {
+            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
+        } catch (IllegalArgumentException x) {
+            return null;
+        }
+    }
+
     @ParametersAreNonnullByDefault
     private void routeItems(Location inputNode, Block inputTarget, int frequency, Map<Integer, List<Location>> outputNodes) {
+        /*
+         * Respect claim protection: the input node's owner must be allowed to access the attached
+         * container. Otherwise a cargo input node placed flush against another player's chest could
+         * drain it across a claim border. Ownerless (legacy/corrupted) nodes keep working to avoid
+         * silently breaking existing setups - cargo nodes record their owner on placement, so an
+         * absent owner essentially only happens on corrupted data.
+         */
+        OfflinePlayer owner = getOwner(inputNode);
+
+        if (owner != null && !Slimefun.getProtectionManager().hasPermission(owner, inputTarget, Interaction.INTERACT_BLOCK)) {
+            return;
+        }
+
         ItemStackAndInteger slot = CargoUtils.withdraw(network, inventories, inputNode.getBlock(), inputTarget);
 
         if (slot == null) {
@@ -199,25 +232,34 @@ class CargoNetworkTask implements Runnable {
             Optional<Block> target = network.getAttachedBlock(output);
 
             if (target.isPresent()) {
-                try {
-                    ItemStackWrapper wrapper = ItemStackWrapper.wrap(item);
-                    item = CargoUtils.insert(network, inventories, output.getBlock(), target.get(), smartFill, item, wrapper);
-                } catch (Exception | LinkageError x) {
-                    /*
-                     * Isolate the failure to this one output node. The item was not
-                     * committed (DirtyChestMenu runs its mutation hooks before
-                     * placing anything), so it is safe to simply try the next
-                     * output - the remaining stack stays with this task.
-                     */
-                    Slimefun.logger().log(Level.WARNING, x, () -> "Cargo could not insert into output @ " + new BlockPosition(output) + ", trying the next output");
-                }
+                // Respect claim protection on the destination container too: the output node's
+                // owner must be allowed to access it, otherwise cargo could push items into another
+                // player's chest across a claim border. Skip (not continue) so round-robin index
+                // bookkeeping still advances.
+                OfflinePlayer outputOwner = getOwner(output);
+                boolean allowed = outputOwner == null || Slimefun.getProtectionManager().hasPermission(outputOwner, target.get(), Interaction.INTERACT_BLOCK);
 
-                if (item == null) {
-                    if (roundrobin) {
-                        // The output was valid, set the round robin index to the node after this one
-                        network.roundRobin.put(inputNode, (index + 1) % outputNodes.size());
+                if (allowed) {
+                    try {
+                        ItemStackWrapper wrapper = ItemStackWrapper.wrap(item);
+                        item = CargoUtils.insert(network, inventories, output.getBlock(), target.get(), smartFill, item, wrapper);
+                    } catch (Exception | LinkageError x) {
+                        /*
+                         * Isolate the failure to this one output node. The item was not
+                         * committed (DirtyChestMenu runs its mutation hooks before
+                         * placing anything), so it is safe to simply try the next
+                         * output - the remaining stack stays with this task.
+                         */
+                        Slimefun.logger().log(Level.WARNING, x, () -> "Cargo could not insert into output @ " + new BlockPosition(output) + ", trying the next output");
                     }
-                    break;
+
+                    if (item == null) {
+                        if (roundrobin) {
+                            // The output was valid, set the round robin index to the node after this one
+                            network.roundRobin.put(inputNode, (index + 1) % outputNodes.size());
+                        }
+                        break;
+                    }
                 }
             }
             index++;

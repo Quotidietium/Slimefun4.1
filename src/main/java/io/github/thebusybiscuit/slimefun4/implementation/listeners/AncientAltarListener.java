@@ -186,6 +186,19 @@ public class AncientAltarListener implements Listener {
             altars.add(altar);
 
             if (pedestals.size() == 8) {
+                /*
+                 * The ritual consumes the items sitting on every pedestal, so the player must have
+                 * permission at each one. Otherwise a player could complete a recipe using an item
+                 * that is resting on a pedestal inside another player's claim.
+                 */
+                for (Block pedestal : pedestals) {
+                    if (!Slimefun.getProtectionManager().hasPermission(p, pedestal, Interaction.INTERACT_BLOCK)) {
+                        Slimefun.getLocalization().sendMessage(p, "inventory.no-access", true);
+                        altars.remove(altar);
+                        return;
+                    }
+                }
+
                 pedestals.forEach(block -> altarsInUse.add(block.getLocation()));
 
                 if (catalyst.getType() != Material.AIR) {
