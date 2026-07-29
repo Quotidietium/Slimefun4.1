@@ -13,6 +13,7 @@ import benchmark.scenarios.BlockStorageWriteBench;
 import benchmark.scenarios.CapacitorTextureBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
+import benchmark.scenarios.MachineProcessingBench;
 import benchmark.scenarios.TickerRunBench;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -69,6 +70,9 @@ public final class BenchMain {
             Bench.gcSettle();
 
             new MachineIdleScanBench().run(ctx, results);
+            Bench.gcSettle();
+
+            new MachineProcessingBench().run(ctx, results);
             Bench.gcSettle();
 
             new CapacitorTextureBench().run(ctx, results);
