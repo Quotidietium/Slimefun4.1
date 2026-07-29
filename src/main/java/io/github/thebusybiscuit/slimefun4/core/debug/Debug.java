@@ -102,8 +102,10 @@ public final class Debug {
         int i = 0;
         int idx = 0;
 
-        // Find an opening curly brace `{` and validate the next char is a closing one `}`
-        while ((i = msg.indexOf('{', i)) != -1 && msg.charAt(i + 1) == '}') {
+        // Find an opening curly brace `{` and validate the next char is a closing one `}`.
+        // Guard against malformed debug messages: a trailing '{' (i+1 out of bounds) or more
+        // placeholders than vars would otherwise throw SIOOBE / AIOOBE.
+        while (idx < vars.length && (i = msg.indexOf('{', i)) != -1 && i + 1 < msg.length() && msg.charAt(i + 1) == '}') {
             // Substring up to the opening brace `{`, add the variable for this and add the rest of the message
             msg = msg.substring(0, i) + vars[idx] + msg.substring(i + 2);
             i += String.valueOf(vars[idx++]).length();

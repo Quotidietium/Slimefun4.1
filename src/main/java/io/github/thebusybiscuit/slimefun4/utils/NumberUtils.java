@@ -198,7 +198,12 @@ public final class NumberUtils {
      */
     public static int getInt(@Nonnull String str, int defaultValue) {
         if (CommonPatterns.NUMERIC.matcher(str).matches()) {
-            return Integer.parseInt(str);
+            try {
+                return Integer.parseInt(str);
+            } catch (NumberFormatException x) {
+                // NUMERIC matches arbitrarily long digit strings that can still overflow int.
+                return defaultValue;
+            }
         } else {
             return defaultValue;
         }

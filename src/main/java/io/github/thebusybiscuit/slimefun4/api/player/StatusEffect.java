@@ -97,13 +97,23 @@ public class StatusEffect implements Keyed {
         Optional<String> optional = PersistentDataAPI.getOptionalString(p, getKey());
 
         if (optional.isPresent()) {
-            String[] data = CommonPatterns.SEMICOLON.split(optional.get());
-            long timestamp = Long.parseLong(data[1]);
+            try {
+                String[] data = CommonPatterns.SEMICOLON.split(optional.get());
 
-            if (timestamp == 0 || timestamp >= System.currentTimeMillis()) {
-                return true;
-            } else {
-                clear(p);
+                if (data.length < 2) {
+                    return false;
+                }
+
+                long timestamp = Long.parseLong(data[1]);
+
+                if (timestamp == 0 || timestamp >= System.currentTimeMillis()) {
+                    return true;
+                } else {
+                    clear(p);
+                    return false;
+                }
+            } catch (NumberFormatException x) {
+                // Corrupted status-effect data (manual edit, addon misuse) - treat as not present.
                 return false;
             }
         } else {
@@ -123,8 +133,13 @@ public class StatusEffect implements Keyed {
         Optional<String> optional = PersistentDataAPI.getOptionalString(p, getKey());
 
         if (optional.isPresent()) {
-            String[] data = CommonPatterns.SEMICOLON.split(optional.get());
-            return OptionalInt.of(Integer.parseInt(data[0]));
+            try {
+                String[] data = CommonPatterns.SEMICOLON.split(optional.get());
+                return OptionalInt.of(Integer.parseInt(data[0]));
+            } catch (NumberFormatException x) {
+                // Corrupted status-effect data - treat as absent.
+                return OptionalInt.empty();
+            }
         } else {
             return OptionalInt.empty();
         }

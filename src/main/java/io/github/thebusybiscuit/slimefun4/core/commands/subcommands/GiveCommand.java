@@ -84,7 +84,12 @@ class GiveCommand extends SubCommand {
 
         if (args.length == 4) {
             if (CommonPatterns.NUMERIC.matcher(args[3]).matches()) {
-                amount = Integer.parseInt(args[3]);
+                try {
+                    amount = Integer.parseInt(args[3]);
+                } catch (NumberFormatException x) {
+                    // NUMERIC matches digit strings that can still overflow int.
+                    return 0;
+                }
             } else {
                 return 0;
             }

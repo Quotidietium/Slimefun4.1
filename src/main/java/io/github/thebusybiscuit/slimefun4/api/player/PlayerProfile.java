@@ -696,8 +696,12 @@ public class PlayerProfile {
                 // String#split drops trailing empty strings, so a line ending in
                 // '#' would leave us with a single element - guard against that
                 if (splitLine.length == 2 && CommonPatterns.NUMERIC.matcher(splitLine[1]).matches()) {
-                    id = OptionalInt.of(Integer.parseInt(splitLine[1]));
-                    uuid = splitLine[0].replace(ChatColors.color("&7ID: "), "");
+                    try {
+                        id = OptionalInt.of(Integer.parseInt(splitLine[1]));
+                        uuid = splitLine[0].replace(ChatColors.color("&7ID: "), "");
+                    } catch (NumberFormatException x) {
+                        // Forged lore with an out-of-range id - skip this line.
+                    }
                 }
             }
         }
