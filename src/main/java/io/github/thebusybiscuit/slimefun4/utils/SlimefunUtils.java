@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -15,10 +16,12 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
@@ -29,6 +32,8 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+
+import org.bukkit.event.block.BlockPlaceEvent;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.common.CommonPatterns;
@@ -43,6 +48,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.DistinctiveItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.Radioactive;
 import io.github.thebusybiscuit.slimefun4.core.attributes.Soulbound;
+import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.debug.Debug;
 import io.github.thebusybiscuit.slimefun4.core.debug.TestCase;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -637,6 +643,49 @@ public final class SlimefunUtils {
         String ownerB = BlockStorage.getLocationInfo(b, "owner");
 
         return ownerA == null || ownerB == null || Objects.equals(ownerA, ownerB);
+    }
+
+    /**
+     * Returns the {@link OfflinePlayer} who owns the Slimefun block at the given {@link Location},
+     * or {@code null} if no owner is stored (legacy / corrupted). Callers treat a {@code null}
+     * owner as permissive to avoid breaking existing setups.
+     *
+     * @param location
+     *            The {@link Location} of the Slimefun block
+     *
+     * @return The owning {@link OfflinePlayer} or {@code null}
+     */
+    public static @Nullable OfflinePlayer getOwner(@Nonnull Location location) {
+        String ownerId = BlockStorage.getLocationInfo(location, "owner");
+
+        if (ownerId == null) {
+            return null;
+        }
+
+        try {
+            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
+        } catch (IllegalArgumentException x) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns a reusable {@link BlockPlaceHandler} that records the placing player as the
+     * "owner" of the block. Machines that need owner-based claim checks (e.g. an
+     * {@code AnimalGrowthAccelerator} that should only affect animals the owner may interact
+     * with) can simply {@code addItemHandler(SlimefunUtils.ownerTrackingPlaceHandler())}.
+     *
+     * @return A {@link BlockPlaceHandler} storing the owner on placement
+     */
+    @Nonnull
+    public static BlockPlaceHandler ownerTrackingPlaceHandler() {
+        return new BlockPlaceHandler(false) {
+
+            @Override
+            public void onPlayerPlace(@Nonnull BlockPlaceEvent e) {
+                BlockStorage.addBlockInfo(e.getBlock().getLocation(), "owner", e.getPlayer().getUniqueId().toString());
+            }
+        };
     }
 
     /**

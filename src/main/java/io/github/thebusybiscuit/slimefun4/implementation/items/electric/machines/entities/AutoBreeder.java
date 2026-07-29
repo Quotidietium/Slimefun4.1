@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Animals;
@@ -12,6 +13,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemHandler;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -19,6 +21,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.implementation.handlers.SimpleBlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
@@ -45,6 +48,7 @@ public class AutoBreeder extends SlimefunItem implements InventoryBlock, EnergyN
         super(itemGroup, item, recipeType, recipe);
 
         addItemHandler(onBreak());
+        addItemHandler(SlimefunUtils.ownerTrackingPlaceHandler());
         createPreset(this, this::constructMenu);
     }
 
@@ -108,8 +112,11 @@ public class AutoBreeder extends SlimefunItem implements InventoryBlock, EnergyN
 
     protected void tick(Block b) {
         BlockMenu inv = BlockStorage.getInventory(b);
+        OfflinePlayer owner = SlimefunUtils.getOwner(b.getLocation());
 
-        for (Entity n : b.getWorld().getNearbyEntities(b.getLocation(), 4.0, 2.0, 4.0, this::canBreed)) {
+        // Only breed animals the machine's owner may interact with, so an Auto Breeder at a claim
+        // border cannot trigger breeding in a neighbour's pen.
+        for (Entity n : b.getWorld().getNearbyEntities(b.getLocation(), 4.0, 2.0, 4.0, en -> canBreed(en, owner))) {
             for (int slot : getInputSlots()) {
                 if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFood, false)) {
                     if (getCharge(b.getLocation()) < ENERGY_CONSUMPTION) {
@@ -127,9 +134,9 @@ public class AutoBreeder extends SlimefunItem implements InventoryBlock, EnergyN
         }
     }
 
-    private boolean canBreed(@Nonnull Entity n) {
-        if (n.isValid() && n instanceof Animals animal) {
-            return animal.isAdult() && animal.canBreed() && !animal.isLoveMode();
+    private boolean canBreed(@Nonnull Entity n, OfflinePlayer owner) {
+        if (n.isValid() && n instanceof Animals animal && animal.isAdult() && animal.canBreed() && !animal.isLoveMode()) {
+            return owner == null || Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), Interaction.INTERACT_ENTITY);
         }
 
         return false;

@@ -5,6 +5,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Hopper;
 import org.bukkit.entity.Entity;
@@ -12,6 +13,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -19,6 +21,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.settings.DoubleRangeSetting;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.handlers.VanillaInventoryDropHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
@@ -51,6 +54,7 @@ public class InfusedHopper extends SimpleSlimefunItem<BlockTicker> {
 
         // Fixes #2895 - Make sure we drop all inventory contents
         addItemHandler(new VanillaInventoryDropHandler<>(org.bukkit.block.Hopper.class));
+        addItemHandler(SlimefunUtils.ownerTrackingPlaceHandler());
     }
 
     @Override
@@ -81,9 +85,10 @@ public class InfusedHopper extends SimpleSlimefunItem<BlockTicker> {
                 Location l = b.getLocation().add(0.5, 1.2, 0.5);
                 double range = radius.getValue();
                 boolean playSound = false;
+                OfflinePlayer owner = SlimefunUtils.getOwner(b.getLocation());
 
                 // Check for any nearby Items that can be picked up
-                for (Entity item : b.getWorld().getNearbyEntities(l, range, range, range, n -> isValidItem(l, n))) {
+                for (Entity item : b.getWorld().getNearbyEntities(l, range, range, range, n -> isValidItem(l, n, owner))) {
                     item.setVelocity(new Vector(0, 0.1, 0));
                     item.teleport(l);
                     playSound = true;
@@ -105,9 +110,14 @@ public class InfusedHopper extends SimpleSlimefunItem<BlockTicker> {
         };
     }
 
-    private boolean isValidItem(@Nonnull Location l, @Nonnull Entity entity) {
+    private boolean isValidItem(@Nonnull Location l, @Nonnull Entity entity, OfflinePlayer owner) {
         if (entity instanceof Item item && entity.isValid()) {
-            // Check if the item cannot be picked up or has the "no pickup" metadata
+            // Respect claim protection: only suck up items the hopper's owner may interact with,
+            // so an Infused Hopper at a claim border cannot steal a neighbour's drops.
+            if (owner != null && !Slimefun.getProtectionManager().hasPermission(owner, entity.getLocation(), Interaction.INTERACT_BLOCK)) {
+                return false;
+            }
+
             return item.getPickupDelay() <= 0 && !SlimefunUtils.hasNoPickupFlag(item) && item.getLocation().distanceSquared(l) > 0.25;
         }
 

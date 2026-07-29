@@ -795,6 +795,15 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
 
     protected void depositItems(BlockMenu menu, Block facedBlock) {
         if (facedBlock.getType() == Material.DISPENSER && BlockStorage.check(facedBlock, "ANDROID_INTERFACE_ITEMS")) {
+            // Respect claim protection: the android's owner must be allowed to access this
+            // interface, otherwise a robot at a claim border could dump its output into a
+            // stranger's ANDROID_INTERFACE.
+            OfflinePlayer owner = getOwner(menu.getLocation().getBlock());
+
+            if (owner == null || !Slimefun.getProtectionManager().hasPermission(owner, facedBlock.getLocation(), Interaction.INTERACT_BLOCK)) {
+                return;
+            }
+
             BlockState state = PaperLib.getBlockState(facedBlock, false).getState();
 
             if (state instanceof Dispenser dispenser) {
@@ -817,6 +826,14 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
 
     protected void refuel(BlockMenu menu, Block facedBlock) {
         if (facedBlock.getType() == Material.DISPENSER && BlockStorage.check(facedBlock, "ANDROID_INTERFACE_FUEL")) {
+            // Respect claim protection: the android's owner must be allowed to access this
+            // interface, otherwise a robot at a claim border could drain a stranger's fuel.
+            OfflinePlayer owner = getOwner(menu.getLocation().getBlock());
+
+            if (owner == null || !Slimefun.getProtectionManager().hasPermission(owner, facedBlock.getLocation(), Interaction.INTERACT_BLOCK)) {
+                return;
+            }
+
             BlockState state = PaperLib.getBlockState(facedBlock, false).getState();
 
             if (state instanceof Dispenser dispenser) {

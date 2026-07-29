@@ -1,14 +1,17 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.accelerators;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedParticle;
@@ -27,6 +30,7 @@ public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
 
     public AnimalGrowthAccelerator(ItemGroup itemGroup, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
         super(itemGroup, item, recipeType, recipe);
+        addItemHandler(SlimefunUtils.ownerTrackingPlaceHandler());
     }
 
     @Override
@@ -37,8 +41,11 @@ public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
     @Override
     protected void tick(Block b) {
         BlockMenu inv = BlockStorage.getInventory(b);
+        OfflinePlayer owner = SlimefunUtils.getOwner(b.getLocation());
 
-        for (Entity n : b.getWorld().getNearbyEntities(b.getLocation(), RADIUS, RADIUS, RADIUS, this::isReadyToGrow)) {
+        // Only accelerate animals the machine's owner may interact with, so this cannot speed up
+        // growth in a neighbour's pen across a claim border.
+        for (Entity n : b.getWorld().getNearbyEntities(b.getLocation(), RADIUS, RADIUS, RADIUS, en -> isReadyToGrow(en, owner))) {
             for (int slot : getInputSlots()) {
                 if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFood, false, false)) {
                     if (getCharge(b.getLocation()) < ENERGY_CONSUMPTION) {
@@ -61,8 +68,12 @@ public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
         }
     }
 
-    private boolean isReadyToGrow(Entity n) {
-        return n instanceof Ageable ageable && n.isValid() && !ageable.isAdult();
+    private boolean isReadyToGrow(Entity n, OfflinePlayer owner) {
+        if (n instanceof Ageable ageable && n.isValid() && !ageable.isAdult()) {
+            return owner == null || Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), Interaction.INTERACT_ENTITY);
+        }
+
+        return false;
     }
 
 }

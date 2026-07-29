@@ -7,6 +7,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
@@ -14,6 +15,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemHandler;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -22,9 +24,11 @@ import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.implementation.handlers.SimpleBlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.items.magical.KnowledgeFlask;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.interfaces.InventoryBlock;
@@ -129,7 +133,11 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
 
     protected void tick(Block block) {
         Location location = block.getLocation();
-        Iterator<Entity> iterator = block.getWorld().getNearbyEntities(location, range, range, range, n -> n instanceof ExperienceOrb && n.isValid()).iterator();
+        OfflinePlayer owner = SlimefunUtils.getOwner(location);
+
+        // Only collect orbs the machine's owner is allowed to interact with, so an Exp Collector
+        // at a claim border cannot drain orbs (and thus experience) from a neighbour's claim.
+        Iterator<Entity> iterator = block.getWorld().getNearbyEntities(location, range, range, range, n -> n instanceof ExperienceOrb && n.isValid() && (owner == null || Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), Interaction.INTERACT_BLOCK))).iterator();
         int experiencePoints = 0;
 
         while (iterator.hasNext() && experiencePoints == 0) {

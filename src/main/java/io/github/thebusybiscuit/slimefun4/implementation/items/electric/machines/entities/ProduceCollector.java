@@ -12,6 +12,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Cow;
@@ -23,6 +24,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
@@ -58,6 +60,7 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
         super(itemGroup, item, recipeType, recipe);
 
         addItemSetting(range);
+        addItemHandler(SlimefunUtils.ownerTrackingPlaceHandler());
     }
 
     @Override
@@ -153,13 +156,17 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
     @ParametersAreNonnullByDefault
     private boolean isAnimalNearby(Block b, Predicate<LivingEntity> predicate) {
         int radius = range.getValue();
-        return !b.getWorld().getNearbyEntities(b.getLocation(), radius, radius, radius, n -> isValidAnimal(n, predicate)).isEmpty();
+        OfflinePlayer owner = SlimefunUtils.getOwner(b.getLocation());
+
+        // Only collect from animals the machine's owner may interact with, so a Produce Collector
+        // at a claim border cannot milk a neighbour's cows.
+        return !b.getWorld().getNearbyEntities(b.getLocation(), radius, radius, radius, n -> isValidAnimal(n, predicate, owner)).isEmpty();
     }
 
     @ParametersAreNonnullByDefault
-    private boolean isValidAnimal(Entity n, Predicate<LivingEntity> predicate) {
-        if (n instanceof LivingEntity livingEntity) {
-            return predicate.test(livingEntity);
+    private boolean isValidAnimal(Entity n, Predicate<LivingEntity> predicate, OfflinePlayer owner) {
+        if (n instanceof LivingEntity livingEntity && predicate.test(livingEntity)) {
+            return owner == null || Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), Interaction.INTERACT_ENTITY);
         } else {
             return false;
         }
