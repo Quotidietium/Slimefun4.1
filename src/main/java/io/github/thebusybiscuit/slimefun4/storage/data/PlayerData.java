@@ -6,10 +6,9 @@ import io.github.thebusybiscuit.slimefun4.api.gps.Waypoint;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerBackpack;
 import io.github.thebusybiscuit.slimefun4.api.researches.Research;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
@@ -24,9 +23,12 @@ import org.apache.commons.lang.Validate;
 @Beta
 public class PlayerData {
 
-    private final Set<Research> researches = new HashSet<>();
-    private final Map<Integer, PlayerBackpack> backpacks = new HashMap<>();
-    private final Set<Waypoint> waypoints = new HashSet<>();
+    // These collections are iterated by the async auto-save thread (LegacyStorage) while the
+    // main thread mutates them (unlocking researches, adding waypoints, ...). Plain HashSet/Map
+    // would throw ConcurrentModificationException under load, so we use concurrent backings.
+    private final Set<Research> researches = ConcurrentHashMap.newKeySet();
+    private final Map<Integer, PlayerBackpack> backpacks = new ConcurrentHashMap<>();
+    private final Set<Waypoint> waypoints = ConcurrentHashMap.newKeySet();
 
     public PlayerData(Set<Research> researches, Map<Integer, PlayerBackpack> backpacks, Set<Waypoint> waypoints) {
         this.researches.addAll(researches);

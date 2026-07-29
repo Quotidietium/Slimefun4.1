@@ -10,6 +10,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -87,8 +88,19 @@ public class PlayerProfile {
 
     private final Config configFile;
 
-    private boolean dirty = false;
-    private boolean markedForDeletion = false;
+    // Volatile: these are written on the main thread (and the async profile-load thread) and read
+    // by the async auto-save thread and onDisable. Without volatile the auto-save thread may never
+    // observe a just-written dirty=true and skip saving the profile for a whole cycle.
+    private volatile boolean dirty = false;
+    private volatile boolean markedForDeletion = false;
+
+    /**
+     * Incremented on every {@link #markDirty()} call. {@link #save()} only clears the
+     * {@link #dirty} flag when this value is unchanged across the persist, so a mutation that
+     * lands while we are writing to disk is never silently dropped (it keeps the profile dirty
+     * and forces another save cycle).
+     */
+    private final AtomicLong modificationEpoch = new AtomicLong();
 
     private final GuideHistory guideHistory = new GuideHistory(this);
 
@@ -159,8 +171,19 @@ public class PlayerProfile {
      * This method will save the Player's Researches and Backpacks to the hard drive
      */
     public void save() {
+        // Capture the epoch before writing. If any mutation (which always bumps the epoch via
+        // markDirty() AFTER changing the data) lands while we are writing, the epoch will have
+        // moved and we leave the profile dirty so the change is saved on the next cycle instead
+        // of being silently dropped.
+        long epochBefore = modificationEpoch.get();
+
+        // Throws UncheckedIOException on failure, which leaves dirty untouched so the profile is
+        // retried on the next save cycle.
         Slimefun.getPlayerStorage().savePlayerData(this.ownerId, this.data);
-        dirty = false;
+
+        if (modificationEpoch.get() == epochBefore) {
+            dirty = false;
+        }
     }
 
     /**
@@ -174,13 +197,17 @@ public class PlayerProfile {
      */
     public void setResearched(@Nonnull Research research, boolean unlock) {
         Validate.notNull(research, "Research must not be null!");
-        dirty = true;
 
+        // Mutate first, then mark dirty. markDirty() bumps the modification epoch which save()
+        // uses to detect concurrent mutations - the epoch must always reflect the state of the
+        // data, so the bookkeeping has to run AFTER the change, never before.
         if (unlock) {
             data.addResearch(research);
         } else {
             data.removeResearch(research);
         }
+
+        markDirty();
     }
 
     /**
@@ -275,6 +302,7 @@ public class PlayerProfile {
     public final void markDirty() {
         Debug.log(TestCase.PLAYER_PROFILE_DATA, "Marking {} ({}) profile as dirty", name, ownerId);
         dirty = true;
+        modificationEpoch.incrementAndGet();
     }
 
     public @Nonnull PlayerBackpack createBackpack(int size) {
