@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
@@ -48,13 +48,23 @@ public class BackupService implements Runnable {
     public void run() {
         // Make sure that the directory exists.
         if (directory.exists()) {
-            List<File> backups = Arrays.asList(directory.listFiles());
+            File[] files = directory.listFiles();
+
+            if (files == null) {
+                // directory exists but is not a directory (a regular file) - nothing to back up into.
+                return;
+            }
+
+            List<File> backups = Arrays.asList(files);
 
             if (backups.size() > MAX_BACKUPS) {
                 try {
                     purgeBackups(backups);
-                } catch (IOException e) {
-                    Slimefun.logger().log(Level.WARNING, "Could not delete an old backup", e);
+                } catch (Exception e) {
+                    // Broadened from IOException: a stray non-backup file or a failed delete must
+                    // not abort the shutdown (this runs inside onDisable, and an escaped exception
+                    // would skip the cleanup scheduled after it).
+                    Slimefun.logger().log(Level.WARNING, "Could not delete old backups", e);
                 }
             }
 
@@ -81,8 +91,12 @@ public class BackupService implements Runnable {
     private void createBackup(@Nonnull ZipOutputStream output) throws IOException {
         Validate.notNull(output, "The Output Stream cannot be null!");
 
-        for (File folder : new File("data-storage/Slimefun/stored-blocks/").listFiles()) {
-            addDirectory(output, folder, "stored-blocks/" + folder.getName());
+        File[] blockFolders = new File("data-storage/Slimefun/stored-blocks/").listFiles();
+
+        if (blockFolders != null) {
+            for (File folder : blockFolders) {
+                addDirectory(output, folder, "stored-blocks/" + folder.getName());
+            }
         }
 
         addDirectory(output, new File("data-storage/Slimefun/universal-inventories/"), "universal-inventories");
@@ -109,8 +123,14 @@ public class BackupService implements Runnable {
 
     private void addDirectory(@Nonnull ZipOutputStream output, @Nonnull File directory, @Nonnull String zipPath) throws IOException {
         byte[] buffer = new byte[1024];
+        File[] files = directory.listFiles();
 
-        for (File file : directory.listFiles()) {
+        if (files == null) {
+            // The directory does not exist (fresh install / removed externally) - nothing to add.
+            return;
+        }
+
+        for (File file : files) {
             ZipEntry entry = new ZipEntry(zipPath + '/' + file.getName());
             output.putNextEntry(entry);
 
@@ -136,16 +156,44 @@ public class BackupService implements Runnable {
      *             An {@link IOException} is thrown if a {@link File} could not be deleted
      */
     private void purgeBackups(@Nonnull List<File> backups) throws IOException {
-        Collections.sort(backups, (a, b) -> {
-            LocalDateTime time1 = LocalDateTime.parse(a.getName().substring(0, a.getName().length() - 4), format);
-            LocalDateTime time2 = LocalDateTime.parse(b.getName().substring(0, b.getName().length() - 4), format);
+        // Only consider files whose name matches our timestamp format - a stray file in the backup
+        // folder must not abort the purge with a DateTimeParseException.
+        List<File> valid = new ArrayList<>();
 
-            return time2.compareTo(time1);
-        });
-
-        for (int i = backups.size() - MAX_BACKUPS; i > 0; i--) {
-            Files.delete(backups.get(i).toPath());
+        for (File backup : backups) {
+            if (backup.isFile() && matchesBackupName(backup.getName())) {
+                valid.add(backup);
+            }
         }
+
+        // Sort newest-first so the oldest backups end up at the tail.
+        valid.sort((a, b) -> parseBackupName(b.getName()).compareTo(parseBackupName(a.getName())));
+
+        // Keep the newest MAX_BACKUPS (the head), delete the rest (the oldest at the tail).
+        // The previous loop deleted from the wrong end, so old backups were never purged while
+        // recent ones were discarded instead.
+        for (int i = valid.size() - 1; i >= MAX_BACKUPS; i--) {
+            Files.delete(valid.get(i).toPath());
+        }
+    }
+
+    private boolean matchesBackupName(@Nonnull String name) {
+        if (!name.endsWith(".zip")) {
+            return false;
+        }
+
+        try {
+            parseBackupName(name);
+            return true;
+        } catch (Exception x) {
+            return false;
+        }
+    }
+
+    @Nonnull
+    private LocalDateTime parseBackupName(@Nonnull String name) {
+        // Strip the ".zip" suffix.
+        return LocalDateTime.parse(name.substring(0, name.length() - 4), format);
     }
 
 }
