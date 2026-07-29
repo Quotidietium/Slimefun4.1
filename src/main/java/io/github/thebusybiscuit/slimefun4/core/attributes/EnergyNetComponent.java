@@ -168,7 +168,11 @@ public interface EnergyNetComponent extends ItemAttribute {
 
                 // Check if there is even space for new energy
                 if (currentCharge < capacity) {
-                    int newCharge = Math.min(capacity, currentCharge + charge);
+                    // flowSafeAddition guards against int overflow when an addon configures a very
+                    // large capacity together with a large charge (the EnergyNet itself already uses
+                    // flowSafeAddition for its own sums, but this public API path did not, and an
+                    // overflow would write a negative charge straight to disk).
+                    int newCharge = Math.min(capacity, NumberUtils.flowSafeAddition(currentCharge, charge));
                     BlockStorage.addBlockInfo(l, "energy-charge", String.valueOf(newCharge), false);
 
                     // Update the capacitor texture

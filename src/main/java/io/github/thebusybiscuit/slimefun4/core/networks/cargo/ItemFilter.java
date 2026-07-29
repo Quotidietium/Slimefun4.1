@@ -119,6 +119,13 @@ class ItemFilter implements Predicate<ItemStack> {
                          * to send a warning in response to it.
                          */
                         item.warn("Cargo Node was marked as a 'filtering' node but has an insufficient inventory size (" + inventorySize + ")");
+
+                        // This is a permanent misconfiguration, not a transient failure: clear dirty
+                        // so we don't re-run update() (and re-warn) on every single getItemFilter()
+                        // call - which CargoUtils does dozens of times per cargo tick. A later
+                        // configuration change will mark us dirty again via markCargoNodeConfigurationDirty().
+                        this.dirty = false;
+                        this.failedUpdates = 0;
                         return;
                     }
 

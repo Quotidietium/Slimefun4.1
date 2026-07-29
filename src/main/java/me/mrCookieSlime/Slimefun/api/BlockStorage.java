@@ -203,8 +203,19 @@ public class BlockStorage {
         Slimefun.getRegistry().getWorlds().put(world.getName(), this);
     }
 
+    /**
+     * Returns the contents of a directory, or an empty array if the directory does not exist
+     * (e.g. a fresh install where no blocks were ever placed, or the folder was removed
+     * externally). Without this guard, {@link File#listFiles()} returning null would throw an
+     * NPE and abort the whole world's {@link BlockStorage} load.
+     */
+    private static File[] listFilesOrEmpty(File directory) {
+        File[] files = directory.listFiles();
+        return files == null ? new File[0] : files;
+    }
+
     private void loadBlocks(File directory) {
-        long total = directory.listFiles().length;
+        long total = listFilesOrEmpty(directory).length;
         long start = System.currentTimeMillis();
         long done = 0;
         long timestamp = System.currentTimeMillis();
@@ -212,7 +223,7 @@ public class BlockStorage {
         int delay = Slimefun.getCfg().getInt("URID.info-delay");
 
         try {
-            for (File file : directory.listFiles()) {
+            for (File file : listFilesOrEmpty(directory)) {
                 if (file.getName().equals("null.sfb")) {
                     Slimefun.logger().log(Level.WARNING, "File with corrupted blocks detected!");
                     Slimefun.logger().log(Level.WARNING, "Slimefun will simply skip this File, you should look inside though!");
@@ -302,7 +313,7 @@ public class BlockStorage {
     }
 
     private void loadInventories() {
-        for (File file : new File("data-storage/Slimefun/stored-inventories").listFiles()) {
+        for (File file : listFilesOrEmpty(new File("data-storage/Slimefun/stored-inventories"))) {
             if (file.getName().startsWith(world.getName()) && file.getName().endsWith(".sfi")) {
                 try {
                     Location l = deserializeLocation(file.getName().replace(".sfi", ""));
@@ -334,7 +345,7 @@ public class BlockStorage {
 
         universalInventoriesLoaded = true;
 
-        for (File file : new File("data-storage/Slimefun/universal-inventories").listFiles()) {
+        for (File file : listFilesOrEmpty(new File("data-storage/Slimefun/universal-inventories"))) {
             if (file.getName().endsWith(".sfi")) {
                 try {
                     io.github.bakedlibs.dough.config.Config cfg = new io.github.bakedlibs.dough.config.Config(file);

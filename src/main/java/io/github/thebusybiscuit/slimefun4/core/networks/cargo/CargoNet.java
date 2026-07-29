@@ -184,6 +184,13 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
         for (Location node : outputNodes) {
             int frequency = getFrequency(node);
 
+            // Symmetric with mapInputNodes: only the 16 valid channels (0-15) are routed. An
+            // out-of-range frequency (corrupted/NBT-edited data) would otherwise be grouped under
+            // a key no input node ever uses, silently disabling that output forever.
+            if (frequency < 0 || frequency >= 16) {
+                continue;
+            }
+
             if (frequency != lastFrequency && lastFrequency != -1) {
                 output.merge(lastFrequency, list, (prev, next) -> {
                     prev.addAll(next);

@@ -203,6 +203,17 @@ public class EnergyNet extends Network implements HologramOwner {
 
         super.tick();
 
+        /*
+         * super.tick() (Network.discoverStep) may have unregistered this network - a
+         * regulator/connector classification change discards the network for a full rebuild.
+         * Don't settle an already-discarded network: the rebuilt network will settle these
+         * components too, and settling twice can briefly double-charge / double-supply.
+         */
+        if (!isRegistered()) {
+            Slimefun.getProfiler().closeEntry(b.getLocation(), SlimefunItems.ENERGY_REGULATOR.getItem(), timestamp.get());
+            return;
+        }
+
         if (connectorNodes.isEmpty() && terminusNodes.isEmpty()) {
             updateHologram(b, "&4No Energy Network found");
         } else {
