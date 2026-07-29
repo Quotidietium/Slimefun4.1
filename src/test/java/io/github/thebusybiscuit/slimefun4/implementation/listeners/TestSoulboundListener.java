@@ -1,14 +1,21 @@
 package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Material;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -26,12 +33,13 @@ class TestSoulboundListener {
 
     private static Slimefun plugin;
     private static ServerMock server;
+    private static SoulboundListener listener;
 
     @BeforeAll
     public static void load() {
         server = MockBukkit.mock();
         plugin = MockBukkit.load(Slimefun.class);
-        new SoulboundListener(plugin);
+        listener = new SoulboundListener(plugin);
     }
 
     @AfterAll
@@ -93,6 +101,57 @@ class TestSoulboundListener {
             ItemStack stack = player.getInventory().getItem(6);
             return SlimefunUtils.isItemSimilar(stack, item, true) == soulbound;
         });
+    }
+
+    @Test
+    @DisplayName("Test that keepInventory does not duplicate the cursor item")
+    void testKeepInventoryNoDupe() {
+        PlayerMock player = server.addPlayer();
+        ItemStack item = CustomItemStack.create(Material.DIAMOND_SWORD, "&4Cool Sword");
+        SlimefunUtils.setSoulbound(item, true);
+        player.setItemOnCursor(item);
+
+        PlayerDeathEvent deathEvent = Mockito.mock(PlayerDeathEvent.class);
+        Mockito.when(deathEvent.getEntity()).thenReturn(player);
+        Mockito.when(deathEvent.getKeepInventory()).thenReturn(true);
+
+        listener.onDamage(deathEvent);
+
+        // Nothing was stored, so respawning must not hand out a duplicate
+        PlayerRespawnEvent respawnEvent = Mockito.mock(PlayerRespawnEvent.class);
+        Mockito.when(respawnEvent.getPlayer()).thenReturn(player);
+        listener.onRespawn(respawnEvent);
+
+        Assertions.assertFalse(player.getInventory().contains(item.getType()));
+    }
+
+    @Test
+    @DisplayName("Test that the soulbound cursor item is still returned without keepInventory")
+    void testCursorItemRecovered() {
+        PlayerMock player = server.addPlayer();
+        ItemStack item = CustomItemStack.create(Material.DIAMOND_SWORD, "&4Cool Sword");
+        SlimefunUtils.setSoulbound(item, true);
+        player.setItemOnCursor(item);
+
+        List<ItemStack> drops = new ArrayList<>();
+        drops.add(item.clone());
+
+        PlayerDeathEvent deathEvent = Mockito.mock(PlayerDeathEvent.class);
+        Mockito.when(deathEvent.getEntity()).thenReturn(player);
+        Mockito.when(deathEvent.getKeepInventory()).thenReturn(false);
+        Mockito.when(deathEvent.getDrops()).thenReturn(drops);
+
+        listener.onDamage(deathEvent);
+
+        // The soulbound item was removed from the drops...
+        Assertions.assertTrue(drops.isEmpty());
+
+        // ... and is returned to the Player on respawn
+        PlayerRespawnEvent respawnEvent = Mockito.mock(PlayerRespawnEvent.class);
+        Mockito.when(respawnEvent.getPlayer()).thenReturn(player);
+        listener.onRespawn(respawnEvent);
+
+        Assertions.assertTrue(player.getInventory().contains(item.getType()));
     }
 
 }

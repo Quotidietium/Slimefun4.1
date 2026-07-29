@@ -2,7 +2,9 @@ package io.github.thebusybiscuit.slimefun4.api.profiles;
 
 import java.util.Optional;
 
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -80,6 +82,77 @@ class TestPlayerBackpacks {
         backpack.setSize(27);
 
         Assertions.assertEquals(27, backpack.getSize());
+    }
+
+    @Test
+    @DisplayName("Test that growing a backpack preserves its contents")
+    void testGrowPreservesContents() throws InterruptedException {
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+        PlayerBackpack backpack = profile.createBackpack(9);
+        ItemStack item = new ItemStack(Material.DIAMOND, 12);
+        backpack.getInventory().setItem(4, item);
+
+        backpack.setSize(54);
+
+        Assertions.assertEquals(54, backpack.getSize());
+        Assertions.assertEquals(54, backpack.getInventory().getSize());
+        Assertions.assertEquals(item, backpack.getInventory().getItem(4));
+    }
+
+    @Test
+    @DisplayName("Test that shrinking a backpack with items beyond the new size is refused")
+    void testShrinkWithItemsIsRefused() throws InterruptedException {
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+        PlayerBackpack backpack = profile.createBackpack(27);
+        ItemStack item = new ItemStack(Material.DIAMOND, 12);
+        backpack.getInventory().setItem(20, item);
+
+        Assertions.assertThrows(IllegalStateException.class, () -> backpack.setSize(9));
+
+        // The backpack must remain in its previous, fully working state
+        Assertions.assertEquals(27, backpack.getSize());
+        Assertions.assertEquals(27, backpack.getInventory().getSize());
+        Assertions.assertEquals(item, backpack.getInventory().getItem(20));
+    }
+
+    @Test
+    @DisplayName("Test that shrinking a backpack with an empty tail works")
+    void testShrinkWithEmptyTail() throws InterruptedException {
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+        PlayerBackpack backpack = profile.createBackpack(27);
+        ItemStack item = new ItemStack(Material.DIAMOND, 12);
+        backpack.getInventory().setItem(3, item);
+
+        backpack.setSize(9);
+
+        Assertions.assertEquals(9, backpack.getSize());
+        Assertions.assertEquals(9, backpack.getInventory().getSize());
+        Assertions.assertEquals(item, backpack.getInventory().getItem(3));
+    }
+
+    @Test
+    @DisplayName("Test that a removed backpack's id is never reassigned")
+    void testCreateBackpackAfterRemoval() throws InterruptedException {
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+
+        PlayerBackpack backpackOne = profile.createBackpack(9);
+        PlayerBackpack backpackTwo = profile.createBackpack(9);
+        Assertions.assertEquals(0, backpackOne.getId());
+        Assertions.assertEquals(1, backpackTwo.getId());
+
+        profile.getPlayerData().removeBackpack(backpackOne);
+
+        // Using the map size would reassign id 1 and overwrite backpackTwo
+        PlayerBackpack backpackThree = profile.createBackpack(9);
+        Assertions.assertEquals(2, backpackThree.getId());
+
+        Optional<PlayerBackpack> existing = profile.getBackpack(1);
+        Assertions.assertTrue(existing.isPresent());
+        Assertions.assertEquals(backpackTwo, existing.get());
     }
 
     @Test

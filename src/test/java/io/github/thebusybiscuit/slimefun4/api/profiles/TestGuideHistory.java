@@ -134,4 +134,23 @@ class TestGuideHistory {
         Assertions.assertEquals(1, history.size());
     }
 
+    @Test
+    @DisplayName("Test that the Guide History is capped")
+    void testHistoryCap() throws InterruptedException {
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+        GuideHistory history = profile.getGuideHistory();
+
+        for (int i = 0; i < 250; i++) {
+            history.add("term-" + i);
+        }
+
+        // The history must never grow without bounds
+        Assertions.assertEquals(200, history.size());
+
+        // ... and still accept new entries afterwards (evicting the oldest)
+        history.add("term-final");
+        Assertions.assertEquals(200, history.size());
+    }
+
 }
