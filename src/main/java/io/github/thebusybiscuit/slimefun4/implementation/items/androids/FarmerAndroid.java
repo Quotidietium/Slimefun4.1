@@ -8,15 +8,18 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidFarmEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 
@@ -39,6 +42,15 @@ public class FarmerAndroid extends ProgrammableAndroid {
         ItemStack drop = null;
 
         if (!block.getWorld().getWorldBorder().isInside(block.getLocation())) {
+            return;
+        }
+
+        // The owner must be allowed to break blocks here. Otherwise a Farmer Android could wander
+        // along the edge of another player's claim and silently harvest their crops. Ownerless
+        // (legacy) androids skip farming entirely, consistent with MinerAndroid.
+        OfflinePlayer owner = getOwner(b);
+
+        if (owner == null || !Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.BREAK_BLOCK)) {
             return;
         }
 

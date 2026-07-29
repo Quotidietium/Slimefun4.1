@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
@@ -11,9 +12,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -34,6 +37,7 @@ import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.common.CommonPatterns;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.bakedlibs.dough.skins.PlayerHead;
 import io.github.bakedlibs.dough.skins.PlayerSkin;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
@@ -892,11 +896,45 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         }
     }
 
+    /**
+     * Returns the {@link OfflinePlayer} who owns this android, or {@code null} if the owner data
+     * is missing or corrupted. Callers should skip ownership-dependent actions (mining, farming,
+     * attacking, moving into protected land) when this is {@code null}.
+     *
+     * @param b
+     *            The {@link Block} of this android.
+     * @return The owning {@link OfflinePlayer} or {@code null}.
+     */
+    @ParametersAreNonnullByDefault
+    protected OfflinePlayer getOwner(Block b) {
+        String ownerId = BlockStorage.getLocationInfo(b.getLocation(), "owner");
+
+        if (ownerId == null) {
+            return null;
+        }
+
+        try {
+            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
+        } catch (IllegalArgumentException x) {
+            return null;
+        }
+    }
+
     @ParametersAreNonnullByDefault
     protected void move(Block b, BlockFace face, Block block) {
         if (block.getY() > block.getWorld().getMinHeight() && block.getY() < block.getWorld().getMaxHeight() && block.isEmpty()) {
 
             if (!block.getWorld().getWorldBorder().isInside(block.getLocation())) {
+                return;
+            }
+
+            // The android is about to place itself (a Player Head) at the destination, so the owner
+            // must be allowed to place blocks there. Otherwise an android could simply walk into
+            // another player's claim. Legacy androids without owner data keep their old behaviour
+            // and may still move, consistent with how MinerAndroid treats ownerless blocks.
+            OfflinePlayer owner = getOwner(b);
+
+            if (owner != null && !Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.PLACE_BLOCK)) {
                 return;
             }
 

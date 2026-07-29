@@ -4,6 +4,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.ArmorStand;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -37,6 +39,16 @@ public class ButcherAndroid extends ProgrammableAndroid {
         double damage = getTier() >= 3 ? 20D : 4D * getTier();
         double radius = 4.0 + getTier();
 
+        // Only an android with a known owner may attack, and only entities the owner is allowed
+        // to attack. Otherwise a Butcher Android could slaughter another player's livestock (or a
+        // named/villager mob) across a claim border and have the drops collected by the android.
+        // Ownerless (legacy) androids skip attacking entirely, consistent with MinerAndroid.
+        OfflinePlayer owner = getOwner(b);
+
+        if (owner == null) {
+            return;
+        }
+
         for (Entity n : b.getWorld().getNearbyEntities(b.getLocation(), radius, radius, radius, n -> n instanceof LivingEntity livingEntity && !(n instanceof ArmorStand) && !(n instanceof Player) && n.isValid() && predicate.test(livingEntity))) {
             // Check if our android is facing this entity.
             boolean willAttack = switch (face) {
@@ -48,6 +60,11 @@ public class ButcherAndroid extends ProgrammableAndroid {
             };
 
             if (willAttack) {
+                // Skip entities the owner is not allowed to attack and try the next facing one.
+                if (!Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), Interaction.ATTACK_ENTITY)) {
+                    continue;
+                }
+
                 if (n.hasMetadata(METADATA_KEY)) {
                     n.removeMetadata(METADATA_KEY, Slimefun.instance());
                 }

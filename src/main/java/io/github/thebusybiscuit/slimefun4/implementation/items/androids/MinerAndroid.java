@@ -1,7 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.androids;
 
 import java.util.Collection;
-import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -68,24 +67,6 @@ public class MinerAndroid extends ProgrammableAndroid {
     @Nonnull
     public AndroidType getAndroidType() {
         return AndroidType.MINER;
-    }
-
-    /**
-     * Returns the {@link OfflinePlayer} who owns this android, or {@code null} if the owner data
-     * is missing or corrupted. Callers should skip ownership-dependent actions when this is null.
-     */
-    private OfflinePlayer getOwner(Block b) {
-        String ownerId = BlockStorage.getLocationInfo(b.getLocation(), "owner");
-
-        if (ownerId == null) {
-            return null;
-        }
-
-        try {
-            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
-        } catch (IllegalArgumentException x) {
-            return null;
-        }
     }
 
     @Override

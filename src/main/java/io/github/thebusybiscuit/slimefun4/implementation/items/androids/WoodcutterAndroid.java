@@ -1,13 +1,11 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.androids;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -67,24 +65,6 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
         }
 
         return true;
-    }
-
-    /**
-     * Returns the {@link OfflinePlayer} who owns this android, or {@code null} if the owner data
-     * is missing or corrupted.
-     */
-    private OfflinePlayer getOwner(Block b) {
-        String ownerId = BlockStorage.getLocationInfo(b.getLocation(), "owner");
-
-        if (ownerId == null) {
-            return null;
-        }
-
-        try {
-            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
-        } catch (IllegalArgumentException x) {
-            return null;
-        }
     }
 
     @ParametersAreNonnullByDefault
