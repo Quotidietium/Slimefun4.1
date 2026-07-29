@@ -620,6 +620,26 @@ public final class SlimefunUtils {
     }
 
     /**
+     * Checks whether two blocks are owned by the same player. Returns {@code true} if either
+     * block has no owner stored (legacy / corrupted), so existing setups keep working - this is
+     * only meant to stop one player's machine from interacting with another player's across a
+     * claim border (e.g. a Reactor feeding a stranger's Reactor Access Port).
+     *
+     * @param a
+     *            The first {@link Location}
+     * @param b
+     *            The second {@link Location}
+     *
+     * @return Whether the two blocks may interact (same owner, or either is ownerless)
+     */
+    public static boolean isSameOwner(@Nonnull Location a, @Nonnull Location b) {
+        String ownerA = BlockStorage.getLocationInfo(a, "owner");
+        String ownerB = BlockStorage.getLocationInfo(b, "owner");
+
+        return ownerA == null || ownerB == null || Objects.equals(ownerA, ownerB);
+    }
+
+    /**
      * Evicts {@link #capacitorTextureStages} entries for blocks that no longer exist (a capacitor
      * was broken and its block data removed). The cache is purely an optimisation, so removing a
      * still-live entry is harmless (it rebuilds on the next charge change) - this is why we err on

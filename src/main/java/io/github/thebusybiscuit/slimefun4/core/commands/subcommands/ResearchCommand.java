@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import io.github.bakedlibs.dough.common.PlayerList;
@@ -40,7 +41,9 @@ class ResearchCommand extends SubCommand {
         }
 
         if (args.length == 3) {
-            if (!(sender instanceof Player) || sender.hasPermission("slimefun.cheat.researches")) {
+            // Allow console (trusted) in addition to permission holders, but NOT command blocks or
+            // other non-player senders - they would otherwise bypass the cheat permission.
+            if (sender instanceof ConsoleCommandSender || sender.hasPermission("slimefun.cheat.researches")) {
                 Optional<Player> player = PlayerList.findByName(args[1]);
 
                 if (player.isPresent()) {

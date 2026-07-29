@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nonnull;
@@ -16,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -28,6 +30,7 @@ import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.HologramOwner;
 import io.github.thebusybiscuit.slimefun4.core.attributes.MachineProcessHolder;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
+import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.machines.MachineProcessor;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
@@ -112,12 +115,26 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         };
 
         addItemHandler(onBreak());
+        addItemHandler(onPlace());
         registerDefaultFuelTypes();
     }
 
     @Override
     public MachineProcessor<FuelOperation> getMachineProcessor() {
         return processor;
+    }
+
+    @Nonnull
+    private BlockPlaceHandler onPlace() {
+        return new BlockPlaceHandler(false) {
+
+            @Override
+            public void onPlayerPlace(@Nonnull BlockPlaceEvent e) {
+                // Record the owner so getAccessPort() can refuse to feed a stranger's Reactor
+                // Access Port placed above this reactor.
+                BlockStorage.addBlockInfo(e.getBlock(), "owner", e.getPlayer().getUniqueId().toString());
+            }
+        };
     }
 
     @Nonnull
@@ -502,6 +519,13 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         Location port = new Location(l.getWorld(), l.getX(), l.getY() + 3, l.getZ());
 
         if (BlockStorage.check(port, SlimefunItems.REACTOR_ACCESS_PORT.getItemId())) {
+            // Only interact with an access port owned by the same player as this reactor.
+            // Otherwise a stranger could place a Reactor Access Port above this reactor and have
+            // it supplied with fuel / filled with byproducts across a claim border.
+            if (!SlimefunUtils.isSameOwner(l, port)) {
+                return null;
+            }
+
             return BlockStorage.getInventory(port);
         } else {
             return null;

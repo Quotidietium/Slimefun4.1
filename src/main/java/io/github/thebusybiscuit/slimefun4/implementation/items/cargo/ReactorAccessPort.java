@@ -1,5 +1,7 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.cargo;
 
+import java.util.UUID;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -8,6 +10,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
@@ -17,6 +20,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
+import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.networks.cargo.CargoNet;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
@@ -24,6 +28,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.handlers.SimpleBlockBre
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.reactors.Reactor;
 import io.github.thebusybiscuit.slimefun4.implementation.items.misc.CoolantCell;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
@@ -54,6 +59,7 @@ public class ReactorAccessPort extends SlimefunItem {
         super(itemGroup, item, recipeType, recipe);
 
         addItemHandler(onBreak());
+        addItemHandler(onPlace());
 
         new BlockMenuPreset(getId(), "&2Reactor Access Port") {
 
@@ -132,6 +138,19 @@ public class ReactorAccessPort extends SlimefunItem {
         };
     }
 
+    @Nonnull
+    private BlockPlaceHandler onPlace() {
+        return new BlockPlaceHandler(false) {
+
+            @Override
+            public void onPlayerPlace(@Nonnull BlockPlaceEvent e) {
+                // Record the owner so getReactor() can refuse to interface with a stranger's
+                // reactor placed below this access port.
+                BlockStorage.addBlockInfo(e.getBlock(), "owner", e.getPlayer().getUniqueId().toString());
+            }
+        };
+    }
+
     private void constructMenu(@Nonnull BlockMenuPreset preset) {
         preset.drawBackground(ChestMenuUtils.getBackground(), background);
 
@@ -170,6 +189,12 @@ public class ReactorAccessPort extends SlimefunItem {
         SlimefunItem item = BlockStorage.check(location.getBlock());
 
         if (item instanceof Reactor) {
+            // Only interface with a reactor owned by the same player as this port, otherwise a
+            // player could open this port and peek into / fill a stranger's reactor below.
+            if (!SlimefunUtils.isSameOwner(l, location)) {
+                return null;
+            }
+
             return BlockStorage.getInventory(location);
         }
 

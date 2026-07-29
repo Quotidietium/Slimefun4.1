@@ -7,6 +7,7 @@ import java.util.Optional;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -32,7 +33,9 @@ class GiveCommand extends SubCommand {
 
     @Override
     public void onExecute(CommandSender sender, String[] args) {
-        if (sender.hasPermission("slimefun.cheat.items") || !(sender instanceof Player)) {
+        // Allow console (trusted) in addition to permission holders, but NOT command blocks or
+        // other non-player senders - they would otherwise bypass the cheat permission.
+        if (sender.hasPermission("slimefun.cheat.items") || sender instanceof ConsoleCommandSender) {
             if (args.length > 2) {
                 Optional<Player> player = PlayerList.findByName(args[1]);
 
