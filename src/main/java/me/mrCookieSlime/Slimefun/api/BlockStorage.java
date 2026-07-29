@@ -708,6 +708,25 @@ public class BlockStorage {
         return cfg == null ? emptyBlockData : cfg;
     }
 
+    /**
+     * Variant of {@link #getLocationInfo(Location)} for callers that already hold the
+     * {@link BlockStorage} for the block's world (e.g. the {@link TickerTask}, which
+     * resolves it once per chunk). It skips the repeated world lookup the single-argument
+     * version performs - one less map read per ticked block.
+     *
+     * @param l
+     *            The target {@link Location}
+     * @param storage
+     *            The {@link BlockStorage} for {@code l}'s world
+     *
+     * @return The {@link Config} at that {@link Location}, or {@link EmptyBlockData} if none
+     */
+    @Nonnull
+    public static Config getLocationInfo(@Nonnull Location l, @Nonnull BlockStorage storage) {
+        Config cfg = storage.storage.get(l);
+        return cfg == null ? emptyBlockData : cfg;
+    }
+
     @Nonnull
     private static Map<String, String> parseJSON(String json) {
         Map<String, String> map = new HashMap<>();

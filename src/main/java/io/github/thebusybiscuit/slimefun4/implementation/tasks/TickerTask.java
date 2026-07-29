@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
@@ -207,8 +208,11 @@ public class TickerTask implements Runnable {
         try {
             // Only continue if the Chunk is actually loaded
             if (chunk.isLoaded()) {
+                // Resolve the world's BlockStorage once per chunk instead of on every block.
+                BlockStorage storage = BlockStorage.getStorage(chunk.getWorld());
+
                 for (Location l : locations) {
-                    tickLocation(tickers, l, synchronizedTicks);
+                    tickLocation(tickers, l, synchronizedTicks, storage);
                 }
             }
         } catch (IllegalStateException x) {
@@ -225,8 +229,10 @@ public class TickerTask implements Runnable {
         }
     }
 
-    private void tickLocation(@Nonnull Set<BlockTicker> tickers, @Nonnull Location l, @Nonnull List<SynchronizedTick> synchronizedTicks) {
-        Config data = BlockStorage.getLocationInfo(l);
+    private void tickLocation(@Nonnull Set<BlockTicker> tickers, @Nonnull Location l, @Nonnull List<SynchronizedTick> synchronizedTicks, @Nullable BlockStorage storage) {
+        // Reuse the per-chunk-resolved BlockStorage when available to skip the world lookup
+        // that the single-argument getLocationInfo performs on every block.
+        Config data = storage != null ? BlockStorage.getLocationInfo(l, storage) : BlockStorage.getLocationInfo(l);
         SlimefunItem item = SlimefunItem.getById(data.getString("id"));
 
         if (item == null) {
