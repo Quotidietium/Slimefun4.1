@@ -55,6 +55,16 @@ class CargoNetworkTask implements Runnable {
     private final CargoNet network;
     private final Map<Location, Inventory> inventories = new HashMap<>();
 
+    /**
+     * Per-tick cache of resolved cargo-node owners. A single cargo tick walks every input
+     * node and, for each, every reachable output node of the same frequency - so a shared
+     * output node (several inputs feeding one storage bay) has its owner resolved repeatedly.
+     * Resolving an owner reads the block data and calls {@link Bukkit#getOfflinePlayer(UUID)},
+     * which is comparatively expensive and never changes within one atomic tick, so memoising
+     * it here removes the duplicate work. The cache lives only for this task (one tick).
+     */
+    private final Map<Location, OfflinePlayer> ownerCache = new HashMap<>();
+
     private final Map<Location, Integer> inputs;
     private final Map<Integer, List<Location>> outputs;
 
@@ -104,17 +114,25 @@ class CargoNetworkTask implements Runnable {
     @Nullable
     @ParametersAreNonnullByDefault
     private OfflinePlayer getOwner(Location node) {
+        // A null value is a valid cached result (an ownerless or unparseable node), so
+        // disambiguate "not yet resolved" from "resolved to null" via containsKey.
+        if (ownerCache.containsKey(node)) {
+            return ownerCache.get(node);
+        }
+
         String ownerId = BlockStorage.getLocationInfo(node, "owner");
+        OfflinePlayer owner = null;
 
-        if (ownerId == null) {
-            return null;
+        if (ownerId != null) {
+            try {
+                owner = Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
+            } catch (IllegalArgumentException x) {
+                owner = null;
+            }
         }
 
-        try {
-            return Bukkit.getOfflinePlayer(UUID.fromString(ownerId));
-        } catch (IllegalArgumentException x) {
-            return null;
-        }
+        ownerCache.put(node, owner);
+        return owner;
     }
 
     @ParametersAreNonnullByDefault
