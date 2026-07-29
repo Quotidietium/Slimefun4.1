@@ -309,7 +309,14 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         int charge = 0;
 
         if (energyData != null) {
-            charge = Integer.parseInt(energyData);
+            try {
+                charge = Integer.parseInt(energyData);
+            } catch (NumberFormatException x) {
+                // Corrupted charge data (crashed write, manual edit, disk error) - treat as empty
+                // instead of letting the exception tear down the reactor. TickerTask accumulates
+                // exceptions and would destroy the reactor after 4 ticks, dropping its fuel and
+                // byproducts. This mirrors the hardened EnergyNetComponent#getCharge.
+            }
         }
 
         int space = getCapacity() - charge;

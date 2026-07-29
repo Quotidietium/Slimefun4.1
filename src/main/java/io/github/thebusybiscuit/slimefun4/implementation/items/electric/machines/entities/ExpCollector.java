@@ -176,7 +176,13 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
         String value = cfg.getString(DATA_KEY);
 
         if (value != null) {
-            return Integer.parseInt(value);
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException x) {
+                // Corrupted stored-experience data - treat as 0 instead of crashing the machine
+                // (which TickerTask would destroy after 4 ticks, dropping the bottled experience).
+                return 0;
+            }
         } else {
             BlockStorage.addBlockInfo(location, DATA_KEY, "0");
             return 0;

@@ -66,6 +66,14 @@ public class Compressor extends MultiBlockMachine {
             for (ItemStack item : inv.getContents()) {
                 for (ItemStack recipeInput : RecipeType.getRecipeInputs(this)) {
                     if (recipeInput != null && SlimefunUtils.isItemSimilar(item, recipeInput, true)) {
+                        // isItemSimilar only compares type/meta, not amount. Require the full amount
+                        // up front, otherwise inv.removeItem(recipeInput.getAmount()) below would
+                        // silently consume less than the recipe needs while still producing the full
+                        // output (e.g. 1 Coal Block -> 9 Carbon instead of 8 -> 9).
+                        if (item.getAmount() < recipeInput.getAmount()) {
+                            continue;
+                        }
+
                         ItemStack output = RecipeType.getRecipeOutput(this, recipeInput);
                         Inventory outputInv = findOutputInventory(output, dispBlock, inv);
                         MultiBlockCraftEvent event = new MultiBlockCraftEvent(p, this, item, output);

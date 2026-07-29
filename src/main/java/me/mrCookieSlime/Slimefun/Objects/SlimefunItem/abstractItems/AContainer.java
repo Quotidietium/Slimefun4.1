@@ -438,6 +438,19 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
      */
     @Nullable
     private MachineRecipe findNextRecipeCached(@Nonnull Block b, @Nonnull BlockMenu inv) {
+        /*
+         * Custom machines override findNextRecipe(BlockMenu) and keep the recipes list empty -
+         * they generate their recipes dynamically (e.g. AutoEnchanter reads the enchantments off
+         * the input item). The negative cache below is built from scanForRecipe, which only ever
+         * sees that empty list, so caching its "matched nothing" result would permanently stall
+         * these machines. Route them through the overridable findNextRecipe instead.
+         * This restores the virtual dispatch that the negative-cache optimization accidentally
+         * dropped when it made tick() call the private scanForRecipe directly.
+         */
+        if (recipes.isEmpty()) {
+            return findNextRecipe(inv);
+        }
+
         int[] inputSlots = getInputSlots();
         BlockPosition position = new BlockPosition(b);
         FailedRecipeScan failed = failedScans.get(position);

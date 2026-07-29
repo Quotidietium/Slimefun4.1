@@ -113,7 +113,13 @@ public class ResourceManager {
         String value = BlockStorage.getChunkInfo(world, x, z, key);
 
         if (value != null) {
-            return OptionalInt.of(Integer.parseInt(value));
+            try {
+                return OptionalInt.of(Integer.parseInt(value));
+            } catch (NumberFormatException nfe) {
+                // Corrupted chunk supply data - treat as "no supplies" instead of crashing every
+                // GEO machine (GEOMiner, OilPump, ...) that ticks this chunk.
+                return OptionalInt.empty();
+            }
         } else {
             return OptionalInt.empty();
         }

@@ -51,6 +51,13 @@ public class PressureChamber extends MultiBlockMachine {
             for (ItemStack current : inv.getContents()) {
                 for (ItemStack convert : RecipeType.getRecipeInputs(this)) {
                     if (convert != null && SlimefunUtils.isItemSimilar(current, convert, true)) {
+                        // isItemSimilar only compares type/meta, not amount. Require the full amount,
+                        // otherwise removeItem(convert.getAmount()) below would consume less than the
+                        // recipe needs while still producing the full output.
+                        if (current.getAmount() < convert.getAmount()) {
+                            continue;
+                        }
+
                         ItemStack output = RecipeType.getRecipeOutput(this, convert);
                         Inventory outputInv = findOutputInventory(output, possibleDispenser, inv);
                         MultiBlockCraftEvent event = new MultiBlockCraftEvent(p, this, current, output);
