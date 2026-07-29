@@ -29,8 +29,12 @@ import io.github.thebusybiscuit.slimefun4.implementation.tasks.armor.SlimefunArm
  */
 public final class HashedArmorpiece {
 
-    private int hash;
-    private Optional<SlimefunArmorPiece> item;
+    // Volatile: the per-profile armor cache is read and written by several asynchronous armor
+    // tasks (SlimefunArmorTask, RadiationTask, RainbowArmorTask, SolarHelmetTask) running on the
+    // async scheduler. Without volatile, a write done by one task may never be observed by another.
+    // Optional is immutable once published, so only the reference needs to be volatile.
+    private volatile int hash;
+    private volatile Optional<SlimefunArmorPiece> item;
 
     /**
      * This initializes a new {@link HashedArmorpiece} with no {@link SlimefunArmorPiece}
