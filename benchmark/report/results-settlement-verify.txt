@@ -1,0 +1,27 @@
+NOTE|settlement-verify|Slimefun version under test: 4.9.4
+NOTE|settlement-verify|Java: 21.0.10 (Oracle Corporation)
+RESULT|settlement-verify|blockstorage|charge-write|median_ns_per_write|ns|245.000
+RESULT|settlement-verify|blockstorage|charge-write|min_ns_per_write|ns|211.080
+RESULT|settlement-verify|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|44.624
+RESULT|settlement-verify|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|34.675
+RESULT|settlement-verify|machine-idle-scan|empty-input|median_ns_per_tick|ns|685.700
+RESULT|settlement-verify|machine-idle-scan|empty-input|min_ns_per_tick|ns|633.400
+RESULT|settlement-verify|machine-idle-scan|junk-input|median_ns_per_tick|ns|501.200
+RESULT|settlement-verify|machine-idle-scan|junk-input|min_ns_per_tick|ns|456.900
+RESULT|settlement-verify|machine-processing|active|median_ns_per_tick|ns|977.900
+RESULT|settlement-verify|machine-processing|active|min_ns_per_tick|ns|933.300
+RESULT|settlement-verify|energy-settlement|charging-write|median_ns_per_component|ns|140.000
+RESULT|settlement-verify|energy-settlement|charging-write|min_ns_per_component|ns|124.500
+RESULT|settlement-verify|energy-settlement|saturated-skip|median_ns_per_component|ns|82.000
+RESULT|settlement-verify|energy-settlement|saturated-skip|min_ns_per_component|ns|72.500
+NOTE|settlement-verify|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|settlement-verify|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|171.150
+RESULT|settlement-verify|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|161.700
+RESULT|settlement-verify|hologram-label|unchanged-label|median_ns_per_call|ns|134.650
+RESULT|settlement-verify|hologram-label|unchanged-label|min_ns_per_call|ns|128.900
+NOTE|settlement-verify|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|settlement-verify|ticker-run: first chunk isLoaded=true
+NOTE|settlement-verify|ticker-run: 5000 blocks ticked per run
+RESULT|settlement-verify|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|1.236
+RESULT|settlement-verify|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|1.114
+RESULT|settlement-verify|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|247.200
