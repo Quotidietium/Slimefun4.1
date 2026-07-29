@@ -524,6 +524,25 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                     return new RecipeScan(null, false);
                 }
 
+                // Re-validate every matched input against the live slots BEFORE consuming anything.
+                // The recipe was matched against a snapshot above; this machine ticks asynchronously
+                // while players interact with its menu on the main thread, so between the match and
+                // this consume a player could have taken or swapped an input. Consuming some inputs
+                // and then aborting would lose items without producing output, and consuming a slot
+                // that no longer holds the matched item (or holds less than the recipe needs) would
+                // start a CraftingOperation that produces its output for free. So validate all, then
+                // consume all. On any mismatch we abort without consuming (recipe null, not cached as
+                // a negative result) - the next tick re-scans once the inputs are stable again.
+                for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
+                    int slot = entry.getKey();
+                    int required = entry.getValue();
+                    ItemStack live = inv.getItemInSlot(slot);
+
+                    if (live == null || live.getAmount() < required || !SlimefunUtils.isItemSimilar(live, inventory.get(slot), true)) {
+                        return new RecipeScan(null, false);
+                    }
+                }
+
                 for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
                     inv.consumeItem(entry.getKey(), entry.getValue());
                 }

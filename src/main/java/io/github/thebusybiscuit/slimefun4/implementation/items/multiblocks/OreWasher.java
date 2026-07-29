@@ -1,6 +1,7 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.multiblocks;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nonnull;
@@ -127,7 +128,14 @@ public class OreWasher extends MultiBlockMachine {
                         removeItem(p, b, inv, outputInv, input, event.getOutput(), 1);
 
                         if (outputInv != null) {
-                            outputInv.addItem(SlimefunItems.STONE_CHUNK.item());
+                            // The output inventory was only validated for a single item (the dust)
+                            // above, not the bonus STONE_CHUNK. Drop anything that did not fit
+                            // instead of silently voiding it.
+                            Map<Integer, ItemStack> leftover = outputInv.addItem(SlimefunItems.STONE_CHUNK.item());
+
+                            for (ItemStack drop : leftover.values()) {
+                                b.getWorld().dropItemNaturally(b.getLocation(), drop);
+                            }
                         }
 
                         return;

@@ -72,15 +72,38 @@ abstract class AbstractSmeltery extends MultiBlockMachine {
     }
 
     private boolean canCraft(Inventory inv, List<ItemStack[]> inputs, int i) {
+        ItemStack[] contents = inv.getContents();
+        int[] remaining = new int[contents.length];
+
+        for (int j = 0; j < contents.length; j++) {
+            remaining[j] = contents[j] == null ? 0 : contents[j].getAmount();
+        }
+
+        /*
+         * Verify each recipe input is actually available in sufficient quantity, deducting from a
+         * per-slot tracker so the same items cannot satisfy two inputs. The previous check only
+         * compared types and did not track slot usage (nor amounts), so a recipe with a duplicate
+         * input - or one whose required amount exceeded what was in the dispenser - would be
+         * accepted and then under-consume, producing its output from less material than the recipe
+         * needs.
+         */
         for (ItemStack expectedInput : inputs.get(i)) {
-            if (expectedInput != null) {
-                for (int j = 0; j < inv.getContents().length; j++) {
-                    if (j == (inv.getContents().length - 1) && !SlimefunUtils.isItemSimilar(inv.getContents()[j], expectedInput, true)) {
-                        return false;
-                    } else if (SlimefunUtils.isItemSimilar(inv.getContents()[j], expectedInput, true)) {
-                        break;
-                    }
+            if (expectedInput == null) {
+                continue;
+            }
+
+            int needed = expectedInput.getAmount();
+
+            for (int j = 0; j < contents.length && needed > 0; j++) {
+                if (remaining[j] > 0 && SlimefunUtils.isItemSimilar(contents[j], expectedInput, true)) {
+                    int take = Math.min(needed, remaining[j]);
+                    remaining[j] -= take;
+                    needed -= take;
                 }
+            }
+
+            if (needed > 0) {
+                return false;
             }
         }
 
