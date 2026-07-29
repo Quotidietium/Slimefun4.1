@@ -1,0 +1,31 @@
+NOTE|4.9.4-final-r1|Slimefun version under test: 4.9.4
+NOTE|4.9.4-final-r1|Java: 21.0.10 (Oracle Corporation)
+RESULT|4.9.4-final-r1|blockstorage|charge-write|median_ns_per_write|ns|245.120
+RESULT|4.9.4-final-r1|blockstorage|charge-write|min_ns_per_write|ns|227.420
+RESULT|4.9.4-final-r1|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|41.953
+RESULT|4.9.4-final-r1|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|33.946
+RESULT|4.9.4-final-r1|machine-idle-scan|empty-input|median_ns_per_tick|ns|751.100
+RESULT|4.9.4-final-r1|machine-idle-scan|empty-input|min_ns_per_tick|ns|462.400
+RESULT|4.9.4-final-r1|machine-idle-scan|junk-input|median_ns_per_tick|ns|360.800
+RESULT|4.9.4-final-r1|machine-idle-scan|junk-input|min_ns_per_tick|ns|358.600
+RESULT|4.9.4-final-r1|machine-processing|active|median_ns_per_tick|ns|773.500
+RESULT|4.9.4-final-r1|machine-processing|active|min_ns_per_tick|ns|702.500
+RESULT|4.9.4-final-r1|energy-settlement|charging-write|median_ns_per_component|ns|74.900
+RESULT|4.9.4-final-r1|energy-settlement|charging-write|min_ns_per_component|ns|73.100
+RESULT|4.9.4-final-r1|energy-settlement|saturated-skip|median_ns_per_component|ns|54.500
+RESULT|4.9.4-final-r1|energy-settlement|saturated-skip|min_ns_per_component|ns|48.500
+RESULT|4.9.4-final-r1|player-interaction|place-block|median_ns_per_op|ns|1476.000
+RESULT|4.9.4-final-r1|player-interaction|place-block|min_ns_per_op|ns|986.000
+RESULT|4.9.4-final-r1|player-interaction|break-block|median_ns_per_op|ns|1061.500
+RESULT|4.9.4-final-r1|player-interaction|break-block|min_ns_per_op|ns|581.500
+NOTE|4.9.4-final-r1|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|4.9.4-final-r1|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|102.750
+RESULT|4.9.4-final-r1|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|102.200
+RESULT|4.9.4-final-r1|hologram-label|unchanged-label|median_ns_per_call|ns|88.550
+RESULT|4.9.4-final-r1|hologram-label|unchanged-label|min_ns_per_call|ns|84.300
+NOTE|4.9.4-final-r1|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|4.9.4-final-r1|ticker-run: first chunk isLoaded=true
+NOTE|4.9.4-final-r1|ticker-run: 5000 blocks ticked per run
+RESULT|4.9.4-final-r1|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|0.931
+RESULT|4.9.4-final-r1|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|0.794
+RESULT|4.9.4-final-r1|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|186.160
