@@ -234,8 +234,9 @@ public class EnergyNet extends Network implements HologramOwner {
                  * never be subtracted again, effectively duplicating it each tick.
                  */
                 try {
+                    Config data = BlockStorage.getLocationInfo(loc);
                     int capacity = component.getCapacity();
-                    int charge = component.getCharge(loc);
+                    int charge = component.getCharge(loc, data);
 
                     if (charge < capacity) {
                         int availableSpace = capacity - charge;
@@ -243,10 +244,10 @@ public class EnergyNet extends Network implements HologramOwner {
 
                         if (remainingEnergy > 0) {
                             if (remainingEnergy > availableSpace) {
-                                component.setCharge(loc, capacity);
+                                component.setCharge(loc, data, capacity);
                                 remainingEnergy -= availableSpace;
                             } else {
-                                component.setCharge(loc, charge + remainingEnergy);
+                                component.setCharge(loc, data, charge + remainingEnergy);
                                 remainingEnergy = 0;
                             }
                         }
@@ -272,18 +273,20 @@ public class EnergyNet extends Network implements HologramOwner {
             EnergyNetComponent component = entry.getValue();
 
             try {
+                Config data = BlockStorage.getLocationInfo(loc);
+
                 if (remainingEnergy > 0) {
                     int capacity = component.getCapacity();
 
                     if (remainingEnergy > capacity) {
-                        component.setCharge(loc, capacity);
+                        component.setCharge(loc, data, capacity);
                         remainingEnergy -= capacity;
                     } else {
-                        component.setCharge(loc, remainingEnergy);
+                        component.setCharge(loc, data, remainingEnergy);
                         remainingEnergy = 0;
                     }
                 } else {
-                    component.setCharge(loc, 0);
+                    component.setCharge(loc, data, 0);
                 }
 
                 failedComponents.remove(loc);
@@ -298,18 +301,19 @@ public class EnergyNet extends Network implements HologramOwner {
             EnergyNetProvider component = entry.getValue();
 
             try {
+                Config data = BlockStorage.getLocationInfo(loc);
                 int capacity = component.getCapacity();
 
                 if (remainingEnergy > 0) {
                     if (remainingEnergy > capacity) {
-                        component.setCharge(loc, capacity);
+                        component.setCharge(loc, data, capacity);
                         remainingEnergy -= capacity;
                     } else {
-                        component.setCharge(loc, remainingEnergy);
+                        component.setCharge(loc, data, remainingEnergy);
                         remainingEnergy = 0;
                     }
                 } else {
-                    component.setCharge(loc, 0);
+                    component.setCharge(loc, data, 0);
                 }
 
                 failedComponents.remove(loc);
@@ -389,7 +393,8 @@ public class EnergyNet extends Network implements HologramOwner {
             EnergyNetComponent component = entry.getValue();
 
             try {
-                supply = NumberUtils.flowSafeAddition(supply, component.getCharge(loc));
+                Config data = BlockStorage.getLocationInfo(loc);
+                supply = NumberUtils.flowSafeAddition(supply, component.getCharge(loc, data));
                 failedComponents.remove(loc);
             } catch (Exception | LinkageError x) {
                 // Contributes nothing this tick, but does not poison the whole network

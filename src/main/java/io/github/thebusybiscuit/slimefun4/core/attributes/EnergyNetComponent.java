@@ -130,7 +130,35 @@ public interface EnergyNetComponent extends ItemAttribute {
      *            The new charge
      */
     default void setCharge(@Nonnull Location l, int charge) {
+        setCharge(l, BlockStorage.getLocationInfo(l), charge);
+    }
+
+    /**
+     * Variant of {@link #setCharge(Location, int)} that reuses the {@link Config} the
+     * caller already holds for this {@link Location} (e.g. one obtained for an earlier
+     * {@link #getCharge(Location, Config)} in the same tick).
+     *
+     * <p>This avoids the extra {@link BlockStorage} lookups the single-argument version
+     * performs: one inside {@link #getCharge(Location)} to decide whether the value even
+     * changed, and one inside {@link BlockStorage#addBlockInfo(Location, String, String, boolean)}
+     * to write it back. The {@link EnergyNet} settlement loop reads the block data once
+     * per component per tick and hands it straight through here, so neither lookup is
+     * repeated.
+     *
+     * <p>Behaviour is identical to {@link #setCharge(Location, int)} - the only difference
+     * is the avoided redundant reads.
+     *
+     * @param l
+     *            The target {@link Location}
+     * @param data
+     *            The data at this {@link Location} (from
+     *            {@link BlockStorage#getLocationInfo(Location)})
+     * @param charge
+     *            The new charge
+     */
+    default void setCharge(@Nonnull Location l, @Nonnull Config data, int charge) {
         Validate.notNull(l, "Location was null!");
+        Validate.notNull(data, "data was null!");
         Validate.isTrue(charge >= 0, "You can only set a charge of zero or more!");
 
         try {
@@ -141,8 +169,8 @@ public interface EnergyNetComponent extends ItemAttribute {
                 charge = NumberUtils.clamp(0, charge, capacity);
 
                 // Do we even need to update the value?
-                if (charge != getCharge(l)) {
-                    BlockStorage.addBlockInfo(l, "energy-charge", String.valueOf(charge), false);
+                if (charge != getCharge(l, data)) {
+                    BlockStorage.updateBlockInfo(l, data, "energy-charge", String.valueOf(charge));
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {

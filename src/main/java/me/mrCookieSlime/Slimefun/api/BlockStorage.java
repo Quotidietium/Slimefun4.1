@@ -807,6 +807,53 @@ public class BlockStorage {
         setBlockInfo(l, cfg, updateTicker);
     }
 
+    /**
+     * Fast path for updating a single value on a {@link Block} that already has block data.
+     *
+     * <p>Unlike {@link #addBlockInfo(Location, String, String, boolean)}, this reuses the
+     * live {@link Config} the caller already holds (typically from
+     * {@link #getLocationInfo(Location)}) instead of looking it up again, and it skips the
+     * {@link #setBlockInfo(Location, Config, boolean)} id-change / preset checks - none of
+     * which apply to an in-place value change on an existing block. The write stays a pure
+     * in-memory operation (value + dirty flag), exactly like the deferred-persistence path
+     * the regular method takes, but without the redundant {@link ConcurrentHashMap} read
+     * and write.
+     *
+     * <p>This is the hot path of the energy network: every charged component updates its
+     * {@code energy-charge} value through here once per tick, so eliminating the extra
+     * lookup on every charge change matters at scale.
+     *
+     * <p><strong>The {@code data} argument must be the live {@link Config} obtained from
+     * {@link #getLocationInfo(Location)} for {@code l}.</strong> If the block has no data
+     * yet (the {@link EmptyBlockData} singleton), this falls back to
+     * {@link #addBlockInfo(Location, String, String, boolean)} to preserve the original
+     * behaviour of creating a fresh record.
+     *
+     * @param l
+     *            The {@link Location} to update
+     * @param data
+     *            The live {@link Config} for this {@link Location} (from
+     *            {@link #getLocationInfo(Location)})
+     * @param key
+     *            The key to set
+     * @param value
+     *            The value to set
+     */
+    public static void updateBlockInfo(@Nonnull Location l, @Nonnull Config data, @Nonnull String key, @Nullable String value) {
+        if (data == emptyBlockData) {
+            addBlockInfo(l, key, value, false);
+            return;
+        }
+
+        data.setValue(key, value);
+
+        BlockStorage storage = getStorage(l.getWorld());
+
+        if (storage != null) {
+            storage.dirtyBlocks.add(l);
+        }
+    }
+
     public static boolean hasBlockInfo(Block block) {
         return hasBlockInfo(block.getLocation());
     }
@@ -830,7 +877,22 @@ public class BlockStorage {
             return;
         }
 
-        Config previous = storage.storage.put(l, cfg);
+        /*
+         * The highest-frequency writer is the energy network updating "energy-charge"
+         * on the very same Config object that is already stored (addBlockInfo reuses the
+         * live Config it just read). A ConcurrentHashMap#put on an unchanged reference
+         * still pays for a volatile write even though the value is identical, so skip it
+         * whenever the stored reference is already the one we would put back. The
+         * subsequent idChanged check stays correct: a Config can never differ from
+         * itself, and putIfAbsent semantics for newly stored blocks are preserved
+         * (previous == null still routes into the preset branch below).
+         */
+        Config previous = storage.storage.get(l);
+
+        if (previous != cfg) {
+            storage.storage.put(l, cfg);
+        }
+
         String id = cfg.getString("id");
         boolean idChanged = previous != null && !Objects.equals(previous.getString("id"), id);
 
