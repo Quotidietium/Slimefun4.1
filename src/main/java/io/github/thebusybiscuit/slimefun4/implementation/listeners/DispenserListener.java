@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -12,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDispenseEvent;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockDispenseEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockDispenseHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -44,6 +46,16 @@ public class DispenserListener implements Listener {
 
             // Fixes #2959
             if (machine != null && !machine.isDisabledIn(e.getBlock().getWorld())) {
+                // Dispensers can fire very frequently, only allocate an event when someone listens
+                if (SlimefunBlockDispenseEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    SlimefunBlockDispenseEvent event = new SlimefunBlockDispenseEvent(machine, b, e);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+                }
+
                 machine.callItemHandler(BlockDispenseHandler.class, handler -> {
                     BlockState state = PaperLib.getBlockState(b, false).getState();
 

@@ -18,6 +18,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockInteractEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockUseHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.ItemUseHandler;
@@ -125,6 +126,14 @@ public class SlimefunItemInteractListener implements Listener {
             SlimefunItem sfItem = optional.get();
 
             if (!sfItem.canUse(event.getPlayer(), true)) {
+                event.getInteractEvent().setCancelled(true);
+                return false;
+            }
+
+            SlimefunBlockInteractEvent interactEvent = new SlimefunBlockInteractEvent(event.getPlayer(), sfItem, event.getInteractEvent().getClickedBlock(), event);
+            Bukkit.getPluginManager().callEvent(interactEvent);
+
+            if (interactEvent.isCancelled()) {
                 event.getInteractEvent().setCancelled(true);
                 return false;
             }
