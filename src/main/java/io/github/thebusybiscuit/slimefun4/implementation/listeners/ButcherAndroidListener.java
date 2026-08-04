@@ -8,6 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -19,6 +20,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.ButcherAndroidKillEvent;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.androids.AndroidInstance;
 import io.github.thebusybiscuit.slimefun4.implementation.items.androids.ButcherAndroid;
@@ -43,6 +45,17 @@ public class ButcherAndroidListener implements Listener {
     public void onDeath(EntityDeathEvent e) {
         if (e.getEntity().hasMetadata(METADATA_KEY)) {
             AndroidInstance obj = (AndroidInstance) e.getEntity().getMetadata(METADATA_KEY).get(0).value();
+
+            if (ButcherAndroidKillEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                ButcherAndroidKillEvent event = new ButcherAndroidKillEvent(obj.getAndroid(), obj.getBlock(), e.getEntity(), e);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // Removing metadata to prevent memory leaks
+                    e.getEntity().removeMetadata(METADATA_KEY, Slimefun.instance());
+                    return;
+                }
+            }
 
             Slimefun.runSync(() -> {
                 List<ItemStack> items = new ArrayList<>();
