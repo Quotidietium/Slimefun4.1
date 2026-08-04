@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.implementation.tasks;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -21,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.events.AncientAltarCraftEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AncientAltarRitualAbortEvent;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
@@ -165,8 +167,11 @@ public class AncientAltarTask implements Runnable {
          * The item entities were removed in checkPedestal(), so without
          * dropping them back here they would simply cease to exist.
          */
+        List<ItemStack> returnedItems = new ArrayList<>();
+
         for (ItemStack consumed : items) {
             if (consumed != null) {
+                returnedItems.add(consumed);
                 dropLocation.getWorld().dropItemNaturally(dropLocation, consumed);
             }
         }
@@ -178,6 +183,9 @@ public class AncientAltarTask implements Runnable {
         SoundEffect.ANCIENT_ALTAR_ITEM_DROP_SOUND.playAt(dropLocation, SoundCategory.BLOCKS);
         positionLock.clear();
         listener.getAltars().remove(altar);
+
+        // Notify addons that the ritual was aborted and every consumed item was returned
+        Bukkit.getPluginManager().callEvent(new AncientAltarRitualAbortEvent(player, altar, pedestals, returnedItems));
     }
 
     private void finish() {

@@ -11,6 +11,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -30,6 +31,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.AncientAltarRitualStartEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
@@ -238,6 +240,21 @@ public class AncientAltarListener implements Listener {
 
         if (result.isPresent()) {
             if (SlimefunUtils.canPlayerUseItem(p, result.get(), true)) {
+                AncientAltarRitualStartEvent event = new AncientAltarRitualStartEvent(p, b, pedestals, catalyst, input, result.get());
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    altars.remove(b);
+
+                    for (Block block : pedestals) {
+                        altarsInUse.remove(block.getLocation());
+                    }
+
+                    // Ritual cancelled, no longer in use.
+                    altarsInUse.remove(b.getLocation());
+                    return;
+                }
+
                 List<ItemStack> consumed = new ArrayList<>();
                 consumed.add(catalyst);
 
