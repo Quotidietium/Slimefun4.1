@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.tasks.player;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -9,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import io.github.thebusybiscuit.slimefun4.api.events.BeeWingsSlowFallEvent;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.magical.BeeWings;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.BeeWingsListener;
@@ -61,10 +63,19 @@ public class BeeWingsTask extends AbstractPlayerTask {
     }
 
     private void slowDown() {
+        PotionEffect effect = new PotionEffect(PotionEffectType.SLOW_FALLING, 60, 0);
+        BeeWingsSlowFallEvent event = new BeeWingsSlowFallEvent(p, effect);
+        Bukkit.getPluginManager().callEvent(event);
+
+        if (event.isCancelled()) {
+            // Skipped this time, the wings keep watching the descent
+            return;
+        }
+
         Slimefun.getLocalization().sendMessage(p, "messages.bee-suit-slow-fall");
 
         p.setFallDistance(0);
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 60, 0));
+        p.addPotionEffect(effect);
     }
 
     /**
