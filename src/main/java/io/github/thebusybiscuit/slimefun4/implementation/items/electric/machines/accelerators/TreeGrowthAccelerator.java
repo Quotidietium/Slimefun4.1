@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -11,6 +12,7 @@ import org.bukkit.block.data.type.Sapling;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.TreeAccelerateEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -88,6 +90,10 @@ public class TreeGrowthAccelerator extends AbstractGrowthAccelerator {
     private boolean applyBoneMeal(Block machine, Block sapling, BlockMenu inv) {
         for (int slot : getInputSlots()) {
             if (isFertilizer(inv.getItemInSlot(slot))) {
+                if (isAccelerationBlocked(machine, sapling, inv.getItemInSlot(slot))) {
+                    return false;
+                }
+
                 removeCharge(machine.getLocation(), ENERGY_CONSUMPTION);
 
                 sapling.applyBoneMeal(BlockFace.UP);
@@ -105,6 +111,10 @@ public class TreeGrowthAccelerator extends AbstractGrowthAccelerator {
     private boolean updateSaplingData(Block machine, Block block, BlockMenu inv, Sapling sapling) {
         for (int slot : getInputSlots()) {
             if (isFertilizer(inv.getItemInSlot(slot))) {
+                if (isAccelerationBlocked(machine, block, inv.getItemInSlot(slot))) {
+                    return false;
+                }
+
                 removeCharge(machine.getLocation(), ENERGY_CONSUMPTION);
 
                 sapling.setStage(sapling.getStage() + 1);
@@ -114,6 +124,22 @@ public class TreeGrowthAccelerator extends AbstractGrowthAccelerator {
                 block.getWorld().spawnParticle(VersionedParticle.HAPPY_VILLAGER, block.getLocation().add(0.5D, 0.5D, 0.5D), 4, 0.1F, 0.1F, 0.1F);
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    /**
+     * Fires a {@link TreeAccelerateEvent} if any listener is registered and returns
+     * whether the acceleration of this sapling was cancelled. Without listeners this
+     * costs nothing and the old behavior is preserved.
+     */
+    @ParametersAreNonnullByDefault
+    private boolean isAccelerationBlocked(Block machine, Block sapling, ItemStack fertilizer) {
+        if (TreeAccelerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            TreeAccelerateEvent event = new TreeAccelerateEvent(this, machine, sapling, fertilizer);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
         }
 
         return false;
