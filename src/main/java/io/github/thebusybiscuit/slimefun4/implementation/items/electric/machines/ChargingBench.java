@@ -1,9 +1,11 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.ChargingBenchChargeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -59,6 +61,23 @@ public class ChargingBench extends AContainer {
 
         if (sfItem instanceof Rechargeable rechargeable) {
             float charge = getEnergyConsumption() / 2F;
+
+            /*
+             * Fire a ChargingBenchChargeEvent before charging. Cancellation skips
+             * the charging for this tick: the item stays in the input slot and the
+             * bench's stored energy is not consumed. Gated on registered listeners
+             * to keep the default path allocation-free.
+             */
+            if (ChargingBenchChargeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                ChargingBenchChargeEvent event = new ChargingBenchChargeEvent(b, item, rechargeable, charge);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return true;
+                }
+
+                charge = event.getCharge();
+            }
 
             if (rechargeable.addItemCharge(item, charge)) {
                 removeCharge(b.getLocation(), getEnergyConsumption());
