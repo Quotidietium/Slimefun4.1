@@ -32,6 +32,7 @@ import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.ExplosiveToolBreakBlocksEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBreakEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPlaceEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunToolUseEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.core.attributes.NotPlaceable;
@@ -198,6 +199,13 @@ public class BlockListener implements Listener {
 
         if (tool != null) {
             if (tool.canUse(e.getPlayer(), true)) {
+                SlimefunToolUseEvent useEvent = new SlimefunToolUseEvent(e.getPlayer(), tool, item, e, fortune, drops);
+                Bukkit.getPluginManager().callEvent(useEvent);
+
+                if (useEvent.isCancelled()) {
+                    return;
+                }
+
                 tool.callItemHandler(ToolUseHandler.class, handler -> handler.onToolUse(e, item, fortune, drops));
             } else {
                 e.setCancelled(true);
