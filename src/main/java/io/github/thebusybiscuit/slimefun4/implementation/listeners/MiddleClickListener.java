@@ -3,15 +3,18 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunItemPickBlockEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -57,6 +60,15 @@ public class MiddleClickListener implements Listener {
             // vanilla block -> ignore
             if (sfItem == null) {
                 return;
+            }
+
+            if (SlimefunItemPickBlockEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                SlimefunItemPickBlockEvent event = new SlimefunItemPickBlockEvent((Player) player, sfItem, b, e);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
             }
 
             /*
