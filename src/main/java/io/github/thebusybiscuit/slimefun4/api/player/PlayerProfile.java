@@ -34,6 +34,8 @@ import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.common.CommonPatterns;
 import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncProfileLoadEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.PlayerResearchRankChangeEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.ResearchLockEvent;
 import io.github.thebusybiscuit.slimefun4.api.gps.Waypoint;
 import io.github.thebusybiscuit.slimefun4.api.items.HashedArmorpiece;
 import io.github.thebusybiscuit.slimefun4.api.researches.Research;
@@ -198,6 +200,25 @@ public class PlayerProfile {
     public void setResearched(@Nonnull Research research, boolean unlock) {
         Validate.notNull(research, "Research must not be null!");
 
+        if (!unlock) {
+            // Only raise a lock event (and later consider the rank) when the research is
+            // actually present, so a no-op removal never fires an event.
+            boolean present = data.getResearches().contains(research);
+
+            if (present) {
+                ResearchLockEvent lockEvent = new ResearchLockEvent(this, research);
+                Bukkit.getPluginManager().callEvent(lockEvent);
+
+                if (lockEvent.isCancelled()) {
+                    // An add-on vetoed the re-lock; leave the profile untouched.
+                    return;
+                }
+            }
+        }
+
+        // Capture the rank title before mutating so we can detect a boundary crossing.
+        String previousTitle = getResearchTitleSafely();
+
         // Mutate first, then mark dirty. markDirty() bumps the modification epoch which save()
         // uses to detect concurrent mutations - the epoch must always reflect the state of the
         // data, so the bookkeeping has to run AFTER the change, never before.
@@ -208,6 +229,31 @@ public class PlayerProfile {
         }
 
         markDirty();
+
+        if (previousTitle != null) {
+            String newTitle = getResearchTitleSafely();
+
+            if (newTitle != null && !previousTitle.equals(newTitle)) {
+                Bukkit.getPluginManager().callEvent(new PlayerResearchRankChangeEvent(this, previousTitle, newTitle));
+            }
+        }
+    }
+
+    /**
+     * Computes the current research rank title, returning {@code null} when no
+     * {@code research-ranks} are configured. In that case {@link #getTitle()} would be
+     * meaningless, so the rank-change event is suppressed.
+     *
+     * @return The current rank title, or {@code null} if none are configured
+     */
+    private @Nullable String getResearchTitleSafely() {
+        List<String> ranks = Slimefun.getRegistry().getResearchRanks();
+
+        if (ranks == null || ranks.isEmpty()) {
+            return null;
+        }
+
+        return getTitle();
     }
 
     /**
