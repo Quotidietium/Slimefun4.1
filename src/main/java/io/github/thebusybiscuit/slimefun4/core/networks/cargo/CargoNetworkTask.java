@@ -24,6 +24,8 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.CargoItemInsertEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.CargoItemWithdrawEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSpawnReason;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.networks.NetworkManager;
@@ -159,6 +161,22 @@ class CargoNetworkTask implements Runnable {
         ItemStack stack = slot.getItem();
         int previousSlot = slot.getInt();
 
+        /*
+         * Fire a CargoItemWithdrawEvent before distributing the withdrawn item.
+         * Cancellation returns the item to its source, exactly like the regular
+         * "could not distribute" fallback below. The listener check keeps this
+         * hot path allocation-free when no addon listens for the event.
+         */
+        if (CargoItemWithdrawEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            CargoItemWithdrawEvent event = new CargoItemWithdrawEvent(network, inputNode, inputTarget, stack, previousSlot);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                insertItem(inputTarget, previousSlot, stack);
+                return;
+            }
+        }
+
         try {
             List<Location> destinations = outputNodes.get(frequency);
 
@@ -258,6 +276,23 @@ class CargoNetworkTask implements Runnable {
                 boolean allowed = outputOwner == null || Slimefun.getProtectionManager().hasPermission(outputOwner, target.get(), Interaction.INTERACT_BLOCK);
 
                 if (allowed) {
+                    /*
+                     * Fire a CargoItemInsertEvent before inserting into this output.
+                     * Cancellation skips this output node; the item stays in transit and
+                     * the next output is tried - the same semantics as a protection
+                     * plugin denying access above. Gated on registered listeners to
+                     * keep the hot path allocation-free by default.
+                     */
+                    if (CargoItemInsertEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        CargoItemInsertEvent insertEvent = new CargoItemInsertEvent(network, inputNode, output, target.get(), item);
+                        Bukkit.getPluginManager().callEvent(insertEvent);
+
+                        if (insertEvent.isCancelled()) {
+                            index++;
+                            continue;
+                        }
+                    }
+
                     try {
                         ItemStackWrapper wrapper = ItemStackWrapper.wrap(item);
                         item = CargoUtils.insert(network, inventories, output.getBlock(), target.get(), smartFill, item, wrapper);
