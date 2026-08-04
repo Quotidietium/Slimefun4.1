@@ -10,11 +10,11 @@ import org.bukkit.entity.Player;
 /**
  * This represents an {@link ElevatorFloor} to which a {@link Player}
  * can travel to using an {@link ElevatorPlate}.
- * 
+ *
  * @author TheBusyBiscuit
  *
  */
-class ElevatorFloor {
+public class ElevatorFloor {
 
     /**
      * The name of this floor.

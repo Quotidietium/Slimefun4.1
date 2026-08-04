@@ -9,6 +9,7 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -20,6 +21,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.ElevatorTeleportEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -182,6 +184,18 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
 
     @ParametersAreNonnullByDefault
     private void teleport(Player player, ElevatorFloor floor) {
+        /*
+         * Fire an ElevatorTeleportEvent before the teleport sequence starts.
+         * Cancellation leaves the floor selector open and never claims the
+         * Player in #users, so they may simply pick another floor.
+         */
+        ElevatorTeleportEvent event = new ElevatorTeleportEvent(player, floor);
+        Bukkit.getPluginManager().callEvent(event);
+
+        if (event.isCancelled()) {
+            return;
+        }
+
         Slimefun.runSync(() -> {
             users.add(player.getUniqueId());
 
