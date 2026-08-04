@@ -3,10 +3,12 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.KnowledgeFlaskFillEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -37,6 +39,13 @@ public class KnowledgeFlask extends SimpleSlimefunItem<ItemUseHandler> {
             Player p = e.getPlayer();
 
             if (p.getLevel() >= 1 && (e.getClickedBlock().isEmpty() || !(e.getClickedBlock().get().getType().isInteractable()))) {
+                KnowledgeFlaskFillEvent event = new KnowledgeFlaskFillEvent(p, this, e.getItem());
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
                 p.setLevel(p.getLevel() - 1);
 
                 ItemStack item = SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item();

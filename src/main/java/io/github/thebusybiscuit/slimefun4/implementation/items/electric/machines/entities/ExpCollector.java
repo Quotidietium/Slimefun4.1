@@ -7,6 +7,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -16,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.ExpCollectorCollectEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemHandler;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -145,6 +147,16 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
 
             if (getCharge(location) < getEnergyConsumption()) {
                 return;
+            }
+
+            // Exp Collectors at farms can collect an orb every tick, only allocate an event when someone listens
+            if (ExpCollectorCollectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                ExpCollectorCollectEvent event = new ExpCollectorCollectEvent(this, block, orb);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    continue;
+                }
             }
 
             experiencePoints = getStoredExperience(location) + orb.getExperience();
