@@ -34,4 +34,22 @@ interface SlimefunCraftingListener extends Listener {
         return item != null && !(item instanceof VanillaItem) && !item.isDisabled();
     }
 
+    /**
+     * Returns the first {@link ItemStack} whose {@link SlimefunItem} is not allowed in a
+     * vanilla workstation, or null if none qualifies. Guide items deliberately do not
+     * qualify here: they carry no {@link SlimefunItem} to expose on an event.
+     */
+    @Nullable
+    default ItemStack findUnallowedItem(@Nullable ItemStack... items) {
+        if (items != null) {
+            for (ItemStack item : items) {
+                if (isUnallowed(SlimefunItem.getByItem(item))) {
+                    return item;
+                }
+            }
+        }
+
+        return null;
+    }
+
 }

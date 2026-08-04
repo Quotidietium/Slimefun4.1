@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
@@ -10,6 +11,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunItemWorkstationEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -33,6 +35,17 @@ public class CartographyTableListener implements SlimefunCraftingListener {
             ItemStack item2 = e.getInventory().getContents()[1];
 
             if (hasUnallowedItems(item1, item2)) {
+                ItemStack unallowed = findUnallowedItem(item1, item2);
+
+                if (unallowed != null) {
+                    SlimefunItemWorkstationEvent event = new SlimefunItemWorkstationEvent(player, SlimefunItem.getByItem(unallowed), unallowed, SlimefunItemWorkstationEvent.Workstation.CARTOGRAPHY_TABLE);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+                }
+
                 e.setResult(Result.DENY);
                 Slimefun.getLocalization().sendMessage(player, "cartography_table.not-working", true);
             }

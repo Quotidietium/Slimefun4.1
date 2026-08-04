@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners.crafting;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
@@ -11,6 +12,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunItemWorkstationEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
@@ -41,6 +43,13 @@ public class CauldronListener implements SlimefunCraftingListener {
                     SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
                     if (isUnallowed(sfItem)) {
+                        SlimefunItemWorkstationEvent event = new SlimefunItemWorkstationEvent(e.getPlayer(), sfItem, item, SlimefunItemWorkstationEvent.Workstation.CAULDRON);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            return;
+                        }
+
                         e.setCancelled(true);
                         Slimefun.getLocalization().sendMessage(e.getPlayer(), "cauldron.no-discoloring");
                     }
