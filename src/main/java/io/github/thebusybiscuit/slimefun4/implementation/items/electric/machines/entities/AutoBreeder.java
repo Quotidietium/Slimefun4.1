@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machine
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.AutoBreedEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemHandler;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -121,6 +123,15 @@ public class AutoBreeder extends SlimefunItem implements InventoryBlock, EnergyN
                 if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFood, false)) {
                     if (getCharge(b.getLocation()) < ENERGY_CONSUMPTION) {
                         return;
+                    }
+
+                    if (AutoBreedEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        AutoBreedEvent event = new AutoBreedEvent(this, b, (Animals) n, inv.getItemInSlot(slot));
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            return;
+                        }
                     }
 
                     removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
