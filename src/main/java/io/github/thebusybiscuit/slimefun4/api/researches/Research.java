@@ -1,9 +1,15 @@
 package io.github.thebusybiscuit.slimefun4.api.researches;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
@@ -16,6 +22,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -49,6 +56,13 @@ public class Research implements Keyed {
     private int cost;
 
     private final List<SlimefunItem> items = new LinkedList<>();
+
+    /**
+     * The {@link Research Researches} that must be unlocked before this one can be unlocked
+     * via the in-game guide. This is empty by default, so every existing research behaves
+     * exactly as before (no gating, no overhead).
+     */
+    private final Set<Research> dependencies = new LinkedHashSet<>();
 
     /**
      * The constructor for a {@link Research}.
@@ -215,6 +229,173 @@ public class Research implements Keyed {
     }
 
     /**
+     * Adds a prerequisite {@link Research} that a player must unlock before they can unlock
+     * this {@link Research} through the in-game guide.
+     *
+     * <p>
+     * This enables add-ons to model research <b>trees</b> / tech prerequisites without having
+     * to reimplement the unlock flow. The check is enforced inside
+     * {@link #unlockFromGuide} and is a strict no-op for any {@link Research} without
+     * dependencies.
+     * </p>
+     *
+     * <p>
+     * Circular dependencies are detected and rejected with an {@link IllegalArgumentException}.
+     * </p>
+     *
+     * @param prerequisite
+     *            The {@link Research} that must be unlocked first
+     */
+    public void addDependency(@Nonnull Research prerequisite) {
+        Validate.notNull(prerequisite, "The prerequisite Research must not be null");
+        Validate.isTrue(prerequisite != this, "A Research cannot depend on itself!");
+
+        if (createsCycle(prerequisite)) {
+            throw new IllegalArgumentException("Adding this dependency would create a circular Research dependency!");
+        }
+
+        dependencies.add(prerequisite);
+    }
+
+    /**
+     * Removes a previously added prerequisite {@link Research}.
+     *
+     * @param prerequisite
+     *            The {@link Research} to remove from the prerequisites
+     */
+    public void removeDependency(@Nonnull Research prerequisite) {
+        Validate.notNull(prerequisite, "The prerequisite Research must not be null");
+        dependencies.remove(prerequisite);
+    }
+
+    /**
+     * Returns all prerequisite {@link Research Researches} that must be unlocked first.
+     *
+     * @return An unmodifiable {@link Set} of prerequisite {@link Research Researches}
+     */
+    @Nonnull
+    public Set<Research> getDependencies() {
+        return Collections.unmodifiableSet(dependencies);
+    }
+
+    /**
+     * Whether this {@link Research} has any prerequisite {@link Research Researches}.
+     *
+     * @return {@code true} if at least one prerequisite was registered
+     */
+    public boolean hasDependencies() {
+        return !dependencies.isEmpty();
+    }
+
+    /**
+     * Checks whether the given {@link Player} has unlocked every prerequisite
+     * {@link Research}.
+     *
+     * <p>
+     * If the player's {@link PlayerProfile} is not currently cached (e.g. they are offline
+     * and the profile was unloaded) this returns {@code true} so the unlock path never
+     * hard-fails due to a transiently unavailable profile - matching the lenient behaviour
+     * of the rest of the research system.
+     * </p>
+     *
+     * @param player
+     *            The {@link Player} to check
+     *
+     * @return {@code true} if all prerequisites are satisfied (or there are none)
+     */
+    public boolean meetsDependencies(@Nonnull OfflinePlayer player) {
+        Validate.notNull(player, "The player cannot be null");
+
+        if (dependencies.isEmpty()) {
+            return true;
+        }
+
+        Optional<PlayerProfile> profile = PlayerProfile.find(player);
+        return profile.isPresent() && meetsDependencies(profile.get());
+    }
+
+    /**
+     * Checks whether the given {@link PlayerProfile} has unlocked every prerequisite
+     * {@link Research}.
+     *
+     * @param profile
+     *            The {@link PlayerProfile} to check
+     *
+     * @return {@code true} if all prerequisites are satisfied (or there are none)
+     */
+    public boolean meetsDependencies(@Nonnull PlayerProfile profile) {
+        Validate.notNull(profile, "The PlayerProfile cannot be null");
+
+        for (Research prerequisite : dependencies) {
+            if (!profile.hasUnlocked(prerequisite)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns the first unsatisfied prerequisite, if any.
+     *
+     * <p>
+     * Convenience method for add-ons that want to surface <i>which</i> prerequisite is
+     * still missing (e.g. in a custom message).
+     * </p>
+     *
+     * @param profile
+     *            The {@link PlayerProfile} to check
+     *
+     * @return The first missing {@link Research}, or an empty {@link Optional}
+     */
+    @Nonnull
+    public Optional<Research> getFirstMissingDependency(@Nonnull PlayerProfile profile) {
+        Validate.notNull(profile, "The PlayerProfile cannot be null");
+
+        for (Research prerequisite : dependencies) {
+            if (!profile.hasUnlocked(prerequisite)) {
+                return Optional.of(prerequisite);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Depth-first search to detect whether adding {@code candidate} as a dependency of
+     * {@code this} would introduce a cycle, i.e. whether {@code candidate} (transitively)
+     * already depends on {@code this}.
+     *
+     * @param candidate
+     *            The {@link Research} we are about to add as a dependency
+     *
+     * @return {@code true} if a cycle would be created
+     */
+    private boolean createsCycle(@Nonnull Research candidate) {
+        Set<Research> visited = new HashSet<>();
+        Deque<Research> stack = new ArrayDeque<>();
+        stack.push(candidate);
+
+        while (!stack.isEmpty()) {
+            Research current = stack.pop();
+
+            if (!visited.add(current)) {
+                continue;
+            }
+
+            if (current == this) {
+                return true;
+            }
+
+            for (Research dep : current.dependencies) {
+                stack.push(dep);
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Handle what to do when a {@link Player} clicks on an un-researched item in
      * a {@link SlimefunGuideImplementation}.
      *
@@ -242,7 +423,11 @@ public class Research implements Keyed {
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (!event.isCancelled()) {
-                    if (this.canUnlock(player)) {
+                    if (!meetsDependencies(player)) {
+                        // A prerequisite research has not been unlocked yet. No-op for any
+                        // research without dependencies (meetsDependencies() returns true).
+                        Slimefun.getLocalization().sendMessage(player, "messages.locked-research", true);
+                    } else if (this.canUnlock(player)) {
                         guide.unlockItem(player, sfItem, pl -> guide.openItemGroup(profile, itemGroup, page));
                     } else {
                         Slimefun.getLocalization().sendMessage(player, "messages.not-enough-xp", true);

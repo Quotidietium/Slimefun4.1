@@ -149,6 +149,7 @@ actionbar:
 messages:
   not-researched: '&4你的知识还不足以理解这个物品. &c你需要先解锁 &f"%item%"&f'
   not-enough-xp: '&4你没有足够的经验来解锁这个研究'
+  locked-research: '&4你需要先解锁前置研究'
   unlocked: '&b成功解锁研究 &7"%research%"'
   only-players: '&4这个指令只能在游戏内使用'
   unknown-player: '&4未知玩家: &c%player%'
