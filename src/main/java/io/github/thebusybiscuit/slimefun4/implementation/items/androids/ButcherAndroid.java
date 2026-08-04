@@ -4,6 +4,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidAttackEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -65,11 +67,30 @@ public class ButcherAndroid extends ProgrammableAndroid {
                     continue;
                 }
 
+                AndroidInstance instance = new AndroidInstance(this, b);
+
+                /*
+                 * Fire an AndroidAttackEvent before damaging the entity. Cancellation
+                 * skips this entity and continues with the next facing one - the same
+                 * semantics as a protection denial above. Gated on registered listeners
+                 * to keep the default path allocation-free.
+                 */
+                if (AndroidAttackEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    AndroidAttackEvent event = new AndroidAttackEvent(instance, (LivingEntity) n, damage);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        continue;
+                    }
+
+                    damage = event.getDamage();
+                }
+
                 if (n.hasMetadata(METADATA_KEY)) {
                     n.removeMetadata(METADATA_KEY, Slimefun.instance());
                 }
 
-                n.setMetadata(METADATA_KEY, new FixedMetadataValue(Slimefun.instance(), new AndroidInstance(this, b)));
+                n.setMetadata(METADATA_KEY, new FixedMetadataValue(Slimefun.instance(), instance));
 
                 ((LivingEntity) n).damage(damage);
                 break;

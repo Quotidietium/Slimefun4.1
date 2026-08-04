@@ -4,6 +4,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
@@ -11,6 +12,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.collections.RandomizedSet;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidFishEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -61,6 +63,24 @@ public class FishermanAndroid extends ProgrammableAndroid {
 
             if (ThreadLocalRandom.current().nextInt(100) < 10 * getTier()) {
                 ItemStack drop = fishingLoot.getRandom();
+
+                /*
+                 * Fire an AndroidFishEvent before inserting the catch. Cancellation
+                 * discards the catch; listeners may also replace the drop to implement
+                 * custom loot tables. Gated on registered listeners to keep the
+                 * default path allocation-free.
+                 */
+                if (AndroidFishEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    AndroidFishEvent event = new AndroidFishEvent(new AndroidInstance(this, b), drop.clone());
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+
+                    drop = event.getDrop();
+                }
+
                 menu.pushItem(drop.clone(), getOutputSlots());
             }
         }
