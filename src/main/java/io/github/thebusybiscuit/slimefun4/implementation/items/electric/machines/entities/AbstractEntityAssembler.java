@@ -5,6 +5,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -18,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.AsyncEntityAssembleEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.BlockPlacerPlaceEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -206,6 +208,15 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
                     boolean hasHead = findResource(menu, getHead(), headSlots);
 
                     if (hasBody && hasHead) {
+                        if (AsyncEntityAssembleEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                            AsyncEntityAssembleEvent event = new AsyncEntityAssembleEvent(AbstractEntityAssembler.this, b);
+                            Bukkit.getPluginManager().callEvent(event);
+
+                            if (event.isCancelled()) {
+                                return;
+                            }
+                        }
+
                         consumeResources(menu);
 
                         removeCharge(b.getLocation(), getEnergyConsumption());
