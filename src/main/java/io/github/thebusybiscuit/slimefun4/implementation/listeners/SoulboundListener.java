@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +15,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SoulboundItemsKeepEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SoulboundItemsReturnEvent;
 import io.github.thebusybiscuit.slimefun4.core.attributes.Soulbound;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
@@ -53,6 +56,18 @@ public class SoulboundListener implements Listener {
 
         Map<Integer, ItemStack> items = new HashMap<>();
         Player p = e.getEntity();
+
+        /*
+         * Fire a SoulboundItemsKeepEvent before anything is stored or stripped.
+         * Cancellation disables the soulbound behavior for this death entirely:
+         * every item drops normally and nothing is returned on respawn.
+         */
+        SoulboundItemsKeepEvent keepEvent = new SoulboundItemsKeepEvent(p, e);
+        Bukkit.getPluginManager().callEvent(keepEvent);
+
+        if (keepEvent.isCancelled()) {
+            return;
+        }
 
         for (int slot = 0; slot < p.getInventory().getSize(); slot++) {
             ItemStack item = p.getInventory().getItem(slot);
@@ -116,6 +131,9 @@ public class SoulboundListener implements Listener {
                     p.getInventory().setItem(entry.getKey(), entry.getValue());
                 }
             }
+
+            // Notify addons that the stored soulbound items were returned
+            Bukkit.getPluginManager().callEvent(new SoulboundItemsReturnEvent(p, items));
         }
     }
 }
