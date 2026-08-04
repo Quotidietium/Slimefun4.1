@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Furnace;
@@ -15,6 +16,8 @@ import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.EnhancedFurnaceBurnEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.EnhancedFurnaceSmeltEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.blocks.EnhancedFurnace;
@@ -52,6 +55,13 @@ public class EnhancedFurnaceListener implements Listener {
             && !enhancedFurnace.isDisabledIn(e.getBlock().getWorld())
             && enhancedFurnace.getFuelEfficiency() > 0
         ) {
+            EnhancedFurnaceBurnEvent event = new EnhancedFurnaceBurnEvent(enhancedFurnace, e.getBlock(), e);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return;
+            }
+
             int burnTime = e.getBurnTime();
             int newBurnTime = enhancedFurnace.getFuelEfficiency() * burnTime;
 
@@ -95,6 +105,14 @@ public class EnhancedFurnaceListener implements Listener {
                         // survives - a plain new ItemStack(type, amount) would strip it.
                         ItemStack newResult = item.clone();
                         newResult.setAmount(amount);
+
+                        EnhancedFurnaceSmeltEvent event = new EnhancedFurnaceSmeltEvent(enhancedFurnace, e.getBlock(), e, amount);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            return;
+                        }
+
                         e.setResult(newResult);
                     }
                 }
