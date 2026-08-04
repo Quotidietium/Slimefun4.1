@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
@@ -16,6 +17,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerInteractEvent;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBootsFallEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.armor.EnderBoots;
@@ -65,6 +67,16 @@ public class SlimefunBootsListener implements Listener {
                 // Check if the boots were researched
                 if (!boots.canUse(p, true)) {
                     return;
+                }
+
+                if (boots instanceof StomperBoots || boots instanceof LongFallBoots) {
+                    SlimefunBootsFallEvent event = new SlimefunBootsFallEvent(p, boots, e);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // The protection is skipped: the Player takes the fall damage normally
+                        return;
+                    }
                 }
 
                 if (boots instanceof StomperBoots stomperBoots) {
