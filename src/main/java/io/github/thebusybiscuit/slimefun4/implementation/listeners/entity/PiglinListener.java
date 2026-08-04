@@ -6,6 +6,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 
 import org.bukkit.Material;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Piglin;
 import org.bukkit.entity.Player;
@@ -17,6 +18,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.PiglinBarterDropEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.PiglinBarterDrop;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -96,6 +98,14 @@ public class PiglinListener implements Listener {
                     if (chance < 1 || chance >= 100) {
                         sfi.warn("The Piglin Bartering chance must be between 1-99% on item: " + sfi.getId());
                     } else if (chance > ThreadLocalRandom.current().nextInt(100)) {
+                        PiglinBarterDropEvent event = new PiglinBarterDropEvent((Piglin) e.getEntity(), e.getItemDrop(), sfi, chance);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // The Piglin keeps its vanilla drop, no further items are tried
+                            return;
+                        }
+
                         e.getItemDrop().setItemStack(sfi.getRecipeOutput());
                         return;
                     }
