@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncMachineOperationFinishEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AsyncMachineOperationStartEvent;
 import io.github.thebusybiscuit.slimefun4.core.attributes.MachineProcessHolder;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 
@@ -131,6 +132,21 @@ public class MachineProcessor<T extends MachineOperation> {
     public boolean startOperation(@Nonnull BlockPosition pos, @Nonnull T operation) {
         Validate.notNull(pos, "The BlockPosition must not be null");
         Validate.notNull(operation, "The machine operation cannot be null");
+
+        /*
+         * Fire an AsyncMachineOperationStartEvent before registering the operation.
+         * Cancellation prevents the operation from being started. The check for
+         * registered listeners keeps the hot path allocation-free when no addon
+         * listens for this event (identical to the previous behavior).
+         */
+        if (AsyncMachineOperationStartEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AsyncMachineOperationStartEvent event = new AsyncMachineOperationStartEvent(pos, this, operation);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return false;
+            }
+        }
 
         return machines.putIfAbsent(pos, operation) == null;
     }
