@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners.entity;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -10,6 +11,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunEntityInteractEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemState;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.EntityInteractHandler;
@@ -48,6 +50,14 @@ public class EntityInteractionListener implements Listener {
 
         if (sfItem != null) {
             if (sfItem.canUse(e.getPlayer(), true)) {
+                SlimefunEntityInteractEvent interactEvent = new SlimefunEntityInteractEvent(e.getPlayer(), sfItem, itemStack, e);
+                Bukkit.getPluginManager().callEvent(interactEvent);
+
+                if (interactEvent.isCancelled()) {
+                    e.setCancelled(true);
+                    return;
+                }
+
                 sfItem.callItemHandler(EntityInteractHandler.class, handler -> handler.onInteract(e, itemStack, e.getHand() == EquipmentSlot.OFF_HAND));
             } else if (sfItem.getState() != ItemState.VANILLA_FALLBACK) {
                 /*
