@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -27,6 +28,8 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import io.github.thebusybiscuit.slimefun4.api.events.PlayerBackpackCloseEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.PlayerBackpackOpenEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerBackpack;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
@@ -61,21 +64,22 @@ public class BackpackListener implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
         Player p = (Player) e.getPlayer();
+        ItemStack backpack = markBackpackDirty(p);
 
-        if (markBackpackDirty(p)) {
+        if (backpack != null) {
+            Bukkit.getPluginManager().callEvent(new PlayerBackpackCloseEvent(p, backpack));
             SoundEffect.BACKPACK_CLOSE_SOUND.playFor(p);
         }
     }
 
-    private boolean markBackpackDirty(@Nonnull Player p) {
+    private @Nullable ItemStack markBackpackDirty(@Nonnull Player p) {
         ItemStack backpack = backpacks.remove(p.getUniqueId());
 
         if (backpack != null) {
             PlayerProfile.getBackpack(backpack, PlayerBackpack::markDirty);
-            return true;
-        } else {
-            return false;
         }
+
+        return backpack;
     }
 
     @EventHandler
@@ -229,7 +233,7 @@ public class BackpackListener implements Listener {
              * If the current Player is already viewing a backpack (for whatever reason),
              * terminate that view.
              */
-            if (markBackpackDirty(p)) {
+            if (markBackpackDirty(p) != null) {
                 p.closeInventory();
             }
 
@@ -242,6 +246,18 @@ public class BackpackListener implements Listener {
                     if (backpack != null && (p.getUniqueId().equals(backpack.getOwnerId()) || p.hasPermission("slimefun.inventory.bypass"))) {
                         Slimefun.runSync(() -> {
                             if (p.isOnline()) {
+                                /*
+                                 * Fire a PlayerBackpackOpenEvent before claiming the view.
+                                 * Cancellation prevents the backpack from opening: no sound,
+                                 * no view tracking and no inventory.
+                                 */
+                                PlayerBackpackOpenEvent event = new PlayerBackpackOpenEvent(p, item, backpack);
+                                Bukkit.getPluginManager().callEvent(event);
+
+                                if (event.isCancelled()) {
+                                    return;
+                                }
+
                                 SoundEffect.BACKPACK_OPEN_SOUND.playAt(p.getLocation(), SoundCategory.PLAYERS);
                                 backpacks.put(p.getUniqueId(), item);
                                 backpack.open(p);
