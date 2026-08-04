@@ -2,12 +2,14 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunItemConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.ItemConsumptionHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -33,7 +35,15 @@ public class SlimefunItemConsumeListener implements Listener {
 
         if (sfItem != null) {
             if (sfItem.canUse(p, true)) {
-                sfItem.callItemHandler(ItemConsumptionHandler.class, handler -> handler.onConsume(e, p, item));
+                // Fire a cancellable, cross-cutting event before the per-item handler runs.
+                // Cancellation propagates to the underlying PlayerItemConsumeEvent (nothing is eaten)
+                // and the ItemConsumptionHandler is skipped.
+                SlimefunItemConsumeEvent consumeEvent = new SlimefunItemConsumeEvent(p, sfItem, item, e);
+                Bukkit.getPluginManager().callEvent(consumeEvent);
+
+                if (!consumeEvent.isCancelled()) {
+                    sfItem.callItemHandler(ItemConsumptionHandler.class, handler -> handler.onConsume(e, p, item));
+                }
             } else {
                 e.setCancelled(true);
             }
