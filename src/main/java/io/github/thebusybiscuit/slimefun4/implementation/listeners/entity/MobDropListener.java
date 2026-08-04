@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,6 +13,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunEntityKillEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunMobDropEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.RandomMobDrop;
@@ -46,7 +49,17 @@ public class MobDropListener implements Listener {
             if (customDrops != null && !customDrops.isEmpty()) {
                 for (ItemStack drop : customDrops) {
                     if (canDrop(p, drop)) {
-                        e.getDrops().add(drop.clone());
+                        /*
+                         * Fire a SlimefunMobDropEvent before adding the custom drop.
+                         * Cancellation skips just this drop; permission checks and
+                         * RandomMobDrop chance rolls above are unaffected.
+                         */
+                        SlimefunMobDropEvent dropEvent = new SlimefunMobDropEvent(p, e.getEntity(), drop, e);
+                        Bukkit.getPluginManager().callEvent(dropEvent);
+
+                        if (!dropEvent.isCancelled()) {
+                            e.getDrops().add(drop.clone());
+                        }
                     }
                 }
             }
@@ -55,7 +68,18 @@ public class MobDropListener implements Listener {
                 SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
                 if (sfItem != null && sfItem.canUse(p, true)) {
-                    sfItem.callItemHandler(EntityKillHandler.class, handler -> handler.onKill(e, e.getEntity(), p, item));
+                    /*
+                     * Fire a SlimefunEntityKillEvent before invoking the item's
+                     * EntityKillHandler. Cancellation skips the handler (e.g. the
+                     * Sword of Beheading would not drop a head) without affecting
+                     * the underlying EntityDeathEvent.
+                     */
+                    SlimefunEntityKillEvent killEvent = new SlimefunEntityKillEvent(p, e.getEntity(), sfItem, item, e);
+                    Bukkit.getPluginManager().callEvent(killEvent);
+
+                    if (!killEvent.isCancelled()) {
+                        sfItem.callItemHandler(EntityKillHandler.class, handler -> handler.onKill(e, e.getEntity(), p, item));
+                    }
                 }
             }
         }
