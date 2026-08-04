@@ -15,12 +15,15 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.thebusybiscuit.slimefun4.api.ErrorReport;
+import io.github.thebusybiscuit.slimefun4.api.events.EnergyGenerateEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.EnergyNetTickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.network.Network;
 import io.github.thebusybiscuit.slimefun4.api.network.NetworkComponent;
@@ -261,6 +264,12 @@ public class EnergyNet extends Network implements HologramOwner {
 
             storeRemainingEnergy(remainingEnergy);
             updateHologram(b, supply, demand);
+
+            // On-demand telemetry hook: expose the settled supply/demand. Zero-cost when no
+            // listener is registered.
+            if (EnergyNetTickEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                Bukkit.getPluginManager().callEvent(new EnergyNetTickEvent(this, b, supply, demand));
+            }
         }
 
         // We have subtracted the timings from Generators, so they do not show up twice.
@@ -359,7 +368,18 @@ public class EnergyNet extends Network implements HologramOwner {
                         loc.getWorld().createExplosion(loc, 0F, false);
                     });
                 } else {
-                    supply = NumberUtils.flowSafeAddition(supply, energy);
+                    int contributed = energy;
+
+                    // On-demand hook: let add-ons modify or veto this generator's contribution.
+                    // getRegisteredListeners() is a cheap static-array lookup, so there is no
+                    // overhead when nobody is listening.
+                    if (EnergyGenerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        EnergyGenerateEvent generateEvent = new EnergyGenerateEvent(provider, loc, contributed);
+                        Bukkit.getPluginManager().callEvent(generateEvent);
+                        contributed = generateEvent.isCancelled() ? 0 : generateEvent.getEnergy();
+                    }
+
+                    supply = NumberUtils.flowSafeAddition(supply, contributed);
                 }
 
                 // It worked - allow a fresh ErrorReport if it fails again later
