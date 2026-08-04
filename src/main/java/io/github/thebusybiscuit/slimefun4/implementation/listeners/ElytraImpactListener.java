@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -15,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 
+import io.github.thebusybiscuit.slimefun4.api.events.ElytraImpactEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.attributes.DamageableItem;
@@ -78,6 +80,14 @@ public class ElytraImpactListener implements Listener {
                 SlimefunItem item = helmet.get();
 
                 if (item.canUse(p, true) && profile.hasFullProtectionAgainst(ProtectionType.FLYING_INTO_WALL)) {
+                    ElytraImpactEvent event = new ElytraImpactEvent(p, helmet.get(), e);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // The protection is skipped: the Player takes the damage normally
+                        return;
+                    }
+
                     SoundEffect.ELYTRA_CAP_IMPACT_SOUND.playFor(p);
                     e.setCancelled(true);
 
