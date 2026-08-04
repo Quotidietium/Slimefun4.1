@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -9,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunItemDamageEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.WeaponUseHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -40,7 +42,15 @@ public class SlimefunItemHitListener implements Listener {
             SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
             if (sfItem != null && sfItem.canUse(p, true)) {
-                sfItem.callItemHandler(WeaponUseHandler.class, handler -> handler.onHit(e, p, item));
+                // Fire a cancellable, damage-modifiable event before any on-hit handler runs.
+                // Cancellation propagates to the underlying Bukkit event (the damage is prevented)
+                // and the WeaponUseHandler is skipped, since no hit landed.
+                SlimefunItemDamageEvent damageEvent = new SlimefunItemDamageEvent(p, e.getEntity(), sfItem, item, e);
+                Bukkit.getPluginManager().callEvent(damageEvent);
+
+                if (!damageEvent.isCancelled()) {
+                    sfItem.callItemHandler(WeaponUseHandler.class, handler -> handler.onHit(e, p, item));
+                }
             }
         }
     }

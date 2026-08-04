@@ -18,6 +18,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBowShootEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BowShootHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -66,7 +67,14 @@ public class SlimefunBowListener implements Listener {
             SlimefunItem bow = SlimefunItem.getByItem(e.getBow());
 
             if (bow instanceof SlimefunBow slimefunBow) {
-                projectiles.put(e.getProjectile().getUniqueId(), slimefunBow);
+                SlimefunBowShootEvent shootEvent = new SlimefunBowShootEvent((Player) e.getEntity(), slimefunBow, e.getBow(), (Arrow) e.getProjectile(), e);
+                Bukkit.getPluginManager().callEvent(shootEvent);
+
+                // Only track the shot (and thus invoke BowShootHandler on hit) when not suppressed.
+                // The arrow still flies regardless - we never touch the underlying Bukkit event.
+                if (!shootEvent.isCancelled()) {
+                    projectiles.put(e.getProjectile().getUniqueId(), slimefunBow);
+                }
             }
         }
     }
