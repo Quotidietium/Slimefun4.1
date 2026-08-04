@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Bee;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,6 +13,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.BeeStingProtectionEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.attributes.ProtectionType;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -43,6 +45,15 @@ public class BeeListener implements Listener {
             PlayerProfile profile = optional.get();
 
             if (profile.hasFullProtectionAgainst(ProtectionType.BEES)) {
+                if (BeeStingProtectionEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    BeeStingProtectionEvent event = new BeeStingProtectionEvent(p, (Bee) e.getDamager(), e);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+                }
+
                 for (ItemStack armor : p.getInventory().getArmorContents()) {
                     if (armor != null) {
                         ItemUtils.damageItem(armor, 1, false);
