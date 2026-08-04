@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -17,6 +18,7 @@ import org.bukkit.block.data.Levelled;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.blocks.Vein;
+import io.github.thebusybiscuit.slimefun4.api.events.FluidPumpCollectEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -140,6 +142,10 @@ public class FluidPump extends SimpleSlimefunItem<BlockTicker> implements Invent
                     Block nextFluid = findNextFluid(fluid);
 
                     if (nextFluid != null) {
+                        if (fireCollectEvent(b, nextFluid, bucket)) {
+                            return;
+                        }
+
                         removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
                         menu.consumeItem(slot);
                         menu.pushItem(bucket, getOutputSlots());
@@ -157,6 +163,10 @@ public class FluidPump extends SimpleSlimefunItem<BlockTicker> implements Invent
                     Block nextFluid = findNextFluid(fluid);
 
                     if (nextFluid != null) {
+                        if (fireCollectEvent(b, nextFluid, bottle)) {
+                            return;
+                        }
+
                         removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
                         menu.consumeItem(slot);
                         menu.pushItem(bottle, getOutputSlots());
@@ -170,6 +180,22 @@ public class FluidPump extends SimpleSlimefunItem<BlockTicker> implements Invent
                 }
             }
         }
+    }
+
+    /**
+     * Fires a {@link FluidPumpCollectEvent} for the upcoming pumping operation, gated on
+     * registered listeners to keep this per-tick path allocation-free by default.
+     *
+     * @return Whether the operation was cancelled by a listener
+     */
+    private boolean fireCollectEvent(@Nonnull Block b, @Nonnull Block fluid, @Nonnull ItemStack filledContainer) {
+        if (FluidPumpCollectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            FluidPumpCollectEvent event = new FluidPumpCollectEvent(this, b, fluid, filledContainer);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     @Nullable
