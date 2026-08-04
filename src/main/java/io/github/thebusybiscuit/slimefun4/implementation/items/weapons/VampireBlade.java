@@ -14,6 +14,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.settings.IntRangeSetting;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.core.attributes.SlimefunWeapon;
 import io.github.thebusybiscuit.slimefun4.core.handlers.WeaponUseHandler;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
@@ -26,7 +27,7 @@ import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedAttribute
  * @author TheBusyBiscuit
  *
  */
-public class VampireBlade extends SimpleSlimefunItem<WeaponUseHandler> {
+public class VampireBlade extends SimpleSlimefunItem<WeaponUseHandler> implements SlimefunWeapon {
 
     private static final double HEALING_AMOUNT = 4.0;
 

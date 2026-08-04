@@ -10,6 +10,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.core.attributes.SlimefunWeapon;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BowShootHandler;
 
 /**
@@ -20,7 +21,7 @@ import io.github.thebusybiscuit.slimefun4.core.handlers.BowShootHandler;
  * @author TheBusyBiscuit
  *
  */
-public abstract class SlimefunBow extends SlimefunItem {
+public abstract class SlimefunBow extends SlimefunItem implements SlimefunWeapon {
 
     @ParametersAreNonnullByDefault
     protected SlimefunBow(ItemGroup itemGroup, SlimefunItemStack item, ItemStack[] recipe) {

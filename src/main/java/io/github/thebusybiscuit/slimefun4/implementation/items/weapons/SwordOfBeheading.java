@@ -23,6 +23,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.settings.IntRangeSetting;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.core.attributes.SlimefunWeapon;
 import io.github.thebusybiscuit.slimefun4.core.handlers.EntityKillHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
@@ -39,7 +40,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunIte
  * @author TheBusyBiscuit
  *
  */
-public class SwordOfBeheading extends SimpleSlimefunItem<EntityKillHandler> {
+public class SwordOfBeheading extends SimpleSlimefunItem<EntityKillHandler> implements SlimefunWeapon {
 
     private final ItemSetting<Integer> chanceZombie = new IntRangeSetting(this, "chance.ZOMBIE", 0, 40, 100);
     private final ItemSetting<Integer> chanceSkeleton = new IntRangeSetting(this, "chance.SKELETON", 0, 40, 100);
