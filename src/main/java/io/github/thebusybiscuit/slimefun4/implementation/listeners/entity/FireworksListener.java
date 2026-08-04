@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners.entity;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
@@ -10,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.meta.FireworkMeta;
 
+import io.github.thebusybiscuit.slimefun4.api.events.ResearchFireworkDamageEvent;
 import io.github.thebusybiscuit.slimefun4.api.researches.Research;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -38,6 +40,15 @@ public class FireworksListener implements Listener {
               Entity display names do not work either as Firework cannot be named.
              */
             if (meta.hasDisplayName() && meta.getDisplayName().equals(ChatColor.GREEN + "Slimefun Research")) {
+                if (ResearchFireworkDamageEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    ResearchFireworkDamageEvent event = new ResearchFireworkDamageEvent(firework, e.getEntity(), e);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+                }
+
                 e.setCancelled(true);
             }
         }
