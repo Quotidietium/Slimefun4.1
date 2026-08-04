@@ -1,5 +1,8 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.accelerators;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
@@ -8,6 +11,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.AnimalAccelerateEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -52,6 +56,10 @@ public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
                         return;
                     }
 
+                    if (isAccelerationBlocked(b, (Ageable) n, inv.getItemInSlot(slot))) {
+                        break;
+                    }
+
                     Ageable ageable = (Ageable) n;
                     removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
                     inv.consumeItem(slot);
@@ -66,6 +74,22 @@ public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
                 }
             }
         }
+    }
+
+    /**
+     * Fires an {@link AnimalAccelerateEvent} if any listener is registered and returns
+     * whether the acceleration of this animal was cancelled. Without listeners this
+     * costs nothing and the old behavior is preserved.
+     */
+    @ParametersAreNonnullByDefault
+    private boolean isAccelerationBlocked(Block machine, Ageable animal, ItemStack food) {
+        if (AnimalAccelerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AnimalAccelerateEvent event = new AnimalAccelerateEvent(this, machine, animal, food);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     private boolean isReadyToGrow(Entity n, OfflinePlayer owner) {
