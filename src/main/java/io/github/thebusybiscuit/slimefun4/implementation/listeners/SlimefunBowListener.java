@@ -18,6 +18,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBowHitEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBowShootEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BowShootHandler;
@@ -90,10 +91,22 @@ public class SlimefunBowListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onArrowSuccessfulHit(EntityDamageByEntityEvent e) {
-        if (e.getDamager() instanceof Arrow && e.getEntity() instanceof LivingEntity && e.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
+        if (e.getDamager() instanceof Arrow arrow && e.getEntity() instanceof LivingEntity && e.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
             SlimefunBow bow = projectiles.remove(e.getDamager().getUniqueId());
 
             if (!e.isCancelled() && bow != null) {
+                // Only arrows fired by Players are tracked, so the shooter should be a Player here.
+                // If it somehow is not (e.g. the shooter logged out in the meantime), the event is
+                // skipped but the handler still runs, preserving the previous behaviour.
+                if (arrow.getShooter() instanceof Player shooter) {
+                    SlimefunBowHitEvent hitEvent = new SlimefunBowHitEvent(shooter, bow, arrow, (LivingEntity) e.getEntity(), e);
+                    Bukkit.getPluginManager().callEvent(hitEvent);
+
+                    if (hitEvent.isCancelled()) {
+                        return;
+                    }
+                }
+
                 bow.callItemHandler(BowShootHandler.class, handler -> handler.onHit(e, (LivingEntity) e.getEntity()));
             }
         }
