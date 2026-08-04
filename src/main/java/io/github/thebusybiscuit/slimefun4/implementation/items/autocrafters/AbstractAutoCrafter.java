@@ -12,6 +12,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -28,6 +29,8 @@ import io.github.bakedlibs.dough.data.persistent.PersistentDataAPI;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.AutoCrafterCraftCompleteEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AutoCrafterCraftEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemState;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -178,7 +181,23 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
             if (state instanceof InventoryHolder inventoryHolder) {
                 Inventory inv = inventoryHolder.getInventory();
 
+                // Auto Crafters can tick very frequently, only allocate an event when someone listens
+                if (AutoCrafterCraftEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    AutoCrafterCraftEvent event = new AutoCrafterCraftEvent(this, b, inv, recipe);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+                }
+
                 if (craft(inv, recipe)) {
+                    // Notify listeners about the completed craft before the side effects
+                    if (AutoCrafterCraftCompleteEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        AutoCrafterCraftCompleteEvent event = new AutoCrafterCraftCompleteEvent(this, b, inv, recipe);
+                        Bukkit.getPluginManager().callEvent(event);
+                    }
+
                     // We are done crafting!
                     Location loc = b.getLocation().add(0.5, 0.8, 0.5);
                     b.getWorld().spawnParticle(VersionedParticle.HAPPY_VILLAGER, loc, 6);
