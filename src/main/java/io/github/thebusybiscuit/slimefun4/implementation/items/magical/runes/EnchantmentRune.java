@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SoundCategory;
@@ -21,6 +22,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.EnchantmentRuneApplyEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -135,6 +137,16 @@ public class EnchantmentRune extends SimpleSlimefunItem<ItemDropHandler> {
             int level = getRandomlevel(enchantment);
 
             if (itemStack.getAmount() == 1) {
+                EnchantmentRuneApplyEvent event = new EnchantmentRuneApplyEvent(p, rune, item, itemStack, enchantment, level);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                Enchantment appliedEnchantment = event.getEnchantment();
+                int appliedLevel = event.getLevel();
+
                 // This lightning is just an effect, it deals no damage.
                 l.getWorld().strikeLightningEffect(l);
 
@@ -148,7 +160,7 @@ public class EnchantmentRune extends SimpleSlimefunItem<ItemDropHandler> {
                         item.remove();
                         rune.remove();
 
-                        itemStack.addEnchantment(enchantment, level);
+                        itemStack.addEnchantment(appliedEnchantment, appliedLevel);
                         l.getWorld().dropItemNaturally(l, itemStack);
 
                         Slimefun.getLocalization().sendMessage(p, "messages.enchantment-rune.success", true);

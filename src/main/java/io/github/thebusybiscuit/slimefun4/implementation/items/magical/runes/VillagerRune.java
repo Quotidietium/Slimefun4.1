@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.VillagerRuneResetEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -48,6 +50,13 @@ public class VillagerRune extends SimpleSlimefunItem<EntityInteractHandler> {
 
             if (e.getRightClicked() instanceof Villager villager) {
                 if (villager.getProfession() == Profession.NONE || villager.getProfession() == Profession.NITWIT) {
+                    return;
+                }
+
+                VillagerRuneResetEvent event = new VillagerRuneResetEvent(e.getPlayer(), villager, item);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
                     return;
                 }
 
