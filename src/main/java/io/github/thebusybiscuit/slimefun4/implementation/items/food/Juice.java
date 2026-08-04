@@ -18,6 +18,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.core.attributes.SlimefunFood;
 import io.github.thebusybiscuit.slimefun4.core.handlers.ItemConsumptionHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.items.backpacks.Cooler;
@@ -34,7 +35,7 @@ import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
  * @see CoolerListener
  *
  */
-public class Juice extends SimpleSlimefunItem<ItemConsumptionHandler> {
+public class Juice extends SimpleSlimefunItem<ItemConsumptionHandler> implements SlimefunFood {
 
     private final List<PotionEffect> effects;
 

@@ -10,6 +10,7 @@ import org.bukkit.potion.PotionEffectType;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.core.attributes.SlimefunFood;
 import io.github.thebusybiscuit.slimefun4.core.handlers.ItemConsumptionHandler;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -25,7 +26,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunIte
  * @see ItemConsumptionHandler
  *
  */
-public class DietCookie extends SimpleSlimefunItem<ItemConsumptionHandler> {
+public class DietCookie extends SimpleSlimefunItem<ItemConsumptionHandler> implements SlimefunFood {
 
     @ParametersAreNonnullByDefault
     public DietCookie(ItemGroup itemGroup, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {

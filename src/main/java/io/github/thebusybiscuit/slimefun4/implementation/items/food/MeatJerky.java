@@ -9,6 +9,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.settings.IntRangeSetting;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.core.attributes.SlimefunFood;
 import io.github.thebusybiscuit.slimefun4.core.handlers.ItemConsumptionHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
 
@@ -21,7 +22,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunIte
  * @see MonsterJerky
  *
  */
-public class MeatJerky extends SimpleSlimefunItem<ItemConsumptionHandler> {
+public class MeatJerky extends SimpleSlimefunItem<ItemConsumptionHandler> implements SlimefunFood {
 
     private final ItemSetting<Integer> saturation = new IntRangeSetting(this, "saturation-level", 0, 6, Integer.MAX_VALUE);
 
