@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Bat;
@@ -28,6 +29,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import io.github.thebusybiscuit.slimefun4.api.events.GrapplingHookPullEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.tools.GrapplingHook;
@@ -160,37 +162,47 @@ public class GrapplingHookListener implements Listener {
                 Location target = arrow.getLocation();
                 hook.drop(target);
 
-                Vector velocity = new Vector(0.0, 0.2, 0.0);
+                /*
+                 * Fire a GrapplingHookPullEvent before pulling the Player. Cancellation
+                 * skips only the pull (teleport + velocity); the hook is still dropped
+                 * above and cleaned up below, as usual.
+                 */
+                GrapplingHookPullEvent pullEvent = new GrapplingHookPullEvent(player, arrow, target);
+                Bukkit.getPluginManager().callEvent(pullEvent);
 
-                // The player may have changed worlds (e.g. via teleport/portal) between firing
-                // the grappling hook and the arrow landing. Location.distance() throws an
-                // IllegalArgumentException across worlds, so we only compute a pull when both
-                // are still in the same world.
-                if (player.getWorld().equals(target.getWorld())) {
-                    if (player.getLocation().distance(target) < 3.0) {
-                        if (target.getY() <= player.getLocation().getY()) {
-                            velocity = target.toVector().subtract(player.getLocation().toVector());
+                if (!pullEvent.isCancelled()) {
+                    Vector velocity = new Vector(0.0, 0.2, 0.0);
+
+                    // The player may have changed worlds (e.g. via teleport/portal) between firing
+                    // the grappling hook and the arrow landing. Location.distance() throws an
+                    // IllegalArgumentException across worlds, so we only compute a pull when both
+                    // are still in the same world.
+                    if (player.getWorld().equals(target.getWorld())) {
+                        if (player.getLocation().distance(target) < 3.0) {
+                            if (target.getY() <= player.getLocation().getY()) {
+                                velocity = target.toVector().subtract(player.getLocation().toVector());
+                            }
+                        } else {
+                            Location l = player.getLocation();
+                            l.setY(l.getY() + 0.5);
+                            player.teleport(l);
+
+                            double g = -0.08;
+                            double d = target.distance(l);
+                            double t = d;
+                            double vX = (1.0 + 0.08 * t) * (target.getX() - l.getX()) / t;
+                            double vY = (1.0 + 0.04 * t) * (target.getY() - l.getY()) / t - 0.5D * g * t;
+                            double vZ = (1.0 + 0.08 * t) * (target.getZ() - l.getZ()) / t;
+
+                            velocity = player.getVelocity();
+                            velocity.setX(vX);
+                            velocity.setY(vY);
+                            velocity.setZ(vZ);
                         }
-                    } else {
-                        Location l = player.getLocation();
-                        l.setY(l.getY() + 0.5);
-                        player.teleport(l);
-
-                        double g = -0.08;
-                        double d = target.distance(l);
-                        double t = d;
-                        double vX = (1.0 + 0.08 * t) * (target.getX() - l.getX()) / t;
-                        double vY = (1.0 + 0.04 * t) * (target.getY() - l.getY()) / t - 0.5D * g * t;
-                        double vZ = (1.0 + 0.08 * t) * (target.getZ() - l.getZ()) / t;
-
-                        velocity = player.getVelocity();
-                        velocity.setX(vX);
-                        velocity.setY(vY);
-                        velocity.setZ(vZ);
                     }
-                }
 
-                player.setVelocity(velocity);
+                    player.setVelocity(velocity);
+                }
 
                 hook.remove();
                 Slimefun.runSync(() -> activeHooks.remove(player.getUniqueId()), 20L);
