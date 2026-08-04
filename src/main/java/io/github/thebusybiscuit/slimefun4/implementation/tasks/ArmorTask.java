@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunArmorEffectEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.HashedArmorpiece;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -114,11 +115,27 @@ public class ArmorTask implements Runnable {
             if (item != null && armorpiece.getItem().isPresent()) {
                 Slimefun.runSync(() -> {
                     SlimefunArmorPiece slimefunArmor = armorpiece.getItem().get();
+                    PotionEffect[] effects = slimefunArmor.getPotionEffects();
 
                     if (slimefunArmor.canUse(p, true)) {
-                        for (PotionEffect effect : slimefunArmor.getPotionEffects()) {
-                            p.removePotionEffect(effect.getType());
-                            p.addPotionEffect(effect);
+                        if (effects.length > 0) {
+                            /*
+                             * Keep the legacy pipeline consistent with SlimefunArmorTask:
+                             * fire a SlimefunArmorEffectEvent, gated on registered listeners.
+                             */
+                            if (SlimefunArmorEffectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                                SlimefunArmorEffectEvent event = new SlimefunArmorEffectEvent(p, slimefunArmor, item, effects);
+                                Bukkit.getPluginManager().callEvent(event);
+
+                                if (event.isCancelled()) {
+                                    return;
+                                }
+                            }
+
+                            for (PotionEffect effect : effects) {
+                                p.removePotionEffect(effect.getType());
+                                p.addPotionEffect(effect);
+                            }
                         }
                     }
                 });

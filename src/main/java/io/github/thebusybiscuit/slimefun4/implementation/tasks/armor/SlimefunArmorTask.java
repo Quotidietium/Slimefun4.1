@@ -2,10 +2,12 @@ package io.github.thebusybiscuit.slimefun4.implementation.tasks.armor;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunArmorEffectEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.HashedArmorpiece;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
@@ -71,7 +73,29 @@ public class SlimefunArmorTask extends AbstractArmorTask {
      */
     @ParametersAreNonnullByDefault
     protected void onArmorPieceTick(Player p, SlimefunArmorPiece sfArmorPiece, ItemStack armorPiece) {
-        for (PotionEffect effect : sfArmorPiece.getPotionEffects()) {
+        PotionEffect[] effects = sfArmorPiece.getPotionEffects();
+
+        if (effects.length == 0) {
+            // Nothing to apply - do not spam events for effect-less armor (e.g. Hazmat)
+            return;
+        }
+
+        /*
+         * Fire a SlimefunArmorEffectEvent before applying the effects. Cancellation
+         * skips this armor piece for this tick; the effects are re-evaluated on the
+         * next armor tick. Gated on registered listeners to keep this hot path
+         * (per player, per piece, per armor interval) allocation-free by default.
+         */
+        if (SlimefunArmorEffectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunArmorEffectEvent event = new SlimefunArmorEffectEvent(p, sfArmorPiece, armorPiece, effects);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return;
+            }
+        }
+
+        for (PotionEffect effect : effects) {
             p.removePotionEffect(effect.getType());
             p.addPotionEffect(effect);
         }
