@@ -36,6 +36,7 @@ import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncProfileLoadEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerResearchRankChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ResearchLockEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.WaypointRemoveEvent;
 import io.github.thebusybiscuit.slimefun4.api.gps.Waypoint;
 import io.github.thebusybiscuit.slimefun4.api.items.HashedArmorpiece;
 import io.github.thebusybiscuit.slimefun4.api.researches.Research;
@@ -324,11 +325,23 @@ public class PlayerProfile {
     /**
      * This removes the given {@link Waypoint} from the {@link List} of {@link Waypoint Waypoints}
      * of this {@link PlayerProfile}.
-     * 
+     * <p>
+     * A {@link WaypointRemoveEvent} is fired before the removal. If any listener
+     * cancels the event, the {@link Waypoint} is kept and this method does nothing.
+     *
      * @param waypoint
      *            The {@link Waypoint} to remove
      */
     public void removeWaypoint(@Nonnull Waypoint waypoint) {
+        Validate.notNull(waypoint, "Cannot remove a 'null' waypoint!");
+
+        WaypointRemoveEvent event = new WaypointRemoveEvent(this, waypoint);
+        Bukkit.getPluginManager().callEvent(event);
+
+        if (event.isCancelled()) {
+            return;
+        }
+
         this.data.removeWaypoint(waypoint);
         markDirty();
     }

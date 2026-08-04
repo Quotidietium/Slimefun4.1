@@ -19,6 +19,8 @@ import org.bukkit.potion.PotionEffect;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.TeleportationCompleteEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.TeleportationStartEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -153,6 +155,18 @@ public final class TeleportationManager {
 
     @ParametersAreNonnullByDefault
     public void teleport(UUID uuid, int complexity, Location source, Location destination, boolean resistance) {
+        /*
+         * Fire a TeleportationStartEvent before claiming the teleport slot.
+         * Cancellation aborts the teleportation entirely: the Player is never
+         * added to #teleporterUsers and no progress sequence begins.
+         */
+        TeleportationStartEvent startEvent = new TeleportationStartEvent(uuid, complexity, source, destination, resistance);
+        Bukkit.getPluginManager().callEvent(startEvent);
+
+        if (startEvent.isCancelled()) {
+            return;
+        }
+
         teleporterUsers.add(uuid);
 
         int time = getTeleportationTime(complexity, source, destination);
@@ -258,6 +272,9 @@ public final class TeleportationManager {
                 destination.getWorld().spawnParticle(Particle.PORTAL, loc, 200, 0.2F, 0.8F, 0.2F);
                 SoundEffect.TELEPORT_SOUND.playFor(p);
                 teleporterUsers.remove(p.getUniqueId());
+
+                // Notify addons that the teleportation completed successfully
+                Bukkit.getPluginManager().callEvent(new TeleportationCompleteEvent(p.getUniqueId(), destination, resistance));
             } else {
                 /*
                  * Make sure the Player is removed from the actively teleporting
