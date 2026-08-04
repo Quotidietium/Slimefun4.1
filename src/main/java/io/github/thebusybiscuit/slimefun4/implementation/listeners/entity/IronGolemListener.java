@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners.entity;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.IronGolem;
@@ -12,6 +13,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import io.github.thebusybiscuit.slimefun4.api.events.IronGolemHealEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.VanillaItem;
@@ -46,6 +48,15 @@ public class IronGolemListener implements Listener {
                 SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
                 if (sfItem != null && !(sfItem instanceof VanillaItem)) {
+                    if (IronGolemHealEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        IronGolemHealEvent event = new IronGolemHealEvent(e.getPlayer(), sfItem, (IronGolem) e.getRightClicked(), e);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            return;
+                        }
+                    }
+
                     e.setCancelled(true);
                     Slimefun.getLocalization().sendMessage(e.getPlayer(), "messages.no-iron-golem-heal");
 
