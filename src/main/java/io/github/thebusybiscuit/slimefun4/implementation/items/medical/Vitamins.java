@@ -3,11 +3,13 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.medical;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.VitaminsCureEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -26,6 +28,16 @@ public class Vitamins extends MedicalSupply<ItemUseHandler> {
     public @Nonnull ItemUseHandler getItemHandler() {
         return e -> {
             Player p = e.getPlayer();
+
+            if (VitaminsCureEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                VitaminsCureEvent event = new VitaminsCureEvent(p, this);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+            }
+
             SoundEffect.VITAMINS_CONSUME_SOUND.playFor(p);
 
             if (p.getGameMode() != GameMode.CREATIVE) {
