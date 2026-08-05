@@ -24,6 +24,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorExplodeEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.ReactorProduceByproductEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -401,11 +402,27 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         ItemStack result = operation.getResult();
 
         if (result != null) {
-            ItemStack leftover = inv.pushItem(result.clone(), getOutputSlots());
+            ItemStack toProduce = result;
+            boolean produce = true;
 
-            if (leftover != null) {
-                // The output slot is full - drop the byproduct instead of voiding it
-                Slimefun.runSync(() -> l.getWorld().dropItemNaturally(l, leftover));
+            if (ReactorProduceByproductEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                ReactorProduceByproductEvent event = new ReactorProduceByproductEvent(this, l, result.clone());
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    produce = false;
+                } else {
+                    toProduce = event.getResult();
+                }
+            }
+
+            if (produce) {
+                ItemStack leftover = inv.pushItem(toProduce.clone(), getOutputSlots());
+
+                if (leftover != null) {
+                    // The output slot is full - drop the byproduct instead of voiding it
+                    Slimefun.runSync(() -> l.getWorld().dropItemNaturally(l, leftover));
+                }
             }
         }
 
