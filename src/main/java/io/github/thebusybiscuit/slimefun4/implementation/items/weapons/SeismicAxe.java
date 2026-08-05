@@ -25,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.util.Vector;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SeismicAxeShockwaveEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -62,6 +63,18 @@ public class SeismicAxe extends SimpleSlimefunItem<ItemUseHandler> implements No
         return e -> {
             Player p = e.getPlayer();
             List<Block> blocks = p.getLineOfSight(null, RANGE);
+
+            if (SeismicAxeShockwaveEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                SeismicAxeShockwaveEvent event = new SeismicAxeShockwaveEvent(p, this, blocks);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                blocks = event.getBlocks();
+            }
+
             Set<UUID> pushedEntities = new HashSet<>();
 
             // Skip the first two, too close to the player.
