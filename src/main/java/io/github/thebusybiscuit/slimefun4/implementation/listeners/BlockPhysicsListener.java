@@ -1,11 +1,14 @@
 package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
+import java.util.Iterator;
+
 import javax.annotation.Nonnull;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.type.Piston;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
@@ -26,6 +29,7 @@ import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBurnEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockFallEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPistonEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunLiquidFlowEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunStructureGrowEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
@@ -158,7 +162,37 @@ public class BlockPhysicsListener implements Listener {
          * reserved) block data. Remove only the conflicting blocks so the rest of
          * the structure can still grow.
          */
-        e.getBlocks().removeIf(state -> BlockStorage.hasBlockInfo(state.getLocation()) || Slimefun.getTickerTask().isOccupiedSoon(state.getLocation()));
+        Iterator<BlockState> blocks = e.getBlocks().iterator();
+
+        while (blocks.hasNext()) {
+            BlockState state = blocks.next();
+            Location loc = state.getLocation();
+
+            if (BlockStorage.hasBlockInfo(loc) || Slimefun.getTickerTask().isOccupiedSoon(loc)) {
+                SlimefunItem item = BlockStorage.check(loc);
+
+                // A leftover-data or reserved block (item == null) is always skipped. For a real
+                // Slimefun block, a registered listener may veto to let the structure overwrite it.
+                if (item == null || !isStructureGrowProtectionVetoed(item, loc.getBlock())) {
+                    blocks.remove();
+                }
+            }
+        }
+    }
+
+    /**
+     * Fires a {@link SlimefunStructureGrowEvent} if any listener is registered and returns
+     * whether the structure-grow protection was vetoed. Without listeners this costs nothing
+     * and the old behavior is preserved.
+     */
+    private boolean isStructureGrowProtectionVetoed(@Nonnull SlimefunItem slimefunItem, @Nonnull Block block) {
+        if (SlimefunStructureGrowEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunStructureGrowEvent event = new SlimefunStructureGrowEvent(slimefunItem, block);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     @EventHandler(ignoreCancelled = true)
