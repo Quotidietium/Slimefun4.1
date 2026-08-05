@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -20,6 +21,7 @@ import org.bukkit.util.Vector;
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.PedestalItemPlaceEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSpawnReason;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -156,6 +158,16 @@ public class AncientPedestal extends SimpleSlimefunItem<BlockDispenseHandler> im
 
     public void placeItem(@Nonnull Player p, @Nonnull Block b) {
         ItemStack hand = p.getInventory().getItemInMainHand();
+
+        if (PedestalItemPlaceEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            PedestalItemPlaceEvent event = new PedestalItemPlaceEvent(p, this, b, hand);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return;
+            }
+        }
+
         String displayName = ITEM_PREFIX + System.nanoTime();
         ItemStack displayItem = CustomItemStack.create(hand, displayName);
         displayItem.setAmount(1);
