@@ -4,11 +4,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.inventory.ItemStack;
+
+import io.github.thebusybiscuit.slimefun4.api.events.PickaxeOfTheSeekerLocateEvent;
 
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
@@ -49,34 +52,58 @@ public class PickaxeOfTheSeeker extends SimpleSlimefunItem<ItemUseHandler> imple
             if (closest == null) {
                 Slimefun.getLocalization().sendMessage(p, "messages.pickaxe-of-the-seeker.no-ores");
             } else {
-                double l = closest.getX() + 0.5 - p.getLocation().getX();
-                double w = closest.getZ() + 0.5 - p.getLocation().getZ();
+                boolean rotate = true;
 
-                double c = Math.sqrt(l * l + w * w);
+                if (PickaxeOfTheSeekerLocateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    PickaxeOfTheSeekerLocateEvent event = new PickaxeOfTheSeekerLocateEvent(p, this, closest);
+                    Bukkit.getPluginManager().callEvent(event);
 
-                // If the player stands (almost) directly above the ore, c ~ 0 and the
-                // divisions below would produce NaN yaw/pitch (and asin/acos of >1).
-                // Look straight down at the ore instead.
-                if (c < 1.0E-6) {
-                    Location current = p.getLocation();
-                    p.teleport(new Location(p.getWorld(), current.getX(), current.getY(), current.getZ(), current.getYaw(), 90.0f));
-                    return;
+                    if (event.isCancelled()) {
+                        rotate = false;
+                    }
                 }
 
-                float alpha1 = (float) -(Math.asin(l / c) / Math.PI * 180);
-                float alpha2 = (float) (Math.acos(w / c) / Math.PI * 180);
-
-                float yaw = alpha2 > 90 ? (180 - alpha1) : alpha1;
-                float pitch = (float) ((-Math.atan((closest.getY() - 0.5 - p.getLocation().getY()) / Math.sqrt(l * l + w * w))) * 180 / Math.PI);
-
-                // We could teleport them asynchronously here...
-                // But we're only changing the pitch and yaw anyway.
-                Location loc = new Location(p.getWorld(), p.getLocation().getX(), p.getLocation().getY(), p.getLocation().getZ(), yaw, pitch);
-                p.teleport(loc);
+                if (rotate && rotateTowards(p, closest)) {
+                    return;
+                }
             }
 
             damageItem(p, e.getItem());
         };
+    }
+
+    /**
+     * Rotates the {@link Player} to face the given ore {@link Block}.
+     *
+     * @return true if the player stood directly above the ore (the historic early return
+     *         that skips the durability damage), false otherwise
+     */
+    private boolean rotateTowards(@Nonnull Player p, @Nonnull Block closest) {
+        double l = closest.getX() + 0.5 - p.getLocation().getX();
+        double w = closest.getZ() + 0.5 - p.getLocation().getZ();
+
+        double c = Math.sqrt(l * l + w * w);
+
+        // If the player stands (almost) directly above the ore, c ~ 0 and the
+        // divisions below would produce NaN yaw/pitch (and asin/acos of >1).
+        // Look straight down at the ore instead.
+        if (c < 1.0E-6) {
+            Location current = p.getLocation();
+            p.teleport(new Location(p.getWorld(), current.getX(), current.getY(), current.getZ(), current.getYaw(), 90.0f));
+            return true;
+        }
+
+        float alpha1 = (float) -(Math.asin(l / c) / Math.PI * 180);
+        float alpha2 = (float) (Math.acos(w / c) / Math.PI * 180);
+
+        float yaw = alpha2 > 90 ? (180 - alpha1) : alpha1;
+        float pitch = (float) ((-Math.atan((closest.getY() - 0.5 - p.getLocation().getY()) / Math.sqrt(l * l + w * w))) * 180 / Math.PI);
+
+        // We could teleport them asynchronously here...
+        // But we're only changing the pitch and yaw anyway.
+        Location loc = new Location(p.getWorld(), p.getLocation().getX(), p.getLocation().getY(), p.getLocation().getZ(), yaw, pitch);
+        p.teleport(loc);
+        return false;
     }
 
     private @Nullable Block findClosestOre(@Nonnull Player p) {
