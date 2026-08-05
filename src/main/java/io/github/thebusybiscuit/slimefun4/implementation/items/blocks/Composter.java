@@ -7,6 +7,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.bakedlibs.dough.scheduling.TaskQueue;
+import io.github.thebusybiscuit.slimefun4.api.events.ComposterProcessEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -83,22 +85,40 @@ public class Composter extends SimpleSlimefunItem<BlockUseHandler> implements Re
 
                 if (p.hasPermission("slimefun.inventory.bypass") || Slimefun.getProtectionManager().hasPermission(p, b.getLocation(), Interaction.INTERACT_BLOCK)) {
                     ItemStack input = e.getItem();
-                    ItemStack output = getOutput(p, input);
+                    ItemStack output = findOutput(input);
 
                     if (output != null) {
-                        TaskQueue tasks = new TaskQueue();
+                        boolean produce = true;
 
-                        tasks.thenRepeatEvery(30, 10, () -> {
-                            Material material = input.getType().isBlock() ? input.getType() : Material.HAY_BLOCK;
-                            b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, material);
-                        });
+                        if (ComposterProcessEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                            ComposterProcessEvent event = new ComposterProcessEvent(p, Composter.this, b, input, output);
+                            Bukkit.getPluginManager().callEvent(event);
 
-                        tasks.thenRun(20, () -> {
-                            SoundEffect.COMPOSTER_COMPOST_SOUND.playFor(p);
-                            pushItem(b, output.clone());
-                        });
+                            if (event.isCancelled()) {
+                                produce = false;
+                            } else {
+                                output = event.getOutput();
+                            }
+                        }
 
-                        tasks.execute(Slimefun.instance());
+                        if (produce) {
+                            consumeInput(p, input);
+
+                            ItemStack finalOutput = output;
+                            TaskQueue tasks = new TaskQueue();
+
+                            tasks.thenRepeatEvery(30, 10, () -> {
+                                Material material = input.getType().isBlock() ? input.getType() : Material.HAY_BLOCK;
+                                b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, material);
+                            });
+
+                            tasks.thenRun(20, () -> {
+                                SoundEffect.COMPOSTER_COMPOST_SOUND.playFor(p);
+                                pushItem(b, finalOutput.clone());
+                            });
+
+                            tasks.execute(Slimefun.instance());
+                        }
                     } else {
                         Slimefun.getLocalization().sendMessage(p, "machines.wrong-item", true);
                     }
@@ -124,7 +144,34 @@ public class Composter extends SimpleSlimefunItem<BlockUseHandler> implements Re
         return OutputChest.findOutputChestFor(b, output);
     }
 
-    private ItemStack getOutput(Player p, ItemStack input) {
+    /**
+     * Finds the output {@link ItemStack} for the given input without consuming it.
+     *
+     * @param input
+     *            The input {@link ItemStack}
+     * @return The matching output, or {@code null} if the input is not compostable
+     */
+    private ItemStack findOutput(ItemStack input) {
+        for (int i = 0; i < recipes.size(); i += 2) {
+            ItemStack convert = recipes.get(i);
+
+            if (convert != null && SlimefunUtils.isItemSimilar(input, convert, true)) {
+                return recipes.get(i + 1);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Consumes the recipe amount of the given input from the player's inventory.
+     *
+     * @param p
+     *            The {@link Player}
+     * @param input
+     *            The input {@link ItemStack}
+     */
+    private void consumeInput(Player p, ItemStack input) {
         for (int i = 0; i < recipes.size(); i += 2) {
             ItemStack convert = recipes.get(i);
 
@@ -132,12 +179,9 @@ public class Composter extends SimpleSlimefunItem<BlockUseHandler> implements Re
                 ItemStack removing = input.clone();
                 removing.setAmount(convert.getAmount());
                 p.getInventory().removeItem(removing);
-
-                return recipes.get(i + 1);
+                return;
             }
         }
-
-        return null;
     }
 
 }
