@@ -2,10 +2,12 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.food;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import io.github.thebusybiscuit.slimefun4.api.events.MonsterJerkyConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -31,13 +33,29 @@ public class MonsterJerky extends SimpleSlimefunItem<ItemConsumptionHandler> imp
 
     @Override
     public ItemConsumptionHandler getItemHandler() {
-        return (e, p, item) -> Slimefun.runSync(() -> {
-            if (p.hasPotionEffect(PotionEffectType.HUNGER)) {
-                p.removePotionEffect(PotionEffectType.HUNGER);
+        return (e, p, item) -> {
+            PotionEffect effect = new PotionEffect(PotionEffectType.SATURATION, 5, 0);
+
+            if (MonsterJerkyConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                MonsterJerkyConsumeEvent event = new MonsterJerkyConsumeEvent(p, this, effect);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                effect = event.getEffect();
             }
 
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 5, 0));
-        }, 1L);
+            PotionEffect applied = effect;
+            Slimefun.runSync(() -> {
+                if (p.hasPotionEffect(PotionEffectType.HUNGER)) {
+                    p.removePotionEffect(PotionEffectType.HUNGER);
+                }
+
+                p.addPotionEffect(applied);
+            }, 1L);
+        };
     }
 
 }
