@@ -7,6 +7,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World.Environment;
@@ -19,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.CrucibleLiquidGenerateEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -125,8 +127,21 @@ public class Crucible extends SimpleSlimefunItem<BlockUseHandler> implements Rec
                     ItemStack input = e.getItem();
                     Block block = b.getRelative(BlockFace.UP);
 
-                    if (craft(p, input)) {
+                    if (matches(input)) {
                         boolean water = Tag.LEAVES.isTagged(input.getType());
+
+                        if (CrucibleLiquidGenerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                            CrucibleLiquidGenerateEvent event = new CrucibleLiquidGenerateEvent(p, Crucible.this, block, input, water);
+                            Bukkit.getPluginManager().callEvent(event);
+
+                            if (event.isCancelled()) {
+                                return;
+                            }
+
+                            water = event.isWater();
+                        }
+
+                        consumeInput(p, input);
                         generateLiquid(block, water);
                     } else {
                         Slimefun.getLocalization().sendMessage(p, "machines.wrong-item", true);
@@ -136,8 +151,35 @@ public class Crucible extends SimpleSlimefunItem<BlockUseHandler> implements Rec
         };
     }
 
+    /**
+     * Returns whether the given input is a valid crucible input, without consuming it.
+     *
+     * @param input
+     *            The input {@link ItemStack}
+     * @return Whether the input can be molten by this crucible
+     */
+    private boolean matches(ItemStack input) {
+        for (int i = 0; i < recipes.size(); i += 2) {
+            ItemStack catalyst = recipes.get(i);
+
+            if (SlimefunUtils.isItemSimilar(input, catalyst, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Consumes the recipe amount of the given input from the player's inventory.
+     *
+     * @param p
+     *            The {@link Player}
+     * @param input
+     *            The input {@link ItemStack}
+     */
     @ParametersAreNonnullByDefault
-    private boolean craft(Player p, ItemStack input) {
+    private void consumeInput(Player p, ItemStack input) {
         for (int i = 0; i < recipes.size(); i += 2) {
             ItemStack catalyst = recipes.get(i);
 
@@ -145,12 +187,9 @@ public class Crucible extends SimpleSlimefunItem<BlockUseHandler> implements Rec
                 ItemStack removing = input.clone();
                 removing.setAmount(catalyst.getAmount());
                 p.getInventory().removeItem(removing);
-
-                return true;
+                return;
             }
         }
-
-        return false;
     }
 
     /**
