@@ -5,11 +5,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.EasterEggOpenEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSpawnReason;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -47,13 +49,25 @@ public class EasterEgg extends SimpleSlimefunItem<ItemUseHandler> {
             e.cancel();
 
             Player p = e.getPlayer();
+            ItemStack gift = gifts[ThreadLocalRandom.current().nextInt(gifts.length)].clone();
+
+            if (EasterEggOpenEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                EasterEggOpenEvent event = new EasterEggOpenEvent(p, this, gift);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                gift = event.getGift();
+            }
 
             if (p.getGameMode() != GameMode.CREATIVE) {
                 ItemUtils.consumeItem(e.getItem(), false);
             }
 
             FireworkUtils.launchRandom(p, 2);
-            SlimefunUtils.spawnItem(p.getLocation(), gifts[ThreadLocalRandom.current().nextInt(gifts.length)].clone(), ItemSpawnReason.EASTER_EGG_OPENED, true);
+            SlimefunUtils.spawnItem(p.getLocation(), gift, ItemSpawnReason.EASTER_EGG_OPENED, true);
         };
     }
 
