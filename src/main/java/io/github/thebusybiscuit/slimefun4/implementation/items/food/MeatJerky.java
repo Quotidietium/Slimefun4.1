@@ -2,8 +2,10 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.food;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.MeatJerkyConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -35,7 +37,22 @@ public class MeatJerky extends SimpleSlimefunItem<ItemConsumptionHandler> implem
 
     @Override
     public ItemConsumptionHandler getItemHandler() {
-        return (e, p, item) -> p.setSaturation(p.getSaturation() + saturation.getValue());
+        return (e, p, item) -> {
+            int saturationValue = saturation.getValue();
+
+            if (MeatJerkyConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                MeatJerkyConsumeEvent event = new MeatJerkyConsumeEvent(p, this, saturationValue);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                saturationValue = event.getSaturation();
+            }
+
+            p.setSaturation(p.getSaturation() + saturationValue);
+        };
     }
 
 }
