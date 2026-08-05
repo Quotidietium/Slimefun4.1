@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.StomperBootsPushEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -52,12 +53,25 @@ public class StomperBoots extends SlimefunItem {
 
         for (Entity entity : player.getNearbyEntities(4, 4, 4)) {
             if (entity instanceof LivingEntity livingEntity && canPush(player, livingEntity)) {
+                double damage = fallDamageEvent.getDamage() / 2;
+
+                if (StomperBootsPushEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    StomperBootsPushEvent pushEvent = new StomperBootsPushEvent(player, this, livingEntity, damage);
+                    Bukkit.getPluginManager().callEvent(pushEvent);
+
+                    if (pushEvent.isCancelled()) {
+                        continue;
+                    }
+
+                    damage = pushEvent.getDamage();
+                }
+
                 Vector velocity = getShockwave(player.getLocation(), entity.getLocation());
                 entity.setVelocity(velocity);
 
                 // Check if it's not a Player or if PvP is enabled
                 if (!(entity instanceof Player) || (player.getWorld().getPVP() && Slimefun.getProtectionManager().hasPermission(player, entity.getLocation(), Interaction.ATTACK_PLAYER))) {
-                    EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, DamageCause.ENTITY_ATTACK, fallDamageEvent.getDamage() / 2);
+                    EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, DamageCause.ENTITY_ATTACK, damage);
                     Bukkit.getPluginManager().callEvent(event);
 
                     if (!event.isCancelled()) {
