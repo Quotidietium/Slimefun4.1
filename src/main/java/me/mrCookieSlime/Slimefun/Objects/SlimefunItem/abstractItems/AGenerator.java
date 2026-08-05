@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -17,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.GeneratorProduceByproductEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemState;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -161,11 +163,27 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
                 ItemStack fuel = operation.getIngredient();
 
                 if (isBucket(fuel)) {
-                    ItemStack leftover = inv.pushItem(new ItemStack(Material.BUCKET), getOutputSlots());
+                    ItemStack byproduct = new ItemStack(Material.BUCKET);
+                    boolean produce = true;
 
-                    if (leftover != null) {
-                        // The output slots are full - drop the empty bucket instead of voiding it
-                        Slimefun.runSync(() -> l.getWorld().dropItemNaturally(l, leftover));
+                    if (GeneratorProduceByproductEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        GeneratorProduceByproductEvent event = new GeneratorProduceByproductEvent(AGenerator.this, l, byproduct);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            produce = false;
+                        } else {
+                            byproduct = event.getResult();
+                        }
+                    }
+
+                    if (produce) {
+                        ItemStack leftover = inv.pushItem(byproduct, getOutputSlots());
+
+                        if (leftover != null) {
+                            // The output slots are full - drop the byproduct instead of voiding it
+                            Slimefun.runSync(() -> l.getWorld().dropItemNaturally(l, leftover));
+                        }
                     }
                 }
 
