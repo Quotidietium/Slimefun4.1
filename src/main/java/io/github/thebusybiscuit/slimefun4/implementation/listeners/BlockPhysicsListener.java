@@ -23,6 +23,7 @@ import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBurnEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPistonEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
@@ -62,11 +63,15 @@ public class BlockPhysicsListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent e) {
         if (BlockStorage.hasBlockInfo(e.getBlock())) {
-            e.setCancelled(true);
+            if (!isPistonProtectionVetoed(e, e.getBlock(), false)) {
+                e.setCancelled(true);
+            }
         } else {
             for (Block b : e.getBlocks()) {
                 if (isProtected(b) || isProtected(b.getRelative(e.getDirection()))) {
-                    e.setCancelled(true);
+                    if (!isPistonProtectionVetoed(e, b, false)) {
+                        e.setCancelled(true);
+                    }
                     break;
                 }
             }
@@ -76,15 +81,34 @@ public class BlockPhysicsListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent e) {
         if (BlockStorage.hasBlockInfo(e.getBlock())) {
-            e.setCancelled(true);
+            if (!isPistonProtectionVetoed(e, e.getBlock(), true)) {
+                e.setCancelled(true);
+            }
         } else if (e.isSticky()) {
             for (Block b : e.getBlocks()) {
                 if (isProtected(b) || isProtected(b.getRelative(e.getDirection()))) {
-                    e.setCancelled(true);
+                    if (!isPistonProtectionVetoed(e, b, true)) {
+                        e.setCancelled(true);
+                    }
                     break;
                 }
             }
         }
+    }
+
+    /**
+     * Fires a {@link SlimefunBlockPistonEvent} if any listener is registered and returns
+     * whether the piston protection was vetoed. Without listeners this costs nothing and
+     * the old behavior is preserved.
+     */
+    private boolean isPistonProtectionVetoed(@Nonnull org.bukkit.event.block.BlockPistonEvent e, @Nonnull Block protectedBlock, boolean retract) {
+        if (SlimefunBlockPistonEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunBlockPistonEvent event = new SlimefunBlockPistonEvent(e.getBlock(), e.getDirection(), protectedBlock, retract);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     /**
