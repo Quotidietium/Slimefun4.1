@@ -4,6 +4,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Material;
 import org.bukkit.Bukkit;
@@ -19,6 +20,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.events.PiglinBarterDropEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.PiglinBarterPreventEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.PiglinBarterDrop;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -43,9 +45,10 @@ public class PiglinListener implements Listener {
     public void onPickup(EntityPickupItemEvent e) {
         if (e.getEntityType() == EntityType.PIGLIN) {
             ItemStack item = e.getItem().getItemStack();
+            SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
             // Don't let Piglins pick up gold from Slimefun
-            if (SlimefunItem.getByItem(item) != null) {
+            if (sfItem != null && !isPreventionVetoed(sfItem, (Piglin) e.getEntity(), item, null, PiglinBarterPreventEvent.Reason.PICKUP)) {
                 e.setCancelled(true);
             }
         }
@@ -70,11 +73,27 @@ public class PiglinListener implements Listener {
         if (item.getType() == Material.GOLD_INGOT) {
             SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
-            if (sfItem != null) {
+            if (sfItem != null && !isPreventionVetoed(sfItem, (Piglin) e.getRightClicked(), item, p, PiglinBarterPreventEvent.Reason.BARTER)) {
                 Slimefun.getLocalization().sendMessage(p, "messages.piglin-barter", true);
                 e.setCancelled(true);
             }
         }
+    }
+
+    /**
+     * Fires a {@link PiglinBarterPreventEvent} if any listener is registered and returns
+     * whether the prevention was vetoed. Without listeners this costs nothing and the
+     * old behavior is preserved.
+     */
+    @ParametersAreNonnullByDefault
+    private boolean isPreventionVetoed(SlimefunItem slimefunItem, Piglin piglin, ItemStack item, Player player, PiglinBarterPreventEvent.Reason reason) {
+        if (PiglinBarterPreventEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            PiglinBarterPreventEvent event = new PiglinBarterPreventEvent(slimefunItem, piglin, item, player, reason);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     @EventHandler
