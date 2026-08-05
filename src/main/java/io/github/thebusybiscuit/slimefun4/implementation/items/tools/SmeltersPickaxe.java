@@ -6,9 +6,13 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import io.github.thebusybiscuit.slimefun4.api.events.SmeltersPickaxeSmeltEvent;
 
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -44,7 +48,7 @@ public class SmeltersPickaxe extends SimpleSlimefunItem<ToolUseHandler> implemen
 
                 for (ItemStack drop : blockDrops) {
                     if (drop != null && !drop.getType().isAir()) {
-                        smelt(b, drop, fortune);
+                        smelt(e.getPlayer(), b, drop, fortune);
                         drops.add(drop);
                     }
                 }
@@ -55,12 +59,25 @@ public class SmeltersPickaxe extends SimpleSlimefunItem<ToolUseHandler> implemen
     }
 
     @ParametersAreNonnullByDefault
-    private void smelt(Block b, ItemStack drop, int fortune) {
+    private void smelt(Player p, Block b, ItemStack drop, int fortune) {
         Optional<ItemStack> furnaceOutput = Slimefun.getMinecraftRecipeService().getFurnaceOutput(drop);
 
         if (furnaceOutput.isPresent()) {
-            b.getWorld().playEffect(b.getLocation(), Effect.MOBSPAWNER_FLAMES, 1);
-            drop.setType(furnaceOutput.get().getType());
+            boolean applySmelt = true;
+
+            if (SmeltersPickaxeSmeltEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                SmeltersPickaxeSmeltEvent event = new SmeltersPickaxeSmeltEvent(p, this, b, drop, furnaceOutput.get());
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    applySmelt = false;
+                }
+            }
+
+            if (applySmelt) {
+                b.getWorld().playEffect(b.getLocation(), Effect.MOBSPAWNER_FLAMES, 1);
+                drop.setType(furnaceOutput.get().getType());
+            }
         }
 
         // Fixes #3116
