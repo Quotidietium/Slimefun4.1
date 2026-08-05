@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -20,6 +21,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.collections.RandomizedSet;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.GoldPanUseEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSpawnReason;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -148,13 +150,27 @@ public class GoldPan extends SimpleSlimefunItem<ItemUseHandler> implements Recip
                 // Check the clicked block type and for protections
                 if (isValidInputMaterial(b.getType()) && Slimefun.getProtectionManager().hasPermission(e.getPlayer(), b.getLocation(), Interaction.BREAK_BLOCK)) {
                     ItemStack output = getRandomOutput();
+                    boolean produce = true;
 
-                    b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, b.getType());
-                    b.setType(Material.AIR);
+                    if (GoldPanUseEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        GoldPanUseEvent event = new GoldPanUseEvent(e.getPlayer(), GoldPan.this, b, output);
+                        Bukkit.getPluginManager().callEvent(event);
 
-                    // Make sure that the randomly selected item is not air
-                    if (output.getType() != Material.AIR) {
-                        SlimefunUtils.spawnItem(b.getLocation(), output.clone(), ItemSpawnReason.GOLD_PAN_USE, true, e.getPlayer());
+                        if (event.isCancelled()) {
+                            produce = false;
+                        } else {
+                            output = event.getOutput();
+                        }
+                    }
+
+                    if (produce) {
+                        b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, b.getType());
+                        b.setType(Material.AIR);
+
+                        // Make sure that the randomly selected item is not air
+                        if (output.getType() != Material.AIR) {
+                            SlimefunUtils.spawnItem(b.getLocation(), output.clone(), ItemSpawnReason.GOLD_PAN_USE, true, e.getPlayer());
+                        }
                     }
                 }
             }
