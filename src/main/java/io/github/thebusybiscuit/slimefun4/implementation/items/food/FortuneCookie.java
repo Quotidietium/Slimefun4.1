@@ -5,10 +5,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.common.ChatColors;
+import io.github.thebusybiscuit.slimefun4.api.events.FortuneCookieFortuneEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -39,6 +41,17 @@ public class FortuneCookie extends SimpleSlimefunItem<ItemConsumptionHandler> im
         return (e, p, item) -> {
             List<String> messages = Slimefun.getLocalization().getMessages(p, "messages.fortune-cookie");
             String message = messages.get(ThreadLocalRandom.current().nextInt(messages.size()));
+
+            if (FortuneCookieFortuneEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                FortuneCookieFortuneEvent event = new FortuneCookieFortuneEvent(p, this, message);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                message = event.getMessage();
+            }
 
             p.sendMessage(ChatColors.color(message));
         };
