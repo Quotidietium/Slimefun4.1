@@ -3,10 +3,13 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+
+import io.github.thebusybiscuit.slimefun4.api.events.MagicEyeOfEnderLaunchEvent;
 
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -39,6 +42,15 @@ public class MagicEyeOfEnder extends SimpleSlimefunItem<ItemUseHandler> {
             Player p = e.getPlayer();
 
             if (hasArmor(p.getInventory())) {
+                if (MagicEyeOfEnderLaunchEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    MagicEyeOfEnderLaunchEvent event = new MagicEyeOfEnderLaunchEvent(p, this);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+                }
+
                 p.launchProjectile(EnderPearl.class);
                 SoundEffect.MAGICAL_EYE_OF_ENDER_USE_SOUND.playFor(p);
             }
