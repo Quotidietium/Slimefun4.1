@@ -2,9 +2,11 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical.staves;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.WaterStaffExtinguishEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -31,6 +33,15 @@ public class WaterStaff extends SimpleSlimefunItem<ItemUseHandler> {
     public ItemUseHandler getItemHandler() {
         return e -> {
             Player p = e.getPlayer();
+
+            if (WaterStaffExtinguishEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                WaterStaffExtinguishEvent event = new WaterStaffExtinguishEvent(p, WaterStaff.this);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+            }
 
             p.setFireTicks(0);
             Slimefun.getLocalization().sendMessage(p, "messages.fire-extinguish", true);
