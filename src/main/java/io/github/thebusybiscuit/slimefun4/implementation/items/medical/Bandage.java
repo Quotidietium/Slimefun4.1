@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.medical;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -10,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.BandageHealEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -47,6 +49,15 @@ public class Bandage extends SimpleSlimefunItem<ItemUseHandler> {
 
             if (p.getFireTicks() <= 0 && p.getHealth() >= maxHealth) {
                 return;
+            }
+
+            if (BandageHealEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                BandageHealEvent event = new BandageHealEvent(p, this);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
             }
 
             if (p.getGameMode() != GameMode.CREATIVE) {
