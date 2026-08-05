@@ -15,6 +15,7 @@ import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.StormStaffStrikeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -61,6 +62,17 @@ public class StormStaff extends LimitedUseItem {
 
                 if (loc.getWorld() != null && loc.getChunk().isLoaded()) {
                     if (loc.getWorld().getPVP() && Slimefun.getProtectionManager().hasPermission(p, loc, Interaction.ATTACK_PLAYER)) {
+                        if (StormStaffStrikeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                            StormStaffStrikeEvent event = new StormStaffStrikeEvent(p, this, loc);
+                            Bukkit.getPluginManager().callEvent(event);
+
+                            if (event.isCancelled()) {
+                                return;
+                            }
+
+                            loc = event.getLocation();
+                        }
+
                         e.cancel();
                         useItem(p, item, loc);
                     } else {
