@@ -8,6 +8,7 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
@@ -18,6 +19,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.google.gson.JsonObject;
 
+import io.github.thebusybiscuit.slimefun4.api.events.TapeMeasureMeasureEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -81,11 +83,24 @@ public class TapeMeasure extends SimpleSlimefunItem<ItemUseHandler> implements N
 
     @ParametersAreNonnullByDefault
     private void measure(Player p, ItemStack item, Block block) {
-        OptionalDouble distance = getDistance(p, item, block);
+        Optional<Location> anchor = getAnchor(p, item);
 
-        if (distance.isPresent()) {
+        if (anchor.isPresent()) {
+            double distance = anchor.get().distance(block.getLocation());
+
+            if (TapeMeasureMeasureEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                TapeMeasureMeasureEvent event = new TapeMeasureMeasureEvent(p, this, anchor.get(), block, distance);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                distance = event.getDistance();
+            }
+
             SoundEffect.TAPE_MEASURE_MEASURE_SOUND.playAt(block);
-            String label = format.format(distance.getAsDouble());
+            String label = format.format(distance);
             Slimefun.getLocalization().sendMessage(p, "messages.tape-measure.distance", msg -> msg.replace("%distance%", label));
         }
     }
