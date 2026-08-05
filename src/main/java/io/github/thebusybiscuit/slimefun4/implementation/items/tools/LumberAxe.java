@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.blocks.Vein;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.LumberAxeStripEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.LumberAxeTreeFellEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -86,6 +87,17 @@ public class LumberAxe extends SlimefunItem implements NotPlaceable {
                     List<Block> logs = Vein.find(block, MAX_STRIPPED, this::isUnstrippedLog);
 
                     logs.remove(block);
+
+                    if (!logs.isEmpty() && LumberAxeStripEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        LumberAxeStripEvent event = new LumberAxeStripEvent(e.getPlayer(), this, block, logs);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            return;
+                        }
+
+                        logs = event.getAdditionalLogs();
+                    }
 
                     for (Block b : logs) {
                         if (!BlockStorage.hasBlockInfo(b) && Slimefun.getProtectionManager().hasPermission(e.getPlayer(), b, Interaction.BREAK_BLOCK)) {
