@@ -1,8 +1,12 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.weapons;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
@@ -11,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.IcyBowFreezeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BowShootHandler;
@@ -36,6 +41,23 @@ public class IcyBow extends SlimefunBow {
     @Override
     public BowShootHandler onShoot() {
         return (e, n) -> {
+            int freezeTicks = 60;
+            List<PotionEffect> effects = new ArrayList<>();
+            effects.add(new PotionEffect(VersionedPotionEffectType.SLOWNESS, 20 * 2, 10));
+            effects.add(new PotionEffect(VersionedPotionEffectType.JUMP_BOOST, 20 * 2, -10));
+
+            if (IcyBowFreezeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                IcyBowFreezeEvent event = new IcyBowFreezeEvent(this, n, freezeTicks, effects);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                freezeTicks = event.getFreezeTicks();
+                effects = event.getEffects();
+            }
+
             if (n instanceof Player player) {
                 // Fixes #3060 - Don't apply effects if the arrow was successfully blocked.
                 if (player.isBlocking() && e.getFinalDamage() <= 0) {
@@ -43,13 +65,16 @@ public class IcyBow extends SlimefunBow {
                 }
 
                 if (Slimefun.getMinecraftVersion().isAtLeast(MinecraftVersion.MINECRAFT_1_17)) {
-                    player.setFreezeTicks(60);
+                    player.setFreezeTicks(freezeTicks);
                 }
             }
+
             n.getWorld().playEffect(n.getLocation(), Effect.STEP_SOUND, Material.ICE);
             n.getWorld().playEffect(n.getEyeLocation(), Effect.STEP_SOUND, Material.ICE);
-            n.addPotionEffect(new PotionEffect(VersionedPotionEffectType.SLOWNESS, 20 * 2, 10));
-            n.addPotionEffect(new PotionEffect(VersionedPotionEffectType.JUMP_BOOST, 20 * 2, -10));
+
+            for (PotionEffect effect : effects) {
+                n.addPotionEffect(effect);
+            }
         };
     }
 
