@@ -15,6 +15,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import io.github.thebusybiscuit.slimefun4.api.events.ExplosiveBowExplodeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -49,11 +50,23 @@ public class ExplosiveBow extends SlimefunBow {
     @Override
     public BowShootHandler onShoot() {
         return (e, target) -> {
+            int radius = range.getValue();
+            Collection<Entity> entities = target.getWorld().getNearbyEntities(target.getLocation(), radius, radius, radius, this::canDamage);
+
+            if (ExplosiveBowExplodeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                ExplosiveBowExplodeEvent event = new ExplosiveBowExplodeEvent(this, target, entities);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                entities = event.getAffectedEntities();
+            }
+
             target.getWorld().spawnParticle(VersionedParticle.EXPLOSION, target.getLocation(), 1);
             SoundEffect.EXPLOSIVE_BOW_HIT_SOUND.playAt(target.getLocation(), SoundCategory.PLAYERS);
-            int radius = range.getValue();
 
-            Collection<Entity> entities = target.getWorld().getNearbyEntities(target.getLocation(), radius, radius, radius, this::canDamage);
             for (Entity nearby : entities) {
                 LivingEntity entity = (LivingEntity) nearby;
 
