@@ -6,6 +6,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import io.github.thebusybiscuit.slimefun4.api.events.JuiceDrinkEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -64,11 +66,28 @@ public class Juice extends SimpleSlimefunItem<ItemConsumptionHandler> implements
              * Fix for Saturation on potions is no longer working,
              * Minecraft has been broken when it comes to Saturation potions for a long time
              */
-            for (PotionEffect effect : effects) {
-                if (effect.getType() == PotionEffectType.SATURATION || effect.getType() == PotionEffectType.ABSORPTION) {
-                    p.addPotionEffect(effect);
+            PotionEffect effect = null;
+
+            for (PotionEffect customEffect : effects) {
+                if (customEffect.getType() == PotionEffectType.SATURATION || customEffect.getType() == PotionEffectType.ABSORPTION) {
+                    effect = customEffect;
                     break;
                 }
+            }
+
+            if (JuiceDrinkEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                JuiceDrinkEvent event = new JuiceDrinkEvent(p, this, item, effect);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                effect = event.getEffect();
+            }
+
+            if (effect != null) {
+                p.addPotionEffect(effect);
             }
 
             removeGlassBottle(p, item);
