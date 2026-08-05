@@ -3,12 +3,14 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.medical;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.SplintHealEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -38,12 +40,26 @@ public class Splint extends SimpleSlimefunItem<ItemUseHandler> {
                 return;
             }
 
+            PotionEffect effect = new PotionEffect(VersionedPotionEffectType.INSTANT_HEALTH, 1, 0);
+
+            if (SplintHealEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                SplintHealEvent event = new SplintHealEvent(p, this, effect);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    e.cancel();
+                    return;
+                }
+
+                effect = event.getEffect();
+            }
+
             if (p.getGameMode() != GameMode.CREATIVE) {
                 ItemUtils.consumeItem(e.getItem(), false);
             }
 
             SoundEffect.SPLINT_CONSUME_SOUND.playFor(p);
-            p.addPotionEffect(new PotionEffect(VersionedPotionEffectType.INSTANT_HEALTH, 1, 0));
+            p.addPotionEffect(effect);
 
             e.cancel();
         };
