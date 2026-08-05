@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -16,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.MagicalZombiePillsCureEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -58,13 +60,37 @@ public class MagicalZombiePills extends SimpleSlimefunItem<EntityInteractHandler
             Player p = e.getPlayer();
 
             if (entity instanceof ZombieVillager zombieVillager) {
+                if (fireCureEvent(p, entity, item)) {
+                    return;
+                }
+
                 useItem(p, item);
                 healZombieVillager(zombieVillager, p);
             } else if (entity instanceof PigZombie pigZombie) {
+                if (fireCureEvent(p, entity, item)) {
+                    return;
+                }
+
                 useItem(p, item);
                 healZombifiedPiglin(pigZombie);
             }
         };
+    }
+
+    /**
+     * Fires a {@link MagicalZombiePillsCureEvent} if any addon is listening.
+     *
+     * @return true if the cure was cancelled, false to proceed
+     */
+    private boolean fireCureEvent(@Nonnull Player p, @Nonnull Entity entity, @Nonnull ItemStack item) {
+        if (MagicalZombiePillsCureEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            MagicalZombiePillsCureEvent event = new MagicalZombiePillsCureEvent(p, this, entity, item);
+            Bukkit.getPluginManager().callEvent(event);
+
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     /**
