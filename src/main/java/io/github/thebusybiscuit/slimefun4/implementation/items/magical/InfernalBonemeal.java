@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -13,6 +14,7 @@ import org.bukkit.event.Event.Result;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.InfernalBonemealGrowEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -46,12 +48,25 @@ public class InfernalBonemeal extends SimpleSlimefunItem<ItemUseHandler> {
                     Ageable ageable = (Ageable) b.getBlockData();
 
                     if (ageable.getAge() < ageable.getMaximumAge()) {
-                        ageable.setAge(ageable.getMaximumAge());
-                        b.setBlockData(ageable);
-                        b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, Material.REDSTONE_BLOCK);
+                        boolean grow = true;
 
-                        if (e.getPlayer().getGameMode() != GameMode.CREATIVE) {
-                            ItemUtils.consumeItem(e.getItem(), false);
+                        if (InfernalBonemealGrowEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                            InfernalBonemealGrowEvent event = new InfernalBonemealGrowEvent(e.getPlayer(), this, b);
+                            Bukkit.getPluginManager().callEvent(event);
+
+                            if (event.isCancelled()) {
+                                grow = false;
+                            }
+                        }
+
+                        if (grow) {
+                            ageable.setAge(ageable.getMaximumAge());
+                            b.setBlockData(ageable);
+                            b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, Material.REDSTONE_BLOCK);
+
+                            if (e.getPlayer().getGameMode() != GameMode.CREATIVE) {
+                                ItemUtils.consumeItem(e.getItem(), false);
+                            }
                         }
                     }
                 }
