@@ -5,6 +5,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 import org.bukkit.GameMode;
@@ -17,6 +18,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.StrangeNetherGooTaintEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -74,6 +76,15 @@ public class StrangeNetherGoo extends SimpleSlimefunItem<ItemUseHandler> impleme
                 if (sheep.getCustomName() != null) {
                     e.setCancelled(true);
                     return;
+                }
+
+                if (StrangeNetherGooTaintEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    StrangeNetherGooTaintEvent event = new StrangeNetherGooTaintEvent(e.getPlayer(), this, sheep);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
                 }
 
                 if (e.getPlayer().getGameMode() != GameMode.CREATIVE) {
