@@ -28,6 +28,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBurnEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockFallEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPistonEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBucketEmptyEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunLiquidFlowEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunStructureGrowEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -272,7 +273,28 @@ public class BlockPhysicsListener implements Listener {
         Location l = e.getBlockClicked().getRelative(e.getBlockFace()).getLocation();
 
         if (BlockStorage.hasBlockInfo(l) || Slimefun.getTickerTask().isOccupiedSoon(l)) {
-            e.setCancelled(true);
+            SlimefunItem item = BlockStorage.check(l);
+
+            // A leftover-data or reserved block (item == null) always stays protected. For a
+            // real Slimefun block, a registered listener may veto the protection to let fluid in.
+            if (item == null || !isBucketEmptyProtectionVetoed(e.getPlayer(), item, l.getBlock())) {
+                e.setCancelled(true);
+            }
         }
+    }
+
+    /**
+     * Fires a {@link SlimefunBucketEmptyEvent} if any listener is registered and returns whether
+     * the bucket-empty protection was vetoed. Without listeners this costs nothing and the old
+     * behavior is preserved.
+     */
+    private boolean isBucketEmptyProtectionVetoed(@Nonnull org.bukkit.entity.Player player, @Nonnull SlimefunItem slimefunItem, @Nonnull Block block) {
+        if (SlimefunBucketEmptyEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunBucketEmptyEvent event = new SlimefunBucketEmptyEvent(player, slimefunItem, block);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 }
