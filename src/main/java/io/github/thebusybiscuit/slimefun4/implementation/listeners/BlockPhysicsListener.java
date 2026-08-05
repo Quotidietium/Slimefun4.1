@@ -23,6 +23,7 @@ import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBurnEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockFallEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPistonEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -51,6 +52,14 @@ public class BlockPhysicsListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockFall(EntityChangeBlockEvent e) {
         if (e.getEntity().getType() == EntityType.FALLING_BLOCK && (BlockStorage.hasBlockInfo(e.getBlock()) || Slimefun.getTickerTask().isOccupiedSoon(e.getBlock().getLocation()))) {
+            SlimefunItem item = BlockStorage.check(e.getBlock());
+
+            // A leftover-data or reserved block (item == null) always stays protected. For a
+            // real Slimefun block, a registered listener may veto the protection to let it fall.
+            if (item != null && isFallProtectionVetoed(item, e.getBlock())) {
+                return;
+            }
+
             e.setCancelled(true);
             FallingBlock block = (FallingBlock) e.getEntity();
 
@@ -58,6 +67,21 @@ public class BlockPhysicsListener implements Listener {
                 block.getWorld().dropItemNaturally(block.getLocation(), new ItemStack(block.getBlockData().getMaterial(), 1));
             }
         }
+    }
+
+    /**
+     * Fires a {@link SlimefunBlockFallEvent} if any listener is registered and returns whether
+     * the fall protection was vetoed. Without listeners this costs nothing and the old behavior
+     * is preserved.
+     */
+    private boolean isFallProtectionVetoed(@Nonnull SlimefunItem slimefunItem, @Nonnull Block block) {
+        if (SlimefunBlockFallEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunBlockFallEvent event = new SlimefunBlockFallEvent(slimefunItem, block);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     @EventHandler(ignoreCancelled = true)
