@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.food;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -11,6 +12,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.MagicSugarSpeedEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -45,13 +47,25 @@ public class MagicSugar extends SimpleSlimefunItem<ItemUseHandler> {
             }
 
             Player p = e.getPlayer();
+            PotionEffect effect = new PotionEffect(PotionEffectType.SPEED, 600, 3);
+
+            if (MagicSugarSpeedEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                MagicSugarSpeedEvent event = new MagicSugarSpeedEvent(p, this, effect);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                effect = event.getEffect();
+            }
 
             if (p.getGameMode() != GameMode.CREATIVE) {
                 ItemUtils.consumeItem(e.getItem(), false);
             }
 
             SoundEffect.MAGIC_SUGAR_CONSUME_SOUND.playFor(p);
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 600, 3));
+            p.addPotionEffect(effect);
         };
     }
 
