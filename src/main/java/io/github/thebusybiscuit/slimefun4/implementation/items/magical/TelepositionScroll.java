@@ -2,11 +2,14 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
+
+import io.github.thebusybiscuit.slimefun4.api.events.TelepositionScrollRotateEvent;
 
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
@@ -42,11 +45,22 @@ public class TelepositionScroll extends SimpleSlimefunItem<ItemUseHandler> {
             int range = radius.getValue();
 
             for (Entity n : e.getPlayer().getNearbyEntities(range, range, range)) {
-                if (n instanceof LivingEntity && !(n instanceof ArmorStand) && !n.getUniqueId().equals(e.getPlayer().getUniqueId())) {
+                if (n instanceof LivingEntity living && !(n instanceof ArmorStand) && !n.getUniqueId().equals(e.getPlayer().getUniqueId())) {
                     float yaw = n.getLocation().getYaw() + 180F;
 
                     if (yaw > 360F) {
                         yaw = yaw - 360F;
+                    }
+
+                    if (TelepositionScrollRotateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        TelepositionScrollRotateEvent event = new TelepositionScrollRotateEvent(e.getPlayer(), this, living, yaw);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            continue;
+                        }
+
+                        yaw = event.getNewYaw();
                     }
 
                     n.teleport(new Location(n.getWorld(), n.getLocation().getX(), n.getLocation().getY(), n.getLocation().getZ(), yaw, n.getLocation().getPitch()));
