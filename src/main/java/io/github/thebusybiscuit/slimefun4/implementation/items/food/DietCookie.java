@@ -3,10 +3,12 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.food;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import io.github.thebusybiscuit.slimefun4.api.events.DietCookieConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -36,6 +38,19 @@ public class DietCookie extends SimpleSlimefunItem<ItemConsumptionHandler> imple
     @Override
     public @Nonnull ItemConsumptionHandler getItemHandler() {
         return (e, p, item) -> {
+            PotionEffect effect = PotionEffectType.LEVITATION.createEffect(60, 1);
+
+            if (DietCookieConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                DietCookieConsumeEvent event = new DietCookieConsumeEvent(p, this, effect);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                effect = event.getEffect();
+            }
+
             Slimefun.getLocalization().sendMessage(p, "messages.diet-cookie");
             SoundEffect.DIET_COOKIE_CONSUME_SOUND.playFor(p);
 
@@ -43,7 +58,7 @@ public class DietCookie extends SimpleSlimefunItem<ItemConsumptionHandler> imple
                 p.removePotionEffect(PotionEffectType.LEVITATION);
             }
 
-            p.addPotionEffect(PotionEffectType.LEVITATION.createEffect(60, 1));
+            p.addPotionEffect(effect);
         };
     }
 }
