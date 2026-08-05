@@ -5,6 +5,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.blocks.Vein;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.PickaxeOfVeinMiningEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -48,6 +50,18 @@ public class PickaxeOfVeinMining extends SimpleSlimefunItem<ToolUseHandler> {
         return (e, tool, fortune, drops) -> {
             if (SlimefunTag.PICKAXE_OF_VEIN_MINING_BLOCKS.isTagged(e.getBlock().getType())) {
                 List<Block> blocks = Vein.find(e.getBlock(), maxBlocks.getValue(), b -> SlimefunTag.PICKAXE_OF_VEIN_MINING_BLOCKS.isTagged(b.getType()));
+
+                if (PickaxeOfVeinMiningEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    PickaxeOfVeinMiningEvent event = new PickaxeOfVeinMiningEvent(e.getPlayer(), this, blocks);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+
+                    blocks = event.getBlocks();
+                }
+
                 breakBlocks(e.getPlayer(), blocks, fortune, tool);
             }
         };
