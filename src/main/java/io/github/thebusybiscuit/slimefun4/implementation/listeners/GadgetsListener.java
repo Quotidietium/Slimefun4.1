@@ -59,7 +59,7 @@ public class GadgetsListener implements Listener {
                 InfusedMagnet magnet = (InfusedMagnet) SlimefunItems.INFUSED_MAGNET.getItem();
 
                 if (magnet.canUse(p, true)) {
-                    new InfusedMagnetTask(p, magnet.getRadius()).scheduleRepeating(0, 8);
+                    new InfusedMagnetTask(p, magnet, magnet.getRadius()).scheduleRepeating(0, 8);
                 }
             }
         }
