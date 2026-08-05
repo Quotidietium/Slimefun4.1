@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Monster;
@@ -13,11 +14,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.WitherSkeleton;
 import org.bukkit.entity.Zombie;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.SwordOfBeheadingDropEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -64,28 +67,28 @@ public class SwordOfBeheading extends SimpleSlimefunItem<EntityKillHandler> impl
             switch (e.getEntityType()) {
                 case ZOMBIE -> {
                     if (random.nextInt(100) < chanceZombie.getValue()) {
-                        e.getDrops().add(new ItemStack(Material.ZOMBIE_HEAD));
+                        dropHead(e, killer, new ItemStack(Material.ZOMBIE_HEAD));
                     }
                 }
                 case SKELETON -> {
                     if (random.nextInt(100) < chanceSkeleton.getValue()) {
-                        e.getDrops().add(new ItemStack(Material.SKELETON_SKULL));
+                        dropHead(e, killer, new ItemStack(Material.SKELETON_SKULL));
                     }
                 }
                 case CREEPER -> {
                     if (random.nextInt(100) < chanceCreeper.getValue()) {
-                        e.getDrops().add(new ItemStack(Material.CREEPER_HEAD));
+                        dropHead(e, killer, new ItemStack(Material.CREEPER_HEAD));
                     }
                 }
                 case WITHER_SKELETON -> {
                     if (random.nextInt(100) < chanceWitherSkeleton.getValue()) {
-                        e.getDrops().add(new ItemStack(Material.WITHER_SKELETON_SKULL));
+                        dropHead(e, killer, new ItemStack(Material.WITHER_SKELETON_SKULL));
                     }
                 }
                 case PIGLIN -> {
                     if (Slimefun.getMinecraftVersion().isAtLeast(MinecraftVersion.MINECRAFT_1_20) &&
                         random.nextInt(100) < chancePiglin.getValue()) {
-                        e.getDrops().add(new ItemStack(Material.PIGLIN_HEAD));
+                        dropHead(e, killer, new ItemStack(Material.PIGLIN_HEAD));
                     }
                 }
                 case PLAYER -> {
@@ -96,12 +99,28 @@ public class SwordOfBeheading extends SimpleSlimefunItem<EntityKillHandler> impl
                         ((SkullMeta) meta).setOwningPlayer((Player) e.getEntity());
                         skull.setItemMeta(meta);
 
-                        e.getDrops().add(skull);
+                        dropHead(e, killer, skull);
                     }
                 }
                 default -> {}
             }
         };
+    }
+
+    @ParametersAreNonnullByDefault
+    private void dropHead(EntityDeathEvent e, Player killer, ItemStack head) {
+        if (SwordOfBeheadingDropEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SwordOfBeheadingDropEvent event = new SwordOfBeheadingDropEvent(killer, this, e.getEntity(), head);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return;
+            }
+
+            head = event.getHead();
+        }
+
+        e.getDrops().add(head);
     }
 
 }
