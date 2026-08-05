@@ -5,6 +5,7 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Arrow;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.GrapplingHookFireEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -62,6 +64,15 @@ public class GrapplingHook extends SimpleSlimefunItem<ItemUseHandler> {
                 if (p.getInventory().getItemInOffHand().getType() == Material.BOW) {
                     // Cancel, to fix dupe #740
                     return;
+                }
+
+                if (GrapplingHookFireEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    GrapplingHookFireEvent fireEvent = new GrapplingHookFireEvent(p, GrapplingHook.this);
+                    Bukkit.getPluginManager().callEvent(fireEvent);
+
+                    if (fireEvent.isCancelled()) {
+                        return;
+                    }
                 }
 
                 ItemStack item = e.getItem();
