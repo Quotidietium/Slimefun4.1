@@ -25,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBurnEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockFallEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPistonEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunLiquidFlowEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
@@ -198,7 +199,13 @@ public class BlockPhysicsListener implements Listener {
         if (SlimefunTag.FLUID_SENSITIVE_MATERIALS.isTagged(type)) {
             // Check if this Block holds any data
             if (BlockStorage.hasBlockInfo(block)) {
-                e.setCancelled(true);
+                SlimefunItem item = BlockStorage.check(block);
+
+                // A leftover-data block (item == null) always stays protected. For a real
+                // Slimefun block, a registered listener may veto the protection to let fluid in.
+                if (item == null || !isLiquidFlowProtectionVetoed(item, block)) {
+                    e.setCancelled(true);
+                }
             } else {
                 Location loc = block.getLocation();
 
@@ -208,6 +215,21 @@ public class BlockPhysicsListener implements Listener {
                 }
             }
         }
+    }
+
+    /**
+     * Fires a {@link SlimefunLiquidFlowEvent} if any listener is registered and returns whether
+     * the liquid-flow protection was vetoed. Without listeners this costs nothing and the old
+     * behavior is preserved.
+     */
+    private boolean isLiquidFlowProtectionVetoed(@Nonnull SlimefunItem slimefunItem, @Nonnull Block block) {
+        if (SlimefunLiquidFlowEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunLiquidFlowEvent event = new SlimefunLiquidFlowEvent(slimefunItem, block);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     @EventHandler
