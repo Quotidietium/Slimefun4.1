@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.listeners;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -21,6 +22,8 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBurnEvent;
+import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.tags.SlimefunTag;
 
@@ -113,8 +116,29 @@ public class BlockPhysicsListener implements Listener {
     public void onBlockBurn(BlockBurnEvent e) {
         // Do not let fire destroy a block that still holds Slimefun data
         if (BlockStorage.hasBlockInfo(e.getBlock())) {
-            e.setCancelled(true);
+            SlimefunItem item = BlockStorage.check(e.getBlock());
+
+            // A leftover-data block (item == null) always stays protected. For a real
+            // Slimefun block, a registered listener may veto the protection to let it burn.
+            if (item == null || !isBurnProtectionVetoed(item, e.getBlock())) {
+                e.setCancelled(true);
+            }
         }
+    }
+
+    /**
+     * Fires a {@link SlimefunBlockBurnEvent} if any listener is registered and returns
+     * whether the burn protection was vetoed. Without listeners this costs nothing and
+     * the old behavior is preserved.
+     */
+    private boolean isBurnProtectionVetoed(@Nonnull SlimefunItem slimefunItem, @Nonnull Block block) {
+        if (SlimefunBlockBurnEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunBlockBurnEvent event = new SlimefunBlockBurnEvent(slimefunItem, block);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     @EventHandler(ignoreCancelled = true)
