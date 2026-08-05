@@ -5,10 +5,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.VampireBladeHealEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -44,8 +46,21 @@ public class VampireBlade extends SimpleSlimefunItem<WeaponUseHandler> implement
     public @Nonnull WeaponUseHandler getItemHandler() {
         return (e, p, item) -> {
             if (ThreadLocalRandom.current().nextInt(100) < getChance()) {
+                double healAmount = HEALING_AMOUNT;
+
+                if (VampireBladeHealEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    VampireBladeHealEvent event = new VampireBladeHealEvent(p, VampireBlade.this, healAmount);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        return;
+                    }
+
+                    healAmount = event.getHealAmount();
+                }
+
                 SoundEffect.VAMPIRE_BLADE_HEALING_SOUND.playFor(p);
-                double health = p.getHealth() + HEALING_AMOUNT;
+                double health = p.getHealth() + healAmount;
                 var maxHealthAttr = p.getAttribute(VersionedAttribute.MAX_HEALTH);
                 double maxHealth = maxHealthAttr != null ? maxHealthAttr.getValue() : 20.0;
                 p.setHealth(Math.min(health, maxHealth));
