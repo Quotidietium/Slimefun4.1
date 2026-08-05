@@ -4,12 +4,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nonnull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import io.github.thebusybiscuit.slimefun4.api.events.JetBootsThrustEvent;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.gadgets.JetBoots;
 import io.github.thebusybiscuit.slimefun4.utils.NumberUtils;
@@ -29,6 +31,21 @@ public class JetBootsTask extends AbstractPlayerTask {
     protected void executeTask() {
         if (p.getInventory().getBoots() == null || p.getInventory().getBoots().getType() == Material.AIR) {
             return;
+        }
+
+        /*
+         * Fire a JetBootsThrustEvent before consuming charge. Cancellation skips
+         * this thrust: no charge is consumed and no velocity is applied, but the
+         * task keeps running. Gated on registered listeners to keep this per-tick
+         * path allocation-free by default.
+         */
+        if (JetBootsThrustEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            JetBootsThrustEvent event = new JetBootsThrustEvent(p, boots, COST);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return;
+            }
         }
 
         double accuracy = NumberUtils.reparseDouble(boots.getSpeed() - 0.7);
