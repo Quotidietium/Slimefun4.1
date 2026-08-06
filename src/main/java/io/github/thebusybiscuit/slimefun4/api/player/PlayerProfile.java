@@ -36,6 +36,7 @@ import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncProfileLoadEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerResearchRankChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ResearchLockEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.ResearchProgressEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.WaypointRemoveEvent;
 import io.github.thebusybiscuit.slimefun4.api.gps.Waypoint;
 import io.github.thebusybiscuit.slimefun4.api.items.HashedArmorpiece;
@@ -201,12 +202,14 @@ public class PlayerProfile {
     public void setResearched(@Nonnull Research research, boolean unlock) {
         Validate.notNull(research, "Research must not be null!");
 
-        if (!unlock) {
-            // Only raise a lock event (and later consider the rank) when the research is
-            // actually present, so a no-op removal never fires an event.
-            boolean present = data.getResearches().contains(research);
+        // Whether the player already owns this research, captured before any mutation so we
+        // can tell a genuine ownership flip from a no-op call.
+        boolean presentBefore = data.getResearches().contains(research);
 
-            if (present) {
+        if (!unlock) {
+            // Only raise a lock event when the research is actually present, so a no-op
+            // removal never fires an event.
+            if (presentBefore) {
                 ResearchLockEvent lockEvent = new ResearchLockEvent(this, research);
                 Bukkit.getPluginManager().callEvent(lockEvent);
 
@@ -220,6 +223,11 @@ public class PlayerProfile {
         // Capture the rank title before mutating so we can detect a boundary crossing.
         String previousTitle = getResearchTitleSafely();
 
+        // A genuine ownership flip is the only case worth announcing as fine-grained progress
+        // (unlocking an already-unlocked research or locking a never-unlocked one is a no-op).
+        boolean willActuallyChange = (unlock && !presentBefore) || (!unlock && presentBefore);
+        int previousProgressCount = willActuallyChange ? countNonEmptyResearches(getResearches()) : 0;
+
         // Mutate first, then mark dirty. markDirty() bumps the modification epoch which save()
         // uses to detect concurrent mutations - the epoch must always reflect the state of the
         // data, so the bookkeeping has to run AFTER the change, never before.
@@ -230,6 +238,12 @@ public class PlayerProfile {
         }
 
         markDirty();
+
+        if (willActuallyChange) {
+            int newProgressCount = countNonEmptyResearches(getResearches());
+            int totalResearches = countNonEmptyResearches(Slimefun.getRegistry().getResearches());
+            Bukkit.getPluginManager().callEvent(new ResearchProgressEvent(this, research, unlock, previousProgressCount, newProgressCount, totalResearches));
+        }
 
         if (previousTitle != null) {
             String newTitle = getResearchTitleSafely();
