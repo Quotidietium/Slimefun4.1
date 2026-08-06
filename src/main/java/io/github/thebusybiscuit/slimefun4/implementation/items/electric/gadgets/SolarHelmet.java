@@ -4,10 +4,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SolarHelmetChargeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -22,7 +24,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.tasks.armor.SolarHelmet
  * As long as that {@link Player} has contact with sunlight, the helmet will charge any
  * {@link Rechargeable} {@link SlimefunItem} that this {@link Player} is currently wearing
  * or holding.
- * 
+ *
  * @author TheBusyBiscuit
  *
  * @see SolarHelmetTask
@@ -48,7 +50,7 @@ public class SolarHelmet extends SlimefunItem {
     /**
      * This method recharges the equipment of the given {@link Player} by the configured
      * factor of this {@link SolarHelmet}.
-     * 
+     *
      * @param p
      *            The {@link Player} wearing this {@link SolarHelmet}
      */
@@ -56,19 +58,32 @@ public class SolarHelmet extends SlimefunItem {
         PlayerInventory inv = p.getInventory();
 
         // No need to charge the helmet since that slot is occupied by the Solar Helmet
-        recharge(inv.getChestplate());
-        recharge(inv.getLeggings());
-        recharge(inv.getBoots());
+        recharge(inv.getChestplate(), p);
+        recharge(inv.getLeggings(), p);
+        recharge(inv.getBoots(), p);
 
-        recharge(inv.getItemInMainHand());
-        recharge(inv.getItemInOffHand());
+        recharge(inv.getItemInMainHand(), p);
+        recharge(inv.getItemInOffHand(), p);
     }
 
-    private void recharge(@Nullable ItemStack item) {
+    private void recharge(@Nullable ItemStack item, @Nonnull Player player) {
         SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
         if (sfItem instanceof Rechargeable rechargeable) {
-            rechargeable.addItemCharge(item, charge.getValue().floatValue());
+            float chargeAmount = charge.getValue().floatValue();
+
+            if (SolarHelmetChargeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                SolarHelmetChargeEvent event = new SolarHelmetChargeEvent(player, this, item, rechargeable, chargeAmount);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+
+                chargeAmount = event.getCharge();
+            }
+
+            rechargeable.addItemCharge(item, chargeAmount);
         }
     }
 
