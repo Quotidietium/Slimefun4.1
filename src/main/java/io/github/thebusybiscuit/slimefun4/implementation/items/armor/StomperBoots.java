@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.StomperBootsBounceEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.StomperBootsPushEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -49,7 +50,23 @@ public class StomperBoots extends SlimefunItem {
     public void stomp(@Nonnull EntityDamageEvent fallDamageEvent) {
         Player player = (Player) fallDamageEvent.getEntity();
         SoundEffect.STOMPER_BOOTS_STOMP_SOUND.playFor(player);
-        player.setVelocity(new Vector(0, 0.7, 0));
+
+        // The wearer is launched back up by the stomp. Addons may adjust or suppress this
+        // bounce; suppressing it only skips the launch, the shockwave below still runs.
+        Vector bounceVelocity = new Vector(0, 0.7, 0);
+        boolean bounce = true;
+
+        if (StomperBootsBounceEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            StomperBootsBounceEvent bounceEvent = new StomperBootsBounceEvent(player, this, bounceVelocity.clone());
+            Bukkit.getPluginManager().callEvent(bounceEvent);
+
+            bounce = !bounceEvent.isCancelled();
+            bounceVelocity = bounceEvent.getBounceVelocity();
+        }
+
+        if (bounce) {
+            player.setVelocity(bounceVelocity);
+        }
 
         for (Entity entity : player.getNearbyEntities(4, 4, 4)) {
             if (entity instanceof LivingEntity livingEntity && canPush(player, livingEntity)) {
