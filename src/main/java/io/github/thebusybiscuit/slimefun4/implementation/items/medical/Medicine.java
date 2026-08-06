@@ -2,8 +2,10 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.medical;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.MedicineConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -20,6 +22,15 @@ public class Medicine extends MedicalSupply<ItemConsumptionHandler> {
     @Override
     public ItemConsumptionHandler getItemHandler() {
         return (e, p, item) -> {
+            if (MedicineConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                MedicineConsumeEvent event = new MedicineConsumeEvent(p, this);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+            }
+
             p.setFireTicks(0);
             clearNegativeEffects(p);
             RadiationUtils.clearExposure(p);
