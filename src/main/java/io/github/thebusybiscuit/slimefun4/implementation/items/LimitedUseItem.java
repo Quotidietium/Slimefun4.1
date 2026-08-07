@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -17,6 +18,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.LimitedUseItemConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -120,6 +122,16 @@ public abstract class LimitedUseItem extends SimpleSlimefunItem<ItemUseHandler> 
             // for unlimited uses, or non-positive values that would never decrement to break).
             if (maxUses >= 1) {
                 usesLeft = Math.min(Math.max(usesLeft, 1), maxUses);
+            }
+
+            if (LimitedUseItemConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                LimitedUseItemConsumeEvent event = new LimitedUseItemConsumeEvent(p, this, item, usesLeft);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon vetoed this use: no charge is consumed and the item does not break.
+                    return;
+                }
             }
 
             if (usesLeft == 1) {
