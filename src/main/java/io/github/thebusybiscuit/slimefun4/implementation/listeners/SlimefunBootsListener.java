@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerInteractEvent;
 
+import io.github.thebusybiscuit.slimefun4.api.events.FarmerShoesTramplePreventEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBootsFallEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -100,6 +101,16 @@ public class SlimefunBootsListener implements Listener {
                 SlimefunItem boots = SlimefunItem.getByItem(p.getInventory().getBoots());
 
                 if (boots instanceof FarmerShoes && boots.canUse(p, true)) {
+                    if (FarmerShoesTramplePreventEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        FarmerShoesTramplePreventEvent event = new FarmerShoesTramplePreventEvent(p, (FarmerShoes) boots, p.getInventory().getBoots(), b);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed the protection; the farmland is trampled as vanilla.
+                            return;
+                        }
+                    }
+
                     e.setCancelled(true);
                 }
             }
