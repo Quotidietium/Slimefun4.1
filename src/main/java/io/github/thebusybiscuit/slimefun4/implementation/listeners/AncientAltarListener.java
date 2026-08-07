@@ -32,6 +32,7 @@ import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.AncientAltarRitualStartEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.PedestalItemTakeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
@@ -154,6 +155,18 @@ public class AncientAltarListener implements Listener {
             }
         } else if (!removedItems.contains(stack.get().getUniqueId())) {
             Item entity = stack.get();
+            ItemStack returnedItem = pedestalItem.getOriginalItemStack(entity);
+
+            if (PedestalItemTakeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                PedestalItemTakeEvent event = new PedestalItemTakeEvent(p, pedestalItem, pedestal, returnedItem);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon vetoed the retrieval; the item stays on the pedestal.
+                    return;
+                }
+            }
+
             UUID uuid = entity.getUniqueId();
             removedItems.add(uuid);
 
@@ -167,7 +180,7 @@ public class AncientAltarListener implements Listener {
              * Drop the item instead if the player's inventory is full and
              * no stack space left else add remaining items from the returned map value
              */
-            Map<Integer, ItemStack> remainingItemMap = p.getInventory().addItem(pedestalItem.getOriginalItemStack(entity));
+            Map<Integer, ItemStack> remainingItemMap = p.getInventory().addItem(returnedItem);
 
             for (ItemStack item : remainingItemMap.values()) {
                 p.getWorld().dropItem(pedestal.getLocation().add(0, 1, 0), item.clone());
