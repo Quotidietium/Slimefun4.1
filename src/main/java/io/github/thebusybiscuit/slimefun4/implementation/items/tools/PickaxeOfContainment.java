@@ -1,8 +1,10 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.tools;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -10,6 +12,7 @@ import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SpawnerCaptureEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSpawnReason;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -29,9 +32,9 @@ import me.mrCookieSlime.Slimefun.api.BlockStorage;
  * The {@link PickaxeOfContainment} is a Pickaxe that allows you to break Spawners.
  * Upon breaking a Spawner, a {@link BrokenSpawner} will be dropped.
  * But it also allows you to break a {@link RepairedSpawner}.
- * 
+ *
  * @author TheBusyBiscuit
- * 
+ *
  * @see BrokenSpawner
  * @see RepairedSpawner
  *
@@ -49,7 +52,21 @@ public class PickaxeOfContainment extends SimpleSlimefunItem<ToolUseHandler> {
             Block b = e.getBlock();
 
             if (b.getType() == Material.SPAWNER) {
-                ItemStack spawner = breakSpawner(b);
+                EntityType entityType = getSpawnedEntityType(b);
+                ItemStack spawner = breakSpawner(b, entityType);
+
+                if (SpawnerCaptureEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    SpawnerCaptureEvent event = new SpawnerCaptureEvent(e.getPlayer(), this, b, entityType, spawner);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed the capture; leave vanilla drops/experience untouched.
+                        return;
+                    }
+
+                    spawner = event.getDrop();
+                }
+
                 SlimefunUtils.spawnItem(b.getLocation(), spawner, ItemSpawnReason.BROKEN_SPAWNER_DROP, true, e.getPlayer());
 
                 e.setExpToDrop(0);
@@ -58,7 +75,18 @@ public class PickaxeOfContainment extends SimpleSlimefunItem<ToolUseHandler> {
         };
     }
 
-    private @Nonnull ItemStack breakSpawner(@Nonnull Block b) {
+    @Nullable
+    private EntityType getSpawnedEntityType(@Nonnull Block b) {
+        BlockState state = PaperLib.getBlockState(b, false).getState();
+
+        if (state instanceof CreatureSpawner creatureSpawner) {
+            return creatureSpawner.getSpawnedType();
+        }
+
+        return null;
+    }
+
+    private @Nonnull ItemStack breakSpawner(@Nonnull Block b, @Nullable EntityType entityType) {
         AbstractMonsterSpawner spawner;
 
         /*
@@ -71,10 +99,7 @@ public class PickaxeOfContainment extends SimpleSlimefunItem<ToolUseHandler> {
             spawner = (AbstractMonsterSpawner) SlimefunItems.BROKEN_SPAWNER.getItem();
         }
 
-        BlockState state = PaperLib.getBlockState(b, false).getState();
-
-        if (state instanceof CreatureSpawner creatureSpawner) {
-            EntityType entityType = creatureSpawner.getSpawnedType();
+        if (entityType != null) {
             return spawner.getItemForEntityType(entityType);
         }
 
