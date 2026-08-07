@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.ReactorCoolantConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorExplodeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorProduceByproductEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
@@ -485,6 +486,16 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
 
             for (int slot : getCoolantSlots()) {
                 if (SlimefunUtils.isItemSimilar(menu.getItemInSlot(slot), coolant, true, false)) {
+                    if (ReactorCoolantConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        ReactorCoolantConsumeEvent event = new ReactorCoolantConsumeEvent(this, reactor, menu.getItemInSlot(slot), slot);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed the cooling; the reactor is treated as uncooled.
+                            return false;
+                        }
+                    }
+
                     menu.consumeItem(slot);
                     updateHologram(reactor.getBlock(), "&b\u2744 &7100%");
                     return true;
