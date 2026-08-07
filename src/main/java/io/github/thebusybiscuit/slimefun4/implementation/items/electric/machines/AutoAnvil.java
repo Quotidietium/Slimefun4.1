@@ -1,10 +1,12 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import io.github.thebusybiscuit.slimefun4.api.events.AutoAnvilRepairEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -54,6 +56,18 @@ public class AutoAnvil extends AContainer {
 
                     if (!menu.fits(repairedItem, getOutputSlots())) {
                         return null;
+                    }
+
+                    if (AutoAnvilRepairEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        AutoAnvilRepairEvent event = new AutoAnvilRepairEvent(this, menu.getBlock().getLocation(), ductTape, item, repairedItem);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed this repair; the inputs stay and no operation is started.
+                            return null;
+                        }
+
+                        repairedItem = event.getResult();
                     }
 
                     for (int inputSlot : getInputSlots()) {
