@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -28,6 +29,7 @@ import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.recipes.MinecraftRecipe;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunGuideSearchEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.groups.FlexItemGroup;
@@ -337,6 +339,18 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
 
         if (p == null) {
             return;
+        }
+
+        if (SlimefunGuideSearchEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            SlimefunGuideSearchEvent event = new SlimefunGuideSearchEvent(p, input);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the search; no results menu is opened and nothing is recorded.
+                return;
+            }
+
+            input = event.getSearchTerm();
         }
 
         ChestMenu menu = new ChestMenu(Slimefun.getLocalization().getMessage(p, "guide.search.inventory").replace("%item%", ChatUtils.crop(ChatColor.WHITE, input)));
