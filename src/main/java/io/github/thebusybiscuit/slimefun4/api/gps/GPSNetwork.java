@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.chat.ChatInput;
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.GPSTransmitterStatusEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.WaypointCreateEvent;
 import io.github.thebusybiscuit.slimefun4.api.geo.GEOResource;
 import io.github.thebusybiscuit.slimefun4.api.geo.ResourceManager;
@@ -95,16 +96,18 @@ public class GPSNetwork {
          * a transmitter ticking on the async Thread cannot interleave with a
          * concurrent removal on the main Thread and get lost in an orphaned Set.
          */
+        boolean[] changed = { false };
+
         transmitters.compute(uuid, (id, set) -> {
             if (online) {
                 if (set == null) {
                     set = ConcurrentHashMap.newKeySet();
                 }
 
-                set.add(l);
+                changed[0] = set.add(l);
                 return set;
             } else if (set != null) {
-                set.remove(l);
+                changed[0] = set.remove(l);
 
                 // Players without any online transmitters should not linger in this Map
                 return set.isEmpty() ? null : set;
@@ -112,6 +115,16 @@ public class GPSNetwork {
                 return null;
             }
         });
+
+        /*
+         * Fire after the atomic update, only on real flips: the ticker re-asserts
+         * the status every tick, so idempotent updates must stay silent. The event
+         * is fired outside compute() because listeners may call back into this Map.
+         */
+        if (changed[0] && GPSTransmitterStatusEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            GPSTransmitterStatusEvent event = new GPSTransmitterStatusEvent(l, uuid, online);
+            Bukkit.getPluginManager().callEvent(event);
+        }
     }
 
     /**
