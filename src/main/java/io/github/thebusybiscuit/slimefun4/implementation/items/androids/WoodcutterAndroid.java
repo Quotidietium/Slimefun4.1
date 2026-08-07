@@ -6,6 +6,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -17,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.blocks.Vein;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidChopTreeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -68,7 +70,17 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
     }
 
     @ParametersAreNonnullByDefault
-    private void breakLog(Block log, Block android, BlockMenu menu, BlockFace face) {
+    protected void breakLog(Block log, Block android, BlockMenu menu, BlockFace face) {
+        if (AndroidChopTreeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AndroidChopTreeEvent event = new AndroidChopTreeEvent(log, new AndroidInstance(this, android));
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the chop; the log stays and the android retries next tick.
+                return;
+            }
+        }
+
         ItemStack drop = new ItemStack(log.getType());
 
         // We try to push the log into the android's inventory, but nothing happens if it does not fit
