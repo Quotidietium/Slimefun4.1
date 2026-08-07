@@ -5,10 +5,12 @@ import java.util.function.Consumer;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.ResearchCostEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
@@ -70,16 +72,34 @@ public interface SlimefunGuideImplementation {
         if (p.getGameMode() == GameMode.CREATIVE && Slimefun.getRegistry().isFreeCreativeResearchingEnabled()) {
             research.unlock(p, true, callback);
         } else {
-            p.setLevel(p.getLevel() - research.getCost());
+            int cost = research.getCost();
 
+            // Fire a vetoable, cost-modifiable event before any levels are deducted.
+            if (ResearchCostEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                ResearchCostEvent event = new ResearchCostEvent(p, research, cost);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    cost = 0;
+                } else {
+                    cost = event.getCost();
+                }
+            }
+
+            if (cost > 0) {
+                p.setLevel(p.getLevel() - cost);
+            }
+
+            final int refundedCost = cost;
             boolean skipLearningAnimation = Slimefun.getRegistry().isLearningAnimationDisabled() || !SlimefunGuideSettings.hasLearningAnimationEnabled(p);
             research.unlock(p, skipLearningAnimation, callback, () -> {
                 /*
                  * The PlayerProfile could not be loaded (even after retrying), so
                  * the research was never unlocked - refund the levels we took.
+                 * The refund tracks the actually deducted (possibly adjusted) cost.
                  */
-                if (p.isOnline()) {
-                    p.setLevel(p.getLevel() + research.getCost());
+                if (p.isOnline() && refundedCost > 0) {
+                    p.setLevel(p.getLevel() + refundedCost);
                 }
             });
         }
