@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -17,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import io.github.thebusybiscuit.slimefun4.api.events.IgnitionChamberUseEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -59,12 +61,16 @@ public class IgnitionChamber extends SlimefunItem {
     /**
      * This triggers an {@link IgnitionChamber} to be used from the given {@link Smeltery}
      * block and {@link Player}.
-     * 
+     * <p>
+     * When a Flint and Steel is found, an {@link IgnitionChamberUseEvent} is fired before
+     * its durability is consumed; a cancelled event makes this method return
+     * <code>false</code> without damaging the Flint and Steel.
+     *
      * @param p
      *            The {@link Player} who triggered this action
      * @param smelteryBlock
      *            The {@link Dispenser} block of our {@link Smeltery}
-     * 
+     *
      * @return Whether the operation completed successfully.
      *         This will return <code>false</code> when there is no
      *         chamber or no flint and steel present
@@ -74,16 +80,35 @@ public class IgnitionChamber extends SlimefunItem {
         Validate.notNull(p, "The Player must not be null!");
         Validate.notNull(smelteryBlock, "The smeltery block cannot be null!");
 
-        Inventory inv = findIgnitionChamber(smelteryBlock);
+        Block chamber = findIgnitionChamber(smelteryBlock);
 
         // Check if there even is a chamber nearby
-        if (inv == null) {
+        if (chamber == null) {
             return false;
         }
+
+        BlockState state = PaperLib.getBlockState(chamber, false).getState();
+
+        if (!(state instanceof Dropper dropper)) {
+            return false;
+        }
+
+        Inventory inv = dropper.getInventory();
 
         // Check if the chamber contains a Flint and Steel
         if (inv.contains(Material.FLINT_AND_STEEL)) {
             ItemStack item = inv.getItem(inv.first(Material.FLINT_AND_STEEL));
+
+            if (IgnitionChamberUseEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                IgnitionChamberUseEvent event = new IgnitionChamberUseEvent(p, smelteryBlock, chamber, item);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon vetoed the ignition; the flint and steel is not damaged and the smeltery is not ignited.
+                    return false;
+                }
+            }
+
             ItemMeta meta = item.getItemMeta();
 
             // Only damage the Flint and Steel if it isn't unbreakable.
@@ -109,16 +134,12 @@ public class IgnitionChamber extends SlimefunItem {
         }
     }
 
-    private static @Nullable Inventory findIgnitionChamber(@Nonnull Block b) {
+    private static @Nullable Block findIgnitionChamber(@Nonnull Block b) {
         for (BlockFace face : ADJACENT_FACES) {
             Block block = b.getRelative(face);
 
             if (block.getType() == Material.DROPPER && BlockStorage.check(block) instanceof IgnitionChamber) {
-                BlockState state = PaperLib.getBlockState(b.getRelative(face), false).getState();
-
-                if (state instanceof Dropper dropper) {
-                    return dropper.getInventory();
-                }
+                return block;
             }
         }
 
