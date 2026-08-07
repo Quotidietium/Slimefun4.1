@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
@@ -26,6 +27,7 @@ import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.ProduceCollectorCollectEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -144,6 +146,16 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
                 }
 
                 if (isAnimalNearby(inv.getBlock(), produce)) {
+                    if (ProduceCollectorCollectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        ProduceCollectorCollectEvent event = new ProduceCollectorCollectEvent(this, inv.getBlock(), produce);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed this produce; keep scanning the remaining produces.
+                            continue;
+                        }
+                    }
+
                     inv.consumeItem(slot);
                     return produce;
                 }
