@@ -42,6 +42,7 @@ import io.github.bakedlibs.dough.skins.PlayerHead;
 import io.github.bakedlibs.dough.skins.PlayerSkin;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidFuelConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidItemDepositEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidRefuelEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -849,6 +850,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             BlockState state = PaperLib.getBlockState(facedBlock, false).getState();
 
             if (state instanceof Dispenser dispenser) {
+                if (AndroidRefuelEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    AndroidRefuelEvent event = new AndroidRefuelEvent(this, menu.getLocation().getBlock(), facedBlock);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed the refuel; the fuel stays in the interface.
+                        return;
+                    }
+                }
+
                 for (int slot = 0; slot < 9; slot++) {
                     ItemStack item = dispenser.getInventory().getItem(slot);
 
