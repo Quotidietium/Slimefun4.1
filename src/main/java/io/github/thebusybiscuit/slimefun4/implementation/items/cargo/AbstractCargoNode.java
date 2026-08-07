@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -13,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.CargoNodeChannelChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -99,8 +101,10 @@ abstract class AbstractCargoNode extends SimpleSlimefunItem<BlockPlaceHandler> i
                 newChannel = 15;
             }
 
-            BlockStorage.addBlockInfo(b, FREQUENCY, String.valueOf(newChannel));
-            updateBlockMenu(menu, b);
+            if (applyChannelChange(p, b, newChannel)) {
+                updateBlockMenu(menu, b);
+            }
+
             return false;
         });
 
@@ -120,10 +124,42 @@ abstract class AbstractCargoNode extends SimpleSlimefunItem<BlockPlaceHandler> i
                 newChannel = 0;
             }
 
-            BlockStorage.addBlockInfo(b, FREQUENCY, String.valueOf(newChannel));
-            updateBlockMenu(menu, b);
+            if (applyChannelChange(p, b, newChannel)) {
+                updateBlockMenu(menu, b);
+            }
+
             return false;
         });
+    }
+
+    /**
+     * Applies a channel change triggered from the channel selector: fires a vetoable
+     * {@link CargoNodeChannelChangeEvent} first (only if anyone is listening), then
+     * stores the new frequency. A vetoed change leaves the stored frequency untouched.
+     * Without listeners this is a plain {@link BlockStorage} write, exactly as before.
+     *
+     * @param p
+     *            The {@link Player} who clicked the channel selector
+     * @param b
+     *            The {@link Block} of this node
+     * @param newChannel
+     *            The newly selected channel, zero-based
+     *
+     * @return Whether the change was applied and the menu should be refreshed
+     */
+    protected final boolean applyChannelChange(@Nonnull Player p, @Nonnull Block b, int newChannel) {
+        if (CargoNodeChannelChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            CargoNodeChannelChangeEvent event = new CargoNodeChannelChangeEvent(p, this, b, getSelectedChannel(b), newChannel);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed this change; the stored frequency and the menu stay as they are.
+                return false;
+            }
+        }
+
+        BlockStorage.addBlockInfo(b, FREQUENCY, String.valueOf(newChannel));
+        return true;
     }
 
     @Override
