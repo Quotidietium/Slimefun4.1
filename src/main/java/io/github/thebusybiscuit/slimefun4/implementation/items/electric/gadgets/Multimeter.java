@@ -4,10 +4,12 @@ import java.util.Optional;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.MultimeterReadEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -47,12 +49,25 @@ public class Multimeter extends SimpleSlimefunItem<ItemUseHandler> {
                     e.cancel();
 
                     Location l = e.getClickedBlock().get().getLocation();
-                    String stored = NumberUtils.getCompactDouble(component.getCharge(l)) + " J";
-                    String capacity = NumberUtils.getCompactDouble(component.getCapacity()) + " J";
-
+                    int stored = component.getCharge(l);
+                    int capacity = component.getCapacity();
                     Player p = e.getPlayer();
+
+                    if (MultimeterReadEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        MultimeterReadEvent event = new MultimeterReadEvent(p, this, l, component, stored, capacity);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon handled or vetoed the readout; send nothing.
+                            return;
+                        }
+                    }
+
+                    String storedText = NumberUtils.getCompactDouble(stored) + " J";
+                    String capacityText = NumberUtils.getCompactDouble(capacity) + " J";
+
                     p.sendMessage("");
-                    Slimefun.getLocalization().sendMessage(p, "messages.multimeter", false, str -> str.replace("%stored%", stored).replace("%capacity%", capacity));
+                    Slimefun.getLocalization().sendMessage(p, "messages.multimeter", false, str -> str.replace("%stored%", storedText).replace("%capacity%", capacityText));
                     p.sendMessage("");
                 }
             }
