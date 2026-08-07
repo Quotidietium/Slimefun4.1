@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunArmorChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunArmorEffectEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.HashedArmorpiece;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -45,7 +46,25 @@ public class SlimefunArmorTask extends AbstractArmorTask {
                     sfItem = null;
                 }
 
-                armorPiece.update(item, sfItem);
+                if (SlimefunArmorChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    SlimefunArmorPiece previousArmor = armorPiece.getItem().orElse(null);
+
+                    armorPiece.update(item, sfItem);
+
+                    SlimefunArmorPiece newArmor = armorPiece.getItem().orElse(null);
+
+                    if (previousArmor != null || newArmor != null) {
+                        /*
+                         * Notify addons about the armor change. The cache was already updated
+                         * above, so this is a plain notification with no veto semantics. A swap
+                         * between two non-Slimefun pieces stays silent by design.
+                         */
+                        SlimefunArmorChangeEvent event = new SlimefunArmorChangeEvent(p, slot, previousArmor, item, newArmor);
+                        Bukkit.getPluginManager().callEvent(event);
+                    }
+                } else {
+                    armorPiece.update(item, sfItem);
+                }
             }
 
             if (item != null && armorPiece.getItem().isPresent()) {
