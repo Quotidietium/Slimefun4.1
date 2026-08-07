@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.electric.reactor
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -14,6 +15,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.NetherStarReactorWitherEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -63,7 +65,19 @@ public abstract class NetherStarReactor extends Reactor {
                 Interaction interaction = n instanceof Player ? Interaction.ATTACK_PLAYER : Interaction.ATTACK_ENTITY;
                 return Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), interaction);
             })) {
-                ((LivingEntity) entity).addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
+                LivingEntity living = (LivingEntity) entity;
+
+                if (NetherStarReactorWitherEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    NetherStarReactorWitherEvent event = new NetherStarReactorWitherEvent(this, l, living);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed the withering of this entity.
+                        continue;
+                    }
+                }
+
+                living.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
             }
         });
     }
