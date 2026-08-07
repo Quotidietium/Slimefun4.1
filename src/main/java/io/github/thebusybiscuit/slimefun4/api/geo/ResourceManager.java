@@ -25,6 +25,7 @@ import io.github.bakedlibs.dough.config.Config;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.api.events.GEOResourceGenerationEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.GEOScanEvent;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.geo.GEOMiner;
 import io.github.thebusybiscuit.slimefun4.implementation.items.geo.GEOScanner;
@@ -223,6 +224,22 @@ public class ResourceManager {
             return;
         }
 
+        int displayPage;
+
+        if (GEOScanEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            GEOScanEvent event = new GEOScanEvent(p, block, page);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed or replaced the scan display.
+                return;
+            }
+
+            displayPage = event.getPage();
+        } else {
+            displayPage = page;
+        }
+
         int x = block.getX() >> 4;
         int z = block.getZ() >> 4;
 
@@ -240,7 +257,7 @@ public class ResourceManager {
         int index = 10;
         int pages = (resources.size() - 1) / 36 + 1;
 
-        for (int i = page * 28; i < resources.size() && i < (page + 1) * 28; i++) {
+        for (int i = displayPage * 28; i < resources.size() && i < (displayPage + 1) * 28; i++) {
             GEOResource resource = resources.get(i);
             OptionalInt optional = getSupplies(resource, block.getWorld(), x, z);
             int supplies = optional.orElseGet(() -> generate(resource, block.getWorld(), x, block.getY(), z));
@@ -260,19 +277,19 @@ public class ResourceManager {
             }
         }
 
-        menu.addItem(47, ChestMenuUtils.getPreviousButton(p, page + 1, pages));
+        menu.addItem(47, ChestMenuUtils.getPreviousButton(p, displayPage + 1, pages));
         menu.addMenuClickHandler(47, (pl, slot, item, action) -> {
-            if (page > 0) {
-                scan(pl, block, page - 1);
+            if (displayPage > 0) {
+                scan(pl, block, displayPage - 1);
             }
 
             return false;
         });
 
-        menu.addItem(51, ChestMenuUtils.getNextButton(p, page + 1, pages));
+        menu.addItem(51, ChestMenuUtils.getNextButton(p, displayPage + 1, pages));
         menu.addMenuClickHandler(51, (pl, slot, item, action) -> {
-            if (page + 1 < pages) {
-                scan(pl, block, page + 1);
+            if (displayPage + 1 < pages) {
+                scan(pl, block, displayPage + 1);
             }
 
             return false;
