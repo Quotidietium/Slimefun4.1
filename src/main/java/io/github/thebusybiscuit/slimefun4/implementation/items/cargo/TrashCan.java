@@ -1,12 +1,17 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.cargo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.TrashCanVoidEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -65,6 +70,28 @@ public class TrashCan extends SlimefunItem implements InventoryBlock {
 
                 if (menu == null) {
                     return;
+                }
+
+                if (TrashCanVoidEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    List<ItemStack> items = new ArrayList<>();
+
+                    for (int slot : getInputSlots()) {
+                        ItemStack stack = menu.getItemInSlot(slot);
+
+                        if (stack != null) {
+                            items.add(stack);
+                        }
+                    }
+
+                    if (!items.isEmpty()) {
+                        TrashCanVoidEvent event = new TrashCanVoidEvent(TrashCan.this, b, items);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed the voiding; the items stay in the trash can.
+                            return;
+                        }
+                    }
                 }
 
                 for (int slot : getInputSlots()) {
