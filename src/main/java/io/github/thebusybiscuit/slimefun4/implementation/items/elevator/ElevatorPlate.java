@@ -21,6 +21,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.ElevatorFloorRenameEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ElevatorTeleportEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -242,20 +243,54 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
             Slimefun.getLocalization().sendMessage(p, "machines.ELEVATOR.enter-name");
             pl.sendMessage("");
 
-            ChatUtils.awaitInput(pl, message -> {
-                BlockStorage.addBlockInfo(b, DATA_KEY, message.replace(ChatColor.COLOR_CHAR, '&'));
-
-                pl.sendMessage("");
-                Slimefun.getLocalization().sendMessage(p, "machines.ELEVATOR.named", msg -> msg.replace("%floor%", message));
-                pl.sendMessage("");
-
-                openEditor(pl, b);
-            });
+            ChatUtils.awaitInput(pl, message -> renameFloor(pl, b, message));
 
             return false;
         });
 
         menu.open(p);
+    }
+
+    /**
+     * This renames the {@link ElevatorFloor} of the given {@link ElevatorPlate}
+     * after the {@link Player} typed a name in the floor editor.
+     * <p>
+     * Package-private so that regression tests can drive the rename directly;
+     * reaching it through the editor would require simulating the chat input
+     * that {@link ChatUtils#awaitInput(Player, java.util.function.Consumer)}
+     * listens for, which MockBukkit cannot provide.
+     *
+     * @param p
+     *            The {@link Player} renaming the floor
+     * @param b
+     *            The {@link ElevatorPlate} {@link Block}
+     * @param message
+     *            The name the {@link Player} typed
+     */
+    @ParametersAreNonnullByDefault
+    void renameFloor(Player p, Block b, String message) {
+        String name = message;
+
+        if (ElevatorFloorRenameEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            ElevatorFloorRenameEvent event = new ElevatorFloorRenameEvent(p, b, BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY), name);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the rename; the floor keeps its old name and the editor stays closed.
+                return;
+            }
+
+            name = event.getNewName();
+        }
+
+        BlockStorage.addBlockInfo(b, DATA_KEY, name.replace(ChatColor.COLOR_CHAR, '&'));
+
+        String stored = name;
+        p.sendMessage("");
+        Slimefun.getLocalization().sendMessage(p, "machines.ELEVATOR.named", msg -> msg.replace("%floor%", stored));
+        p.sendMessage("");
+
+        openEditor(p, b);
     }
 
 }
