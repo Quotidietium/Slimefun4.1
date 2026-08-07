@@ -40,6 +40,7 @@ import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.bakedlibs.dough.skins.PlayerHead;
 import io.github.bakedlibs.dough.skins.PlayerSkin;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidFuelConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -875,13 +876,26 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         if (item != null && item.getType() != Material.AIR) {
             for (MachineFuel fuel : fuelTypes) {
                 if (fuel.test(item)) {
+                    int fuelLevel = fuel.getTicks();
+
+                    if (AndroidFuelConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        AndroidFuelConsumeEvent event = new AndroidFuelConsumeEvent(this, b, item, fuel, fuelLevel);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed this fuel item; the Android stays out of fuel.
+                            return;
+                        }
+
+                        fuelLevel = event.getFuelTicks();
+                    }
+
                     menu.consumeItem(43);
 
                     if (getFuelSource() == AndroidFuelSource.LIQUID) {
                         menu.pushItem(new ItemStack(Material.BUCKET), getOutputSlots());
                     }
 
-                    int fuelLevel = fuel.getTicks();
                     BlockStorage.addBlockInfo(b, "fuel", String.valueOf(fuelLevel));
                     break;
                 }
