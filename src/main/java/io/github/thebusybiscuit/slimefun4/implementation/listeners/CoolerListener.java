@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
 
 import io.github.thebusybiscuit.slimefun4.api.events.CoolerFeedPlayerEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.CoolerSaturationEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerBackpack;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
@@ -127,7 +128,20 @@ public class CoolerListener implements Listener {
                     p.addPotionEffect(effect);
                 }
 
-                p.setSaturation(6F);
+                boolean restoreSaturation = true;
+                float saturation = 6F;
+
+                if (CoolerSaturationEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    CoolerSaturationEvent saturationEvent = new CoolerSaturationEvent(p, cooler, coolerItem, item, saturation);
+                    plugin.getServer().getPluginManager().callEvent(saturationEvent);
+                    restoreSaturation = !saturationEvent.isCancelled();
+                    saturation = saturationEvent.getSaturation();
+                }
+
+                if (restoreSaturation) {
+                    p.setSaturation(saturation);
+                }
+
                 SoundEffect.COOLER_CONSUME_SOUND.playFor(p);
                 inv.setItem(slot, null);
                 backpack.markDirty();
