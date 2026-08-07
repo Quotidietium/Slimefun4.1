@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.core.attributes;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -11,6 +12,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bakedlibs.dough.config.Config;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunItemWearEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.utils.UnbreakingAlgorithm;
 import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedEnchantment;
@@ -62,8 +64,22 @@ public interface DamageableItem extends ItemAttribute {
 
             if (meta != null && !meta.isUnbreakable()) {
                 Damageable damageable = (Damageable) meta;
+                boolean willBreak = damageable.getDamage() >= item.getType().getMaxDurability();
 
-                if (damageable.getDamage() >= item.getType().getMaxDurability()) {
+                // Fire a vetoable event before the wear is applied - the only veto point before
+                // a Slimefun item breaks from durability wear.
+                if (SlimefunItemWearEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    SlimefunItem sfItem = SlimefunItem.getByItem(item);
+                    SlimefunItemWearEvent event = new SlimefunItemWearEvent(p, sfItem, item, willBreak);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon protected the item; no wear is applied.
+                        return;
+                    }
+                }
+
+                if (willBreak) {
                     // No need for a SoundEffect equivalent here since this is supposed to be a vanilla sound.
                     p.playSound(p.getEyeLocation(), Sound.ENTITY_ITEM_BREAK, 1, 1);
                     item.setAmount(0);
