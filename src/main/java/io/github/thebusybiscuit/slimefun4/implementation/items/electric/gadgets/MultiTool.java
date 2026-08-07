@@ -9,6 +9,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.data.persistent.PersistentDataAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.EntityType;
@@ -16,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import io.github.thebusybiscuit.slimefun4.api.events.MultiToolModeSwitchEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -90,7 +92,20 @@ public class MultiTool extends SlimefunItem implements Rechargeable {
                     sfItem.callItemHandler(ItemUseHandler.class, handler -> handler.onRightClick(e));
                 }
             } else {
+                int previousIndex = index;
                 index = nextIndex(index);
+
+                if (MultiToolModeSwitchEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    MultiToolModeSwitchEvent event = new MultiToolModeSwitchEvent(p, this, item, previousIndex, index, modes.size());
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed the switch; keep the current mode untouched.
+                        return;
+                    }
+
+                    index = event.getNextIndex();
+                }
 
                 SlimefunItem selectedItem = modes.get(index).getItem();
                 String itemName = selectedItem != null ? selectedItem.getItemName() : "Unknown";
