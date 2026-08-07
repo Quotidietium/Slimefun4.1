@@ -3,9 +3,11 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machine
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.DustWashProcessEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -66,6 +68,23 @@ public class ElectricDustWasher extends AContainer {
             }
 
             if (recipe != null && menu.fits(recipe.getOutput()[0], getOutputSlots())) {
+                if (DustWashProcessEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    ItemStack output = recipe.getOutput()[0];
+                    DustWashProcessEvent event = new DustWashProcessEvent(this, menu.getBlock().getLocation(), input, output);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed this wash; the input stays and no operation is started.
+                        return null;
+                    }
+
+                    ItemStack result = event.getResult();
+
+                    if (!result.equals(output)) {
+                        recipe = new MachineRecipe(4 / getSpeed(), new ItemStack[] { input }, new ItemStack[] { result });
+                    }
+                }
+
                 menu.consumeItem(slot);
                 return recipe;
             }
