@@ -17,6 +17,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerInteractEvent;
 
+import io.github.thebusybiscuit.slimefun4.api.events.EnderBootsPearlProtectEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.FarmerShoesTramplePreventEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBootsFallEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -55,6 +56,16 @@ public class SlimefunBootsListener implements Listener {
             SlimefunItem boots = SlimefunItem.getByItem(p.getInventory().getBoots());
 
             if (boots instanceof EnderBoots && boots.canUse(p, true)) {
+                if (EnderBootsPearlProtectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    EnderBootsPearlProtectEvent event = new EnderBootsPearlProtectEvent(p, (EnderBoots) boots, p.getInventory().getBoots(), (EnderPearl) e.getDamager());
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed the protection; the pearl damage applies normally.
+                        return;
+                    }
+                }
+
                 e.setCancelled(true);
             }
         }
