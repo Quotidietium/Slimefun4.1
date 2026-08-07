@@ -6,6 +6,7 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.KnowledgeTomeShareEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
@@ -79,6 +81,16 @@ public class KnowledgeTome extends SimpleSlimefunItem<ItemUseHandler> {
                 if (p.getUniqueId().equals(uuid)) {
                     Slimefun.getLocalization().sendMessage(p, "messages.no-tome-yourself");
                     return;
+                }
+
+                if (KnowledgeTomeShareEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    KnowledgeTomeShareEvent event = new KnowledgeTomeShareEvent(p, this, item, uuid);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed the sharing; no researches are copied and the tome is kept.
+                        return;
+                    }
                 }
 
                 PlayerProfile.get(p, profile -> PlayerProfile.fromUUID(uuid, owner -> {
