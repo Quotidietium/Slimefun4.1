@@ -26,6 +26,7 @@ import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorCoolantConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorExplodeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorFuelBurnEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.ReactorModeChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorProduceByproductEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -167,16 +168,20 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
             case GENERATOR:
                 menu.replaceExistingItem(4, CustomItemStack.create(SlimefunItems.NUCLEAR_REACTOR.item(), "&7Focus: &eElectricity", "", "&6Your Reactor will focus on Power Generation", "&6If your Energy Network doesn't need Power", "&6it will not produce any either", "", "&7\u21E8 Click to change the Focus to &eProduction"));
                 menu.addMenuClickHandler(4, (p, slot, item, action) -> {
-                    BlockStorage.addBlockInfo(b, MODE, ReactorMode.PRODUCTION.toString());
-                    updateInventory(menu, b);
+                    if (applyModeChange(p, b, ReactorMode.PRODUCTION)) {
+                        updateInventory(menu, b);
+                    }
+
                     return false;
                 });
                 break;
             case PRODUCTION:
                 menu.replaceExistingItem(4, CustomItemStack.create(SlimefunItems.PLUTONIUM.item(), "&7Focus: &eProduction", "", "&6Your Reactor will focus on producing goods", "&6If your Energy Network doesn't need Power", "&6it will continue to run and simply will", "&6not generate any Power in the mean time", "", "&7\u21E8 Click to change the Focus to &ePower Generation"));
                 menu.addMenuClickHandler(4, (p, slot, item, action) -> {
-                    BlockStorage.addBlockInfo(b, MODE, ReactorMode.GENERATOR.toString());
-                    updateInventory(menu, b);
+                    if (applyModeChange(p, b, ReactorMode.GENERATOR)) {
+                        updateInventory(menu, b);
+                    }
+
                     return false;
                 });
                 break;
@@ -202,6 +207,36 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
                 return false;
             });
         }
+    }
+
+    /**
+     * Applies a reactor mode change triggered from the focus selector: fires a vetoable
+     * {@link ReactorModeChangeEvent} first (only if anyone is listening), then stores
+     * the new mode. A vetoed change leaves the stored mode untouched. Without listeners
+     * this is a plain {@link BlockStorage} write, exactly as before.
+     *
+     * @param p
+     *            The {@link Player} who clicked the focus selector
+     * @param b
+     *            The {@link Block} of this reactor
+     * @param newMode
+     *            The newly selected {@link ReactorMode}
+     *
+     * @return Whether the change was applied and the menu should refresh
+     */
+    protected final boolean applyModeChange(@Nonnull Player p, @Nonnull Block b, @Nonnull ReactorMode newMode) {
+        if (ReactorModeChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            ReactorModeChangeEvent event = new ReactorModeChangeEvent(p, this, b, getReactorMode(b.getLocation()), newMode);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed this change; the stored mode and the menu stay as they are.
+                return false;
+            }
+        }
+
+        BlockStorage.addBlockInfo(b, MODE, newMode.toString());
+        return true;
     }
 
     private void constructMenu(@Nonnull BlockMenuPreset preset) {
