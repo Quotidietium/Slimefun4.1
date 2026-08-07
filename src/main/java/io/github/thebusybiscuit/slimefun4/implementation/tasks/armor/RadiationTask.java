@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.tasks.armor;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.thebusybiscuit.slimefun4.api.events.RadiationDamageEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.RadiationExposureEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.attributes.ProtectionType;
@@ -67,13 +68,33 @@ public class RadiationTask extends AbstractArmorTask {
             int exposureLevelBefore = RadiationUtils.getExposure(p);
 
             if (exposureTotal > 0) {
-                if (exposureLevelBefore == 0) {
-                    Slimefun.getLocalization().sendMessage(p, "messages.radiation");
+                boolean applyExposure = true;
+
+                if (RadiationExposureEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    RadiationExposureEvent event = new RadiationExposureEvent(p, exposureLevelBefore, exposureTotal);
+                    Bukkit.getPluginManager().callEvent(event);
+                    applyExposure = !event.isCancelled();
                 }
 
-                RadiationUtils.addExposure(p, exposureTotal);
+                if (applyExposure) {
+                    if (exposureLevelBefore == 0) {
+                        Slimefun.getLocalization().sendMessage(p, "messages.radiation");
+                    }
+
+                    RadiationUtils.addExposure(p, exposureTotal);
+                }
             } else if (exposureLevelBefore > 0) {
-                RadiationUtils.removeExposure(p, 1);
+                boolean applyDecay = true;
+
+                if (RadiationExposureEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    RadiationExposureEvent event = new RadiationExposureEvent(p, exposureLevelBefore, -1);
+                    Bukkit.getPluginManager().callEvent(event);
+                    applyDecay = !event.isCancelled();
+                }
+
+                if (applyDecay) {
+                    RadiationUtils.removeExposure(p, 1);
+                }
             }
 
             int exposureLevelAfter = RadiationUtils.getExposure(p);
@@ -102,7 +123,21 @@ public class RadiationTask extends AbstractArmorTask {
                 p.spigot().sendMessage(ChatMessageType.ACTION_BAR, components);
             }
         } else {
-            RadiationUtils.removeExposure(p, 1);
+            boolean applyDecay = true;
+
+            if (RadiationExposureEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                int exposureLevel = RadiationUtils.getExposure(p);
+
+                if (exposureLevel > 0) {
+                    RadiationExposureEvent event = new RadiationExposureEvent(p, exposureLevel, -1);
+                    Bukkit.getPluginManager().callEvent(event);
+                    applyDecay = !event.isCancelled();
+                }
+            }
+
+            if (applyDecay) {
+                RadiationUtils.removeExposure(p, 1);
+            }
         }
     }
 
