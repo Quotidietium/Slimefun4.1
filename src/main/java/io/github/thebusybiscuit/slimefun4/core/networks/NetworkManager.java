@@ -15,6 +15,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -22,6 +23,8 @@ import org.bukkit.World;
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.NetworkCreateEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.NetworkDisposeEvent;
 import io.github.thebusybiscuit.slimefun4.api.network.Network;
 import io.github.thebusybiscuit.slimefun4.core.networks.cargo.CargoNet;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -291,6 +294,11 @@ public class NetworkManager {
         Validate.notNull(network, "Cannot register a null Network");
         networks.add(network);
 
+        if (NetworkCreateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            // Notify addons that a new network has come into existence.
+            Bukkit.getPluginManager().callEvent(new NetworkCreateEvent(network));
+        }
+
         Location regulator = network.getRegulator();
 
         if (regulator != null) {
@@ -313,6 +321,11 @@ public class NetworkManager {
         Validate.notNull(network, "Cannot unregister a null Network");
         networks.remove(network);
         unindexedNetworks.remove(network);
+
+        if (NetworkDisposeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            // Notify addons that a network has been disposed of.
+            Bukkit.getPluginManager().callEvent(new NetworkDisposeEvent(network));
+        }
 
         synchronized (chunkIndexLock) {
             /*
