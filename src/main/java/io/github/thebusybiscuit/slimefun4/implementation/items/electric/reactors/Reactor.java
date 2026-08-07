@@ -25,6 +25,7 @@ import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorCoolantConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorExplodeEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.ReactorFuelBurnEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorProduceByproductEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -447,6 +448,17 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         }
 
         if (fuel != null) {
+            if (ReactorFuelBurnEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                int slot = found.keySet().iterator().next();
+                ReactorFuelBurnEvent event = new ReactorFuelBurnEvent(this, l, fuel, slot);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon vetoed the burn; the fuel stays and the reactor idles this tick.
+                    return;
+                }
+            }
+
             for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
                 inv.consumeItem(entry.getKey(), entry.getValue());
             }
