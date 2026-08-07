@@ -32,6 +32,7 @@ import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.ExplosiveToolBreakBlocksEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockBreakEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockPlaceEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockSupportBreakEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunToolUseEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
@@ -297,6 +298,16 @@ public class BlockListener implements Listener {
             SlimefunItem sfItem = BlockStorage.check(blockAbove);
 
             if (sfItem != null && !sfItem.useVanillaBlockBreaking()) {
+                if (SlimefunBlockSupportBreakEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    SlimefunBlockSupportBreakEvent supportBreakEvent = new SlimefunBlockSupportBreakEvent(player, item, blockAbove, block, sfItem);
+                    Bukkit.getPluginManager().callEvent(supportBreakEvent);
+
+                    if (supportBreakEvent.isCancelled()) {
+                        // An addon protected the sensitive block; it survives its support being broken.
+                        return;
+                    }
+                }
+
                 /*
                  * We create a dummy here to pass onto the BlockBreakHandler.
                  * This will set the correct block context.
