@@ -19,6 +19,7 @@ import org.bukkit.potion.PotionEffect;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.TeleportationAbortEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.TeleportationCompleteEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.TeleportationStartEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
@@ -225,8 +226,13 @@ public final class TeleportationManager {
         return p != null && p.isValid() && p.getWorld().getUID().equals(source.getWorld().getUID()) && p.getLocation().distanceSquared(source) < 2.0;
     }
 
-    private void cancel(@Nonnull UUID uuid, @Nullable Player p) {
+    private void cancel(@Nonnull UUID uuid, @Nullable Player p, @Nonnull Location destination, @Nonnull TeleportationAbortEvent.AbortReason reason) {
         teleporterUsers.remove(uuid);
+
+        if (TeleportationAbortEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            // Notify addons that the teleportation was aborted before completion
+            Bukkit.getPluginManager().callEvent(new TeleportationAbortEvent(uuid, destination, reason));
+        }
 
         if (p != null) {
             p.sendTitle(ChatColors.color(Slimefun.getLocalization().getMessage(p, "machines.TELEPORTER.cancelled")), ChatColors.color("&c&k40&f&c%"), 20, 60, 20);
@@ -249,12 +255,27 @@ public final class TeleportationManager {
                 Slimefun.runSync(() -> updateProgress(uuid, speed, progress + speed, source, destination, resistance), 10L);
             }
         } else {
-            cancel(uuid, p);
+            cancel(uuid, p, destination, TeleportationAbortEvent.AbortReason.INTERRUPTED);
         }
     }
 
+    /**
+     * Continues a teleportation once the asynchronous teleport resolved. Widened to
+     * package-private visibility so the failure path can be driven directly:
+     * {@code PaperLib#teleportAsync} callbacks cannot be forced to fail under
+     * MockBukkit.
+     *
+     * @param p
+     *            The {@link Player} being teleported
+     * @param destination
+     *            The destination {@link Location}
+     * @param success
+     *            Whether the asynchronous teleport succeeded
+     * @param resistance
+     *            Whether to apply the brief invulnerability effect on arrival
+     */
     @ParametersAreNonnullByDefault
-    private void onTeleport(Player p, Location destination, boolean success, boolean resistance) {
+    void onTeleport(Player p, Location destination, boolean success, boolean resistance) {
         /*
          * This needs to run on the main Thread so we force it, as
          * the async teleportation might happen on a separate Thread.
@@ -280,7 +301,7 @@ public final class TeleportationManager {
                  * Make sure the Player is removed from the actively teleporting
                  * users and notified about the failed teleportation
                  */
-                cancel(p.getUniqueId(), p);
+                cancel(p.getUniqueId(), p, destination, TeleportationAbortEvent.AbortReason.TELEPORT_FAILED);
             }
         });
     }
