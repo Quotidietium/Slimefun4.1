@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -24,6 +25,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.IndustrialMinerStartEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -179,6 +181,16 @@ public class IndustrialMiner extends MultiBlockMachine {
         if (activeMiners.containsKey(b.getLocation())) {
             Slimefun.getLocalization().sendMessage(p, "machines.INDUSTRIAL_MINER.already-running");
             return;
+        }
+
+        if (IndustrialMinerStartEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            IndustrialMinerStartEvent event = new IndustrialMinerStartEvent(p, this, b);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the start; the miner stays idle.
+                return;
+            }
         }
 
         Block chest = b.getRelative(BlockFace.UP);
