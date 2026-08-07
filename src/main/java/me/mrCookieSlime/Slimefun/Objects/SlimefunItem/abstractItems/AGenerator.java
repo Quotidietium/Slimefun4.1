@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.GeneratorFuelBurnEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.GeneratorProduceByproductEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemState;
@@ -197,6 +198,17 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
             MachineFuel fuel = findRecipe(inv, found);
 
             if (fuel != null) {
+                if (GeneratorFuelBurnEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    int slot = found.keySet().iterator().next();
+                    GeneratorFuelBurnEvent event = new GeneratorFuelBurnEvent(AGenerator.this, l, fuel, slot);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed this burn; the fuel stays and the generator idles for this tick.
+                        return 0;
+                    }
+                }
+
                 for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
                     inv.consumeItem(entry.getKey(), entry.getValue());
                 }
