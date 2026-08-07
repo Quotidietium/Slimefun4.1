@@ -6,9 +6,11 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.ElectricGoldPanProcessEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -92,20 +94,32 @@ public class ElectricGoldPan extends AContainer implements RecipeDisplayItem {
 
         for (int slot : getInputSlots()) {
             ItemStack item = menu.getItemInSlot(slot);
-            MachineRecipe recipe = null;
             ItemStack output = null;
+            int seconds = 0;
 
             if (goldPan.isValidInput(item)) {
                 output = goldPan.getRandomOutput();
-                recipe = new MachineRecipe(3 / getSpeed(), new ItemStack[] { item }, new ItemStack[] { output });
+                seconds = 3 / getSpeed();
             } else if (netherGoldPan.isValidInput(item)) {
                 output = netherGoldPan.getRandomOutput();
-                recipe = new MachineRecipe(4 / getSpeed(), new ItemStack[] { item }, new ItemStack[] { output });
+                seconds = 4 / getSpeed();
             }
 
             if (output != null && output.getType() != Material.AIR && menu.fits(output, getOutputSlots())) {
+                if (ElectricGoldPanProcessEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    ElectricGoldPanProcessEvent event = new ElectricGoldPanProcessEvent(this, menu.getBlock().getLocation(), item, output);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed this pan; the input stays and no operation is started.
+                        return null;
+                    }
+
+                    output = event.getResult();
+                }
+
                 menu.consumeItem(slot);
-                return recipe;
+                return new MachineRecipe(seconds, new ItemStack[] { item }, new ItemStack[] { output });
             }
         }
 
