@@ -6,6 +6,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -14,6 +15,7 @@ import org.bukkit.block.data.type.GlassPane;
 
 import io.github.bakedlibs.dough.collections.LoopIterator;
 import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import io.github.thebusybiscuit.slimefun4.api.events.RainbowBlockCycleEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.blocks.RainbowBlock;
@@ -99,11 +101,25 @@ public class RainbowTickHandler extends BlockTicker {
             return;
         }
 
+        Material next = material;
+
+        if (RainbowBlockCycleEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            RainbowBlockCycleEvent event = new RainbowBlockCycleEvent(item, b, b.getType(), next);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed this color change; the block keeps its current color.
+                return;
+            }
+
+            next = event.getNextMaterial();
+        }
+
         if (glassPanes) {
             BlockData blockData = b.getBlockData();
 
             if (blockData instanceof GlassPane previousData) {
-                BlockData block = material.createBlockData(bd -> {
+                BlockData block = next.createBlockData(bd -> {
                     if (bd instanceof GlassPane nextData) {
                         nextData.setWaterlogged(previousData.isWaterlogged());
 
@@ -118,7 +134,7 @@ public class RainbowTickHandler extends BlockTicker {
             }
         }
 
-        b.setType(material, false);
+        b.setType(next, false);
     }
 
     @Override
