@@ -45,6 +45,7 @@ import io.github.thebusybiscuit.slimefun4.api.events.AndroidItemDepositEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidMoveEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidRefuelEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidRotateEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidScriptChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -302,12 +303,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                         }
 
                         String code = duplicateInstruction(script, index);
-                        setScript(b.getLocation(), code);
-                        openScript(pl, b, code);
+
+                        if (applyScriptChange(pl, b, code)) {
+                            openScript(pl, b, code);
+                        }
                     } else if (action.isRightClicked()) {
                         String code = deleteInstruction(script, index);
-                        setScript(b.getLocation(), code);
-                        openScript(pl, b, code);
+
+                        if (applyScriptChange(pl, b, code)) {
+                            openScript(pl, b, code);
+                        }
                     } else {
                         editInstruction(pl, b, script, index);
                     }
@@ -448,8 +453,10 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                             }
                         } else if (!action.isRightClicked()) {
                             script.download();
-                            setScript(b.getLocation(), script.getSourceCode());
-                            openScriptEditor(player, b);
+
+                            if (applyScriptChange(player, b, script.getSourceCode())) {
+                                openScriptEditor(player, b);
+                            }
                         }
                     } catch (Exception x) {
                         Slimefun.logger().log(Level.SEVERE, "An Exception was thrown when a User tried to download a Script!", x);
@@ -564,8 +571,11 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         menu.setEmptySlotsClickable(false);
         menu.addItem(9, CustomItemStack.create(HeadTexture.SCRIPT_PAUSE.getAsItemStack(), "&fDo nothing"), (pl, slot, item, action) -> {
             String code = deleteInstruction(script, index);
-            setScript(b.getLocation(), code);
-            openScript(p, b, code);
+
+            if (applyScriptChange(p, b, code)) {
+                openScript(p, b, code);
+            }
+
             return false;
         });
 
@@ -573,8 +583,11 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         for (Instruction instruction : getValidScriptInstructions()) {
             menu.addItem(i, CustomItemStack.create(instruction.getItem(), Slimefun.getLocalization().getMessage(p, "android.scripts.instructions." + instruction.name())), (pl, slot, item, action) -> {
                 String code = addInstruction(script, index, instruction);
-                setScript(b.getLocation(), code);
-                openScript(p, b, code);
+
+                if (applyScriptChange(p, b, code)) {
+                    openScript(p, b, code);
+                }
+
                 return false;
             });
 
@@ -582,6 +595,36 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         }
 
         menu.open(p);
+    }
+
+    /**
+     * Applies a script change triggered from the script editor: fires a vetoable
+     * {@link AndroidScriptChangeEvent} first (only if anyone is listening), then
+     * stores the new script. A vetoed change leaves the stored script untouched.
+     * Without listeners this is a plain {@link #setScript} call, exactly as before.
+     *
+     * @param p
+     *            The {@link Player} who edited the script
+     * @param b
+     *            The {@link Block} of this android
+     * @param code
+     *            The new script, as dash-separated instruction tokens
+     *
+     * @return Whether the change was applied and the editor should refresh
+     */
+    protected final boolean applyScriptChange(@Nonnull Player p, @Nonnull Block b, @Nonnull String code) {
+        if (AndroidScriptChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AndroidScriptChangeEvent event = new AndroidScriptChangeEvent(p, this, b, getScript(b.getLocation()), code);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed this change; the stored script and the open menu stay as they are.
+                return false;
+            }
+        }
+
+        setScript(b.getLocation(), code);
+        return true;
     }
 
     @Nonnull
