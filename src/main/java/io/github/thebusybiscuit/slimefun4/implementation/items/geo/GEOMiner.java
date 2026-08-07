@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -16,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.GEOMiningStartEvent;
 import io.github.thebusybiscuit.slimefun4.api.geo.GEOResource;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemState;
@@ -322,6 +324,16 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                 if (supplies > 0) {
                     if (!inv.fits(resource.getItem(), OUTPUT_SLOTS)) {
                         return;
+                    }
+
+                    if (GEOMiningStartEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        GEOMiningStartEvent event = new GEOMiningStartEvent(this, b.getLocation(), resource, supplies);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed this extraction; the supplies stay and the miner idles for this tick.
+                            return;
+                        }
                     }
 
                     processor.startOperation(b, new GEOMiningOperation(resource, PROCESSING_TIME));
