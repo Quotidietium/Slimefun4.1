@@ -12,6 +12,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -22,6 +23,7 @@ import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.MachineRecipeStartEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemState;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -552,6 +554,16 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                     ItemStack live = inv.getItemInSlot(slot);
 
                     if (live == null || live.getAmount() < required || !SlimefunUtils.isItemSimilar(live, inventory.get(slot), true)) {
+                        return new RecipeScan(null, false);
+                    }
+                }
+
+                if (MachineRecipeStartEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    MachineRecipeStartEvent event = new MachineRecipeStartEvent(AContainer.this, inv.getLocation(), recipe);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed this recipe; the inputs stay and the machine idles for this tick.
                         return new RecipeScan(null, false);
                     }
                 }
