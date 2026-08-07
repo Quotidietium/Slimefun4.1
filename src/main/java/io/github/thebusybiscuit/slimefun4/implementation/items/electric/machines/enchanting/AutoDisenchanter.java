@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.Repairable;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoDisenchanterProcessEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AutoDisenchantEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -85,6 +86,21 @@ public class AutoDisenchanter extends AbstractEnchantmentMachine {
 
     @ParametersAreNonnullByDefault
     private @Nullable MachineRecipe disenchant(BlockMenu menu, ItemStack item, ItemStack book) {
+        /*
+         * Fire the process-level event before scanning the enchantments, mirroring the
+         * AutoEnchanter's AsyncAutoEnchanterProcessEvent. Cancellation vetoes the
+         * disenchant: nothing is consumed and no operation is started. The listener
+         * check keeps this hot path allocation-free when no addon listens.
+         */
+        if (AsyncAutoDisenchanterProcessEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AsyncAutoDisenchanterProcessEvent event = new AsyncAutoDisenchanterProcessEvent(item, book, menu);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return null;
+            }
+        }
+
         Map<Enchantment, Integer> enchantments = new HashMap<>();
 
         // Find enchantments
@@ -107,6 +123,10 @@ public class AutoDisenchanter extends AbstractEnchantmentMachine {
             disenchantedItem.setAmount(1);
 
             ItemStack enchantedBook = new ItemStack(Material.ENCHANTED_BOOK);
+
+            // Go through the ItemFactory so test environments without CraftBukkit's meta specialization work too
+            enchantedBook.setItemMeta(Bukkit.getItemFactory().getItemMeta(Material.ENCHANTED_BOOK));
+
             transferEnchantments(disenchantedItem, enchantedBook, enchantments);
 
             MachineRecipe recipe = new MachineRecipe(90 * enchantments.size() / this.getSpeed(), new ItemStack[] { book, item }, new ItemStack[] { disenchantedItem, enchantedBook });
