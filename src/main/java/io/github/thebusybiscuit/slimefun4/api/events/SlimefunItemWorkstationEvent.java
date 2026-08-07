@@ -23,11 +23,13 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
  * want to fully allow an item should cancel it at both the preview and the result stage.
  * <p>
  * Fully automated paths without a {@link Player} context (hoppers, the vanilla crafter)
- * do not fire this event.
+ * do not fire this event; the vanilla crafter fires {@link SlimefunItemCrafterPreventEvent}
+ * instead.
  *
  * @author Zurker
  *
  * @see SlimefunItem
+ * @see SlimefunItemCrafterPreventEvent
  */
 public class SlimefunItemWorkstationEvent extends PlayerEvent implements Cancellable {
 
