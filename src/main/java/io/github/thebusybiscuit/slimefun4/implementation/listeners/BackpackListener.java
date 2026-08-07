@@ -28,6 +28,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import io.github.thebusybiscuit.slimefun4.api.events.BackpackRestrictionEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerBackpackCloseEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerBackpackOpenEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -84,11 +85,13 @@ public class BackpackListener implements Listener {
 
     @EventHandler
     public void onItemDrop(PlayerDropItemEvent e) {
-        if (backpacks.containsKey(e.getPlayer().getUniqueId())) {
+        ItemStack viewed = backpacks.get(e.getPlayer().getUniqueId());
+
+        if (viewed != null) {
             ItemStack item = e.getItemDrop().getItemStack();
             SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
-            if (sfItem instanceof SlimefunBackpack) {
+            if (sfItem instanceof SlimefunBackpack backpack && !isRestrictionVetoed(e.getPlayer(), backpack, viewed, item, BackpackRestrictionEvent.Reason.BACKPACK_DROP)) {
                 e.setCancelled(true);
             }
         }
@@ -108,12 +111,14 @@ public class BackpackListener implements Listener {
             SlimefunItem backpack = SlimefunItem.getByItem(item);
 
             if (backpack instanceof SlimefunBackpack slimefunBackpack) {
+                Player p = (Player) e.getWhoClicked();
+
                 if (e.getClick() == ClickType.NUMBER_KEY) {
                     // Prevent disallowed items from being moved using number keys.
                     if (e.getClickedInventory().getType() != InventoryType.PLAYER) {
                         ItemStack hotbarItem = e.getWhoClicked().getInventory().getItem(e.getHotbarButton());
 
-                        if (!isAllowed(slimefunBackpack, hotbarItem)) {
+                        if (!isAllowed(slimefunBackpack, hotbarItem) && !isRestrictionVetoed(p, slimefunBackpack, item, hotbarItem, BackpackRestrictionEvent.Reason.DISALLOWED_ITEM)) {
                             e.setCancelled(true);
                         }
                     }
@@ -122,21 +127,21 @@ public class BackpackListener implements Listener {
                         // Fixes #3265 - Don't move disallowed items using the off hand.
                         ItemStack offHandItem = e.getWhoClicked().getInventory().getItemInOffHand();
 
-                        if (!isAllowed(slimefunBackpack, offHandItem)) {
+                        if (!isAllowed(slimefunBackpack, offHandItem) && !isRestrictionVetoed(p, slimefunBackpack, item, offHandItem, BackpackRestrictionEvent.Reason.DISALLOWED_ITEM)) {
                             e.setCancelled(true);
                         }
                     } else {
                         // Fixes #3664 - Do not swap the backpack to your off hand.
-                        if (e.getCurrentItem() != null && e.getCurrentItem().isSimilar(item)) {
+                        if (e.getCurrentItem() != null && e.getCurrentItem().isSimilar(item) && !isRestrictionVetoed(p, slimefunBackpack, item, e.getCurrentItem(), BackpackRestrictionEvent.Reason.BACKPACK_OFFHAND)) {
                             e.setCancelled(true);
                         }
                     }
                 } else if (e.getClickedInventory().getType() == InventoryType.PLAYER) {
                     // Shift-clicking inside the Player's own inventory moves the item into the backpack.
-                    if (e.getClick().isShiftClick() && !isAllowed(slimefunBackpack, e.getCurrentItem())) {
+                    if (e.getClick().isShiftClick() && !isAllowed(slimefunBackpack, e.getCurrentItem()) && !isRestrictionVetoed(p, slimefunBackpack, item, e.getCurrentItem(), BackpackRestrictionEvent.Reason.DISALLOWED_ITEM)) {
                         e.setCancelled(true);
                     }
-                } else if (!isAllowed(slimefunBackpack, e.getCursor()) || !isAllowed(slimefunBackpack, e.getCurrentItem())) {
+                } else if (!isAllowed(slimefunBackpack, e.getCursor())) {
                     /*
                      * Clicking inside the backpack GUI may place the item held on the cursor
                      * into the backpack (or swap it with the clicked slot's content), so the
@@ -146,7 +151,13 @@ public class BackpackListener implements Listener {
                      * The clicked item is still checked as well: interacting with a disallowed
                      * item that somehow ended up inside the backpack stays blocked.
                      */
-                    e.setCancelled(true);
+                    if (!isRestrictionVetoed(p, slimefunBackpack, item, e.getCursor(), BackpackRestrictionEvent.Reason.DISALLOWED_ITEM)) {
+                        e.setCancelled(true);
+                    }
+                } else if (!isAllowed(slimefunBackpack, e.getCurrentItem())) {
+                    if (!isRestrictionVetoed(p, slimefunBackpack, item, e.getCurrentItem(), BackpackRestrictionEvent.Reason.DISALLOWED_ITEM)) {
+                        e.setCancelled(true);
+                    }
                 }
             }
         }
@@ -172,13 +183,30 @@ public class BackpackListener implements Listener {
                      * InventoryDragEvent is NOT an InventoryClickEvent, so the click-based
                      * checks above never see this - validate the dragged item here.
                      */
-                    if (!isAllowed(slimefunBackpack, e.getOldCursor())) {
+                    if (!isAllowed(slimefunBackpack, e.getOldCursor()) && !isRestrictionVetoed((Player) e.getWhoClicked(), slimefunBackpack, item, e.getOldCursor(), BackpackRestrictionEvent.Reason.DISALLOWED_ITEM)) {
                         e.setCancelled(true);
-                        return;
                     }
+
+                    return;
                 }
             }
         }
+    }
+
+    /**
+     * Fires a {@link BackpackRestrictionEvent} if any listener is registered and returns
+     * whether the restriction was vetoed. Without listeners this costs nothing and the
+     * old behavior is preserved.
+     */
+    @ParametersAreNonnullByDefault
+    private boolean isRestrictionVetoed(Player p, SlimefunBackpack backpack, ItemStack backpackItem, ItemStack item, BackpackRestrictionEvent.Reason reason) {
+        if (BackpackRestrictionEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            BackpackRestrictionEvent event = new BackpackRestrictionEvent(p, backpack, backpackItem, item, reason);
+            Bukkit.getPluginManager().callEvent(event);
+            return event.isCancelled();
+        }
+
+        return false;
     }
 
     private boolean isAllowed(@Nonnull SlimefunBackpack backpack, @Nullable ItemStack item) {
