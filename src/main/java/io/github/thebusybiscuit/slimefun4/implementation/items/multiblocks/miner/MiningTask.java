@@ -27,6 +27,7 @@ import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.bakedlibs.dough.scheduling.TaskQueue;
+import io.github.thebusybiscuit.slimefun4.api.events.IndustrialMinerMineEvent;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedParticle;
@@ -189,32 +190,7 @@ class MiningTask implements Runnable {
                 Block furnace = chest.getRelative(BlockFace.DOWN);
                 furnace.getWorld().playEffect(furnace.getLocation(), Effect.STEP_SOUND, Material.STONE);
 
-                World world = start.getWorld();
-                for (int y = height; y > world.getMinHeight(); y--) {
-                    Block b = world.getBlockAt(x, y, z);
-
-                    if (!Slimefun.getProtectionManager().hasPermission(Bukkit.getOfflinePlayer(owner), b, Interaction.BREAK_BLOCK)) {
-                        stop(MinerStoppingReason.NO_PERMISSION);
-                        return;
-                    }
-
-                    if (miner.canMine(b) && push(miner.getOutcome(b.getType()))) {
-                        // Not changed since this is supposed to be a natural sound.
-                        furnace.getWorld().playEffect(furnace.getLocation(), Effect.STEP_SOUND, b.getType());
-
-                        SoundEffect.MINING_TASK_SOUND.playAt(furnace);
-
-                        b.setType(Material.AIR);
-                        fuelLevel--;
-                        ores++;
-
-                        // Repeat the same column when we hit an ore.
-                        Slimefun.runSync(this, 4);
-                        return;
-                    }
-                }
-
-                nextColumn();
+                mineColumn(furnace);
             } catch (Exception e) {
                 Slimefun.logger().log(Level.SEVERE, e, () -> "An Error occurred while running an Industrial Miner at " + new BlockPosition(chest));
                 stop();
@@ -222,6 +198,59 @@ class MiningTask implements Runnable {
         });
 
         queue.execute(Slimefun.instance());
+    }
+
+    /**
+     * Scans the current column top-down and mines the first viable ore.
+     * Extracted from {@link #run()} so the mining logic can be driven directly: the
+     * scheduler chain and the {@code playEffect} preamble cannot run under MockBukkit.
+     * Without any {@link IndustrialMinerMineEvent} listeners the behavior is identical
+     * to the original inline loop.
+     *
+     * @param furnace
+     *            The blast furnace block at the center of the {@link IndustrialMiner}
+     */
+    void mineColumn(@Nonnull Block furnace) {
+        World world = start.getWorld();
+        for (int y = height; y > world.getMinHeight(); y--) {
+            Block b = world.getBlockAt(x, y, z);
+
+            if (!Slimefun.getProtectionManager().hasPermission(Bukkit.getOfflinePlayer(owner), b, Interaction.BREAK_BLOCK)) {
+                stop(MinerStoppingReason.NO_PERMISSION);
+                return;
+            }
+
+            if (miner.canMine(b)) {
+                ItemStack outcome = miner.getOutcome(b.getType());
+
+                if (IndustrialMinerMineEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    IndustrialMinerMineEvent event = new IndustrialMinerMineEvent(miner, Bukkit.getOfflinePlayer(owner), b, outcome);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed this ore; it is skipped like an ore the miner cannot mine.
+                        continue;
+                    }
+                }
+
+                if (push(outcome)) {
+                    // Not changed since this is supposed to be a natural sound.
+                    furnace.getWorld().playEffect(furnace.getLocation(), Effect.STEP_SOUND, b.getType());
+
+                    SoundEffect.MINING_TASK_SOUND.playAt(furnace);
+
+                    b.setType(Material.AIR);
+                    fuelLevel--;
+                    ores++;
+
+                    // Repeat the same column when we hit an ore.
+                    Slimefun.runSync(this, 4);
+                    return;
+                }
+            }
+        }
+
+        nextColumn();
     }
 
     /**
