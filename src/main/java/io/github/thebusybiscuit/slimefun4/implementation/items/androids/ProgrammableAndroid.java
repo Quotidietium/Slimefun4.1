@@ -42,6 +42,7 @@ import io.github.bakedlibs.dough.skins.PlayerHead;
 import io.github.bakedlibs.dough.skins.PlayerSkin;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidFuelConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidItemDepositEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidMoveEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidRefuelEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -989,6 +990,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
 
             if (owner != null && !Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.PLACE_BLOCK)) {
                 return;
+            }
+
+            if (AndroidMoveEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                AndroidMoveEvent event = new AndroidMoveEvent(new AndroidInstance(this, b), block, face);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon vetoed the move; the android stays where it is.
+                    return;
+                }
             }
 
             BlockData blockData = Material.PLAYER_HEAD.createBlockData(data -> {
