@@ -44,6 +44,7 @@ import io.github.thebusybiscuit.slimefun4.api.events.AndroidFuelConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidItemDepositEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidMoveEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AndroidRefuelEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AndroidRotateEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -786,6 +787,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         }
 
         BlockFace rotation = POSSIBLE_ROTATIONS.get(index);
+
+        if (AndroidRotateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AndroidRotateEvent event = new AndroidRotateEvent(new AndroidInstance(this, b), current, rotation);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the rotation; the android keeps facing its current direction.
+                return;
+            }
+        }
 
         BlockData blockData = Material.PLAYER_HEAD.createBlockData(data -> {
             if (data instanceof Rotatable rotatable) {
