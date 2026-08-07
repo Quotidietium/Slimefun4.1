@@ -21,6 +21,7 @@ import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncEntityAssembleEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.BlockPlacerPlaceEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.EntityAssemblerToggleEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -163,15 +164,13 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
         if (!BlockStorage.hasBlockInfo(b) || BlockStorage.getLocationInfo(b.getLocation(), KEY_ENABLED) == null || BlockStorage.getLocationInfo(b.getLocation(), KEY_ENABLED).equals(String.valueOf(false))) {
             menu.replaceExistingItem(22, CustomItemStack.create(Material.GUNPOWDER, "&7Enabled: &4\u2718", "", "&e> Click to enable this Machine"));
             menu.addMenuClickHandler(22, (p, slot, item, action) -> {
-                BlockStorage.addBlockInfo(b, KEY_ENABLED, String.valueOf(true));
-                updateBlockInventory(menu, b);
+                toggleEnabled(p, menu, b, true);
                 return false;
             });
         } else {
             menu.replaceExistingItem(22, CustomItemStack.create(Material.REDSTONE, "&7Enabled: &2\u2714", "", "&e> Click to disable this Machine"));
             menu.addMenuClickHandler(22, (p, slot, item, action) -> {
-                BlockStorage.addBlockInfo(b, KEY_ENABLED, String.valueOf(false));
-                updateBlockInventory(menu, b);
+                toggleEnabled(p, menu, b, false);
                 return false;
             });
         }
@@ -185,6 +184,38 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
             updateBlockInventory(menu, b);
             return false;
         });
+    }
+
+    /**
+     * This toggles the enabled state of this assembler after the {@link Player}
+     * clicked the toggle button.
+     * <p>
+     * Package-private so that regression tests can drive the toggle directly;
+     * reaching it through the menu would require simulating a click in a
+     * {@link BlockMenuPreset}-bound inventory, which MockBukkit cannot provide.
+     *
+     * @param p
+     *            The {@link Player} who clicked the button
+     * @param menu
+     *            The {@link BlockMenu} to redraw after the toggle
+     * @param b
+     *            The assembler {@link Block}
+     * @param enable
+     *            The state the clicked button applies
+     */
+    void toggleEnabled(@Nonnull Player p, @Nonnull BlockMenu menu, @Nonnull Block b, boolean enable) {
+        if (EntityAssemblerToggleEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            EntityAssemblerToggleEvent event = new EntityAssemblerToggleEvent(p, this, b, enable);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the toggle; the state stays and the menu is left as-is.
+                return;
+            }
+        }
+
+        BlockStorage.addBlockInfo(b, KEY_ENABLED, String.valueOf(enable));
+        updateBlockInventory(menu, b);
     }
 
     @Override
