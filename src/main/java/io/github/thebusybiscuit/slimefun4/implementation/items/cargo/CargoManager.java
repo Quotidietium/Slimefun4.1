@@ -5,11 +5,13 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.thebusybiscuit.slimefun4.api.events.CargoNetVisualizerToggleEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -69,16 +71,42 @@ public class CargoManager extends SlimefunItem implements HologramOwner {
                     Player p = e.getPlayer();
                     Block b = block.get();
 
-                    if (BlockStorage.getLocationInfo(b.getLocation(), "visualizer") == null) {
-                        BlockStorage.addBlockInfo(b, "visualizer", "disabled");
-                        p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cCargo Net Visualizer: " + "&4\u2718"));
-                    } else {
-                        BlockStorage.addBlockInfo(b, "visualizer", null);
-                        p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cCargo Net Visualizer: " + "&2\u2714"));
-                    }
+                    applyVisualizerToggle(p, b);
                 }
             }
         });
+    }
+
+    /**
+     * Toggles the cargo network visualizer for the given {@link CargoManager} block: fires
+     * a vetoable {@link CargoNetVisualizerToggleEvent} first (only if anyone is listening),
+     * then stores the new state. A vetoed toggle leaves the stored state untouched.
+     * Without listeners this is a plain {@link BlockStorage} write, exactly as before.
+     *
+     * @param p
+     *            The {@link Player} who right-clicked the {@link CargoManager}
+     * @param b
+     *            The {@link Block} of the {@link CargoManager}
+     */
+    @ParametersAreNonnullByDefault
+    public void applyVisualizerToggle(Player p, Block b) {
+        boolean previouslyEnabled = BlockStorage.getLocationInfo(b.getLocation(), "visualizer") == null;
+        boolean enabled = !previouslyEnabled;
+
+        if (CargoNetVisualizerToggleEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            CargoNetVisualizerToggleEvent event = new CargoNetVisualizerToggleEvent(p, this, b, previouslyEnabled, enabled);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the toggle; the stored state stays as it is.
+                return;
+            }
+
+            enabled = event.isEnabled();
+        }
+
+        BlockStorage.addBlockInfo(b, "visualizer", enabled ? null : "disabled");
+        p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cCargo Net Visualizer: " + (enabled ? "&2\u2714" : "&4\u2718")));
     }
 
 }
