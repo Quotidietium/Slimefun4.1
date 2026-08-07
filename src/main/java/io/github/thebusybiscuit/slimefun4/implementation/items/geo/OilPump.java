@@ -6,6 +6,7 @@ import java.util.OptionalInt;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.OilPumpExtractEvent;
 import io.github.thebusybiscuit.slimefun4.api.geo.GEOResource;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -101,6 +103,16 @@ public class OilPump extends AContainer implements RecipeDisplayItem {
                     OptionalInt supplies = Slimefun.getGPSNetwork().getResourceManager().getSupplies(oil, b.getWorld(), b.getX() >> 4, b.getZ() >> 4);
 
                     if (supplies.isPresent() && supplies.getAsInt() > 0) {
+                        if (OilPumpExtractEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                            OilPumpExtractEvent event = new OilPumpExtractEvent(this, b.getLocation(), oil, slot, supplies.getAsInt());
+                            Bukkit.getPluginManager().callEvent(event);
+
+                            if (event.isCancelled()) {
+                                // An addon vetoed this extraction; the bucket and supplies stay, no recipe is started.
+                                return null;
+                            }
+                        }
+
                         MachineRecipe recipe = new MachineRecipe(26, new ItemStack[] { emptyBucket }, new ItemStack[] { SlimefunItems.OIL_BUCKET.item() });
 
                         inv.consumeItem(slot);
