@@ -19,6 +19,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.config.Config;
+import io.github.thebusybiscuit.slimefun4.api.events.BackpackResizeEvent;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.backpacks.SlimefunBackpack;
 import io.github.thebusybiscuit.slimefun4.implementation.listeners.BackpackListener;
@@ -210,6 +211,16 @@ public class PlayerBackpack {
                 if (item != null && item.getType() != Material.AIR) {
                     throw new IllegalStateException("Cannot shrink this Backpack: Slots beyond the new size are not empty!");
                 }
+            }
+        }
+
+        if (BackpackResizeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            BackpackResizeEvent event = new BackpackResizeEvent(this, this.size, size);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed this resize; the backpack keeps its current size and contents.
+                return;
             }
         }
 
