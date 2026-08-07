@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import io.github.bakedlibs.dough.protection.Interaction;
+import io.github.thebusybiscuit.slimefun4.api.events.InfusedHopperCollectEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -89,6 +91,16 @@ public class InfusedHopper extends SimpleSlimefunItem<BlockTicker> {
 
                 // Check for any nearby Items that can be picked up
                 for (Entity item : b.getWorld().getNearbyEntities(l, range, range, range, n -> isValidItem(l, n, owner))) {
+                    if (InfusedHopperCollectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        InfusedHopperCollectEvent event = new InfusedHopperCollectEvent(InfusedHopper.this, b, (Item) item);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed the collection; the item stays where it is.
+                            continue;
+                        }
+                    }
+
                     item.setVelocity(new Vector(0, 0.1, 0));
                     item.teleport(l);
                     playSound = true;
