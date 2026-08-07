@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.HologramProjectorOffsetChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.HologramProjectorTextChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -159,16 +160,47 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
         menu.addItem(1, CustomItemStack.create(Material.CLOCK, "&7Offset: &e" + NumberUtils.roundDecimalNumber(getOffset(projector) + 1.0D), "", "&fLeft Click: &7+0.1", "&fRight Click: &7-0.1"));
         menu.addMenuClickHandler(1, (pl, slot, item, action) -> {
             double offset = NumberUtils.reparseDouble(getOffset(projector) + (action.isRightClicked() ? -0.1F : 0.1F));
-            ArmorStand hologram = getArmorStand(projector, true);
-            Location l = new Location(projector.getWorld(), projector.getX() + 0.5, projector.getY() + offset, projector.getZ() + 0.5);
-            hologram.teleport(l);
-
-            BlockStorage.addBlockInfo(projector, OFFSET_PARAMETER, String.valueOf(offset));
-            openEditor(pl, projector);
+            updateOffset(pl, projector, offset);
             return false;
         });
 
         menu.open(p);
+    }
+
+    /**
+     * Applies a new vertical offset to the hologram of the given projector and reopens
+     * the editor. Extracted from the editor's click handler so the offset change can be
+     * driven directly: menu clicks cannot be simulated under MockBukkit. Without any
+     * {@link HologramProjectorOffsetChangeEvent} listeners the behavior is identical to
+     * the original inline body.
+     *
+     * @param p
+     *            The {@link Player} who adjusted the offset
+     * @param projector
+     *            The {@link HologramProjector} {@link Block}
+     * @param offset
+     *            The new vertical offset for the hologram
+     */
+    @ParametersAreNonnullByDefault
+    void updateOffset(Player p, Block projector, double offset) {
+        if (HologramProjectorOffsetChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            HologramProjectorOffsetChangeEvent event = new HologramProjectorOffsetChangeEvent(p, this, projector, getOffset(projector), offset);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the adjustment; the hologram keeps its old offset.
+                return;
+            }
+
+            offset = event.getNewOffset();
+        }
+
+        ArmorStand hologram = getArmorStand(projector, true);
+        Location l = new Location(projector.getWorld(), projector.getX() + 0.5, projector.getY() + offset, projector.getZ() + 0.5);
+        hologram.teleport(l);
+
+        BlockStorage.addBlockInfo(projector, OFFSET_PARAMETER, String.valueOf(offset));
+        openEditor(p, projector);
     }
 
     private static double getOffset(@Nonnull Block projector) {
