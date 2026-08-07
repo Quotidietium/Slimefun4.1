@@ -11,11 +11,11 @@ import io.github.thebusybiscuit.slimefun4.core.multiblocks.MultiBlock;
 /**
  * This enum holds various different reasons as to why an {@link IndustrialMiner}
  * may stop mining.
- * 
+ *
  * @author TheBusyBiscuit
  *
  */
-enum MinerStoppingReason {
+public enum MinerStoppingReason {
 
     /**
      * The {@link IndustrialMiner} has run out of fuel.
@@ -56,7 +56,7 @@ enum MinerStoppingReason {
     }
 
     @Nonnull
-    String getErrorMessage() {
+    public String getErrorMessage() {
         return messageKey;
     }
 

@@ -28,6 +28,7 @@ import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.bakedlibs.dough.scheduling.TaskQueue;
 import io.github.thebusybiscuit.slimefun4.api.events.IndustrialMinerMineEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.IndustrialMinerStopEvent;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedParticle;
@@ -112,6 +113,11 @@ class MiningTask implements Runnable {
 
         if (p != null) {
             Slimefun.getLocalization().sendMessage(p, reason.getErrorMessage());
+        }
+
+        if (IndustrialMinerStopEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            // Notify addons that the miner stopped due to an error condition.
+            Bukkit.getPluginManager().callEvent(new IndustrialMinerStopEvent(miner, chest, reason, ores));
         }
 
         stop();
