@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.ItemUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.KnowledgeTomeBindEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.KnowledgeTomeShareEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -64,6 +65,16 @@ public class KnowledgeTome extends SimpleSlimefunItem<ItemUseHandler> {
             }
 
             if (lore.get(1).isEmpty()) {
+                if (KnowledgeTomeBindEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    KnowledgeTomeBindEvent event = new KnowledgeTomeBindEvent(p, this, item);
+                    Bukkit.getPluginManager().callEvent(event);
+
+                    if (event.isCancelled()) {
+                        // An addon vetoed the binding; the tome stays unbound.
+                        return;
+                    }
+                }
+
                 lore.set(0, ChatColors.color("&7Owner: &b" + p.getName()));
                 lore.set(1, ChatColor.BLACK + "" + p.getUniqueId());
                 im.setLore(lore);
