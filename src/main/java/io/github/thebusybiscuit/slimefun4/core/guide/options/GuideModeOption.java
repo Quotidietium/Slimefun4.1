@@ -7,6 +7,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.GuideModeChangeEvent;
 import io.github.thebusybiscuit.slimefun4.core.guide.SlimefunGuide;
 import io.github.thebusybiscuit.slimefun4.core.guide.SlimefunGuideMode;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -80,10 +82,41 @@ class GuideModeOption implements SlimefunGuideOption<SlimefunGuideMode> {
 
         if (current.isPresent()) {
             SlimefunGuideMode next = getNextMode(p, current.get());
-            setSelectedOption(p, guide, next);
+            applyModeChange(p, guide, current.get(), next);
         }
 
         SlimefunGuideSettings.openSettings(p, guide);
+    }
+
+    /**
+     * Applies a guide mode change to the given guide item.
+     * Extracted from {@link #onClick(Player, ItemStack)} so the switch logic can be
+     * driven directly: reopening the settings menu touches services that cannot run
+     * under MockBukkit. Without any {@link GuideModeChangeEvent} listeners the behavior
+     * is identical to the original inline call.
+     *
+     * @param p
+     *            The {@link Player} who clicked the option
+     * @param guide
+     *            The guide item to rewrite
+     * @param current
+     *            The current {@link SlimefunGuideMode}
+     * @param next
+     *            The {@link SlimefunGuideMode} to switch to
+     */
+    @ParametersAreNonnullByDefault
+    void applyModeChange(Player p, ItemStack guide, SlimefunGuideMode current, SlimefunGuideMode next) {
+        if (next != current && GuideModeChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            GuideModeChangeEvent event = new GuideModeChangeEvent(p, guide, current, next);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the mode change; the guide keeps its current mode.
+                return;
+            }
+        }
+
+        setSelectedOption(p, guide, next);
     }
 
     @Nonnull
