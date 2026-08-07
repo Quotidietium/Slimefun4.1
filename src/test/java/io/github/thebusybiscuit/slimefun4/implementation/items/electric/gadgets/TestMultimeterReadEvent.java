@@ -264,8 +264,8 @@ class TestMultimeterReadEvent {
         measure(player, b);
 
         // The display block frames the readout with two empty chat lines; the localized line
-        // itself goes through the LocalizationService, whose language files are unavailable in
-        // the MockBukkit environment, so only the framing lines land in the player chat queue.
+        // itself uses the LocalizationService replacer variant, which returns without sending
+        // under MinecraftVersion.UNIT_TEST, so only the framing lines land in the chat queue.
         // The readings themselves are asserted end-to-end in testMeasureFiresEvent.
         Assertions.assertEquals("", player.nextMessage(), "The readout starts with an empty line");
         Assertions.assertEquals("", player.nextMessage(), "The readout ends with an empty line");
