@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.core.guide.options;
 import java.util.List;
 import java.util.Optional;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -11,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.data.persistent.PersistentDataAPI;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.PlayerGuideOptionChangeEvent;
 import io.github.thebusybiscuit.slimefun4.core.SlimefunRegistry;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -47,8 +49,41 @@ class FireworksOption implements SlimefunGuideOption<Boolean> {
 
     @Override
     public void onClick(Player p, ItemStack guide) {
-        setSelectedOption(p, guide, !getSelectedOption(p, guide).orElse(true));
+        applyOptionChange(p, guide, !getSelectedOption(p, guide).orElse(true));
         SlimefunGuideSettings.openSettings(p, guide);
+    }
+
+    /**
+     * Applies a fireworks-setting change: fires a vetoable
+     * {@link PlayerGuideOptionChangeEvent} first (only if anyone is listening), then stores
+     * the new value. A vetoed change leaves the stored value untouched. Extracted from
+     * {@link #onClick(Player, ItemStack)} so the switch logic can be driven directly:
+     * reopening the settings menu touches services that cannot run under MockBukkit.
+     * Without listeners the behavior is identical to the original inline call.
+     *
+     * @param p
+     *            The {@link Player} who clicked the option
+     * @param guide
+     *            The guide item
+     * @param newValue
+     *            The toggled value
+     */
+    void applyOptionChange(Player p, ItemStack guide, boolean newValue) {
+        boolean previousValue = getSelectedOption(p, guide).orElse(true);
+
+        if (newValue != previousValue && PlayerGuideOptionChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            PlayerGuideOptionChangeEvent event = new PlayerGuideOptionChangeEvent(p, PlayerGuideOptionChangeEvent.Reason.RESEARCH_FIREWORKS, previousValue, newValue);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed this change; the stored value stays as it is.
+                return;
+            }
+
+            newValue = event.getNewValue();
+        }
+
+        setSelectedOption(p, guide, newValue);
     }
 
     @Override
