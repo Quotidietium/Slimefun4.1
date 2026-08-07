@@ -7,12 +7,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.BookBindEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -63,7 +65,8 @@ public class BookBinder extends AContainer {
 
                     ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
 
-                    EnchantmentStorageMeta enchantMeta = (EnchantmentStorageMeta) book.getItemMeta();
+                    // Go through the ItemFactory so test environments without CraftBukkit's meta specialization work too
+                    EnchantmentStorageMeta enchantMeta = (EnchantmentStorageMeta) Bukkit.getItemFactory().getItemMeta(Material.ENCHANTED_BOOK);
 
                     for (Map.Entry<Enchantment, Integer> entry : enchantments.entrySet()) {
                         enchantMeta.addStoredEnchant(entry.getKey(), entry.getValue(), bypassVanillaMaxLevel.getValue());
@@ -81,11 +84,23 @@ public class BookBinder extends AContainer {
 
                     book.setItemMeta(enchantMeta);
 
-                    MachineRecipe recipe = new MachineRecipe(25 * (enchantments.size() / this.getSpeed()), new ItemStack[] { target, item }, new ItemStack[] { book });
-
-                    if (!InvUtils.fitAll(menu.toInventory(), recipe.getOutput(), getOutputSlots())) {
+                    if (!InvUtils.fitAll(menu.toInventory(), new ItemStack[] { book }, getOutputSlots())) {
                         return null;
                     }
+
+                    if (BookBindEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                        BookBindEvent event = new BookBindEvent(this, menu.getBlock().getLocation(), target, item, book);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        if (event.isCancelled()) {
+                            // An addon vetoed this bind; the books stay and no operation is started.
+                            return null;
+                        }
+
+                        book = event.getResult();
+                    }
+
+                    MachineRecipe recipe = new MachineRecipe(25 * (enchantments.size() / this.getSpeed()), new ItemStack[] { target, item }, new ItemStack[] { book });
 
                     for (int inputSlot : getInputSlots()) {
                         menu.consumeItem(inputSlot);
