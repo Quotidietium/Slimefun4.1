@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.blocks;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.HologramProjectorTextChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -96,6 +98,41 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
         };
     }
 
+    /**
+     * Applies new text to the hologram of the given projector and reopens the editor.
+     * Extracted from the chat-input callback so the text change can be driven directly:
+     * chat input cannot be simulated under MockBukkit. Without any
+     * {@link HologramProjectorTextChangeEvent} listeners the behavior is identical to
+     * the original inline body.
+     *
+     * @param p
+     *            The {@link Player} who submitted the text
+     * @param projector
+     *            The {@link HologramProjector} {@link Block}
+     * @param message
+     *            The raw text the {@link Player} submitted
+     */
+    @ParametersAreNonnullByDefault
+    void updateText(Player p, Block projector, String message) {
+        if (HologramProjectorTextChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            String previousText = BlockStorage.getLocationInfo(projector.getLocation(), "text");
+            HologramProjectorTextChangeEvent event = new HologramProjectorTextChangeEvent(p, this, projector, previousText, message);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                // An addon vetoed the change; the hologram keeps its old text.
+                return;
+            }
+
+            message = event.getNewText();
+        }
+
+        ArmorStand hologram = getArmorStand(projector, true);
+        hologram.setCustomName(ChatColors.color(message));
+        BlockStorage.addBlockInfo(projector, "text", hologram.getCustomName());
+        openEditor(p, projector);
+    }
+
     private void openEditor(@Nonnull Player p, @Nonnull Block projector) {
         ChestMenu menu = new ChestMenu(Slimefun.getLocalization().getMessage(p, "machines.HOLOGRAM_PROJECTOR.inventory-title"));
 
@@ -113,10 +150,7 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
                     return;
                 }
 
-                ArmorStand hologram = getArmorStand(projector, true);
-                hologram.setCustomName(ChatColors.color(message));
-                BlockStorage.addBlockInfo(projector, "text", hologram.getCustomName());
-                openEditor(pl, projector);
+                updateText(pl, projector, message);
             });
 
             return false;
