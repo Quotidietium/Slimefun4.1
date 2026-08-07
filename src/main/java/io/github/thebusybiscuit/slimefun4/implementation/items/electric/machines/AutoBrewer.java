@@ -8,13 +8,16 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
+import io.github.thebusybiscuit.slimefun4.api.events.AutoBrewEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -75,12 +78,14 @@ public class AutoBrewer extends AContainer implements NotHopperable {
             ItemStack ingredient = isPotionInFirstSlot ? input2 : input1;
 
             // Reject any named items
-            if (ingredient.hasItemMeta()) {
+            if (!isPlainIngredient(ingredient)) {
                 return null;
             }
 
             ItemStack potionItem = isPotionInFirstSlot ? input1 : input2;
-            PotionMeta potion = (PotionMeta) potionItem.getItemMeta();
+
+            // Clone: brew() mutates this meta and the input stack's meta must stay untouched - CraftBukkit's getItemMeta() already returns a copy, test environments may not
+            PotionMeta potion = (PotionMeta) potionItem.getItemMeta().clone();
             ItemStack output = brew(ingredient.getType(), potionItem.getType(), potion);
 
             if (output == null) {
@@ -91,6 +96,18 @@ public class AutoBrewer extends AContainer implements NotHopperable {
 
             if (!InvUtils.fits(menu.toInventory(), output, getOutputSlots())) {
                 return null;
+            }
+
+            if (AutoBrewEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                AutoBrewEvent event = new AutoBrewEvent(this, menu.getBlock().getLocation(), potionItem, ingredient, output);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon vetoed this brew; the inputs stay and no operation is started.
+                    return null;
+                }
+
+                output = event.getResult();
             }
 
             for (int slot : getInputSlots()) {
@@ -206,6 +223,24 @@ public class AutoBrewer extends AContainer implements NotHopperable {
      */
     private boolean isPotion(@Nonnull Material mat) {
         return mat == Material.POTION || mat == Material.SPLASH_POTION || mat == Material.LINGERING_POTION;
+    }
+
+    /**
+     * Checks whether the given ingredient carries no custom meta, by comparing its
+     * meta against a pristine one. This avoids {@code hasItemMeta()}, which test
+     * environments report as true even for pristine stacks, and
+     * {@code isSimilar(ItemStack)}, which only compares types there - identical
+     * behavior on a real server, where a bare ingredient has no meta or a meta
+     * equal to a freshly created one.
+     *
+     * @param ingredient
+     *            The ingredient {@link ItemStack} to check
+     *
+     * @return Whether the ingredient is a plain, unnamed item
+     */
+    private boolean isPlainIngredient(@Nonnull ItemStack ingredient) {
+        ItemMeta meta = ingredient.getItemMeta();
+        return meta == null || meta.equals(Bukkit.getItemFactory().getItemMeta(ingredient.getType()));
     }
 
     @Override
