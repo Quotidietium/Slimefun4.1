@@ -210,7 +210,7 @@ public class Talisman extends SlimefunItem {
 
     @ParametersAreNonnullByDefault
     private static void activateTalisman(Event e, Player p, Inventory inv, Talisman talisman, ItemStack talismanItem, boolean sendMessage) {
-        TalismanActivateEvent talismanEvent = new TalismanActivateEvent(p, talisman, talismanItem);
+        TalismanActivateEvent talismanEvent = new TalismanActivateEvent(p, talisman, talismanItem, e);
         Bukkit.getPluginManager().callEvent(talismanEvent);
         if (!talismanEvent.isCancelled()) {
             if (!talismanEvent.preventsConsumption()) {
