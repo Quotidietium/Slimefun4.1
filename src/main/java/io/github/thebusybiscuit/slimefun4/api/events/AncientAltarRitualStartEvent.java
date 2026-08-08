@@ -38,7 +38,7 @@ public class AncientAltarRitualStartEvent extends PlayerEvent implements Cancell
     private final List<Block> pedestals;
     private final ItemStack catalyst;
     private final List<ItemStack> input;
-    private final ItemStack output;
+    private ItemStack output;
 
     private boolean cancelled;
 
@@ -108,6 +108,19 @@ public class AncientAltarRitualStartEvent extends PlayerEvent implements Cancell
     @Nonnull
     public ItemStack getOutput() {
         return output;
+    }
+
+    /**
+     * This sets the result that will be produced by the ritual, overriding the recipe's
+     * default output. The replacement is used for the entire ritual — it is what the
+     * {@link AncientAltarCraftEvent} will carry when the ritual finishes.
+     *
+     * @param output
+     *            The replacement output, must not be null
+     */
+    public void setOutput(@Nonnull ItemStack output) {
+        Validate.notNull(output, "The output must not be null");
+        this.output = output;
     }
 
     @Override

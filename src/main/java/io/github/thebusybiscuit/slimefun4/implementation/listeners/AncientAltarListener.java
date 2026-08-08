@@ -277,7 +277,7 @@ public class AncientAltarListener implements Listener {
 
                 SoundEffect.ANCIENT_ALTAR_START_SOUND.playAt(b);
 
-                AncientAltarTask task = new AncientAltarTask(this, b, altarItem.getStepDelay(), result.get(), pedestals, consumed, p);
+                AncientAltarTask task = new AncientAltarTask(this, b, altarItem.getStepDelay(), event.getOutput(), pedestals, consumed, p);
                 Slimefun.runSync(task, 10L);
             } else {
                 altars.remove(b);
