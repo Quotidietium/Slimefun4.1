@@ -17,6 +17,7 @@ import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.common.CommonPatterns;
+import io.github.thebusybiscuit.slimefun4.api.events.CargoNetTickEvent;
 import io.github.thebusybiscuit.slimefun4.api.network.Network;
 import io.github.thebusybiscuit.slimefun4.api.network.NetworkComponent;
 import io.github.thebusybiscuit.slimefun4.core.attributes.HologramOwner;
@@ -128,6 +129,10 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
         if (!regulator.equals(b.getLocation())) {
             updateHologram(b, "&4Multiple Cargo Regulators connected");
             return;
+        }
+
+        if (CargoNetTickEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            org.bukkit.Bukkit.getPluginManager().callEvent(new CargoNetTickEvent(this, b));
         }
 
         super.tick();
