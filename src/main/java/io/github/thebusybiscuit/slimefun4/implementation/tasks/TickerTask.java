@@ -30,6 +30,7 @@ import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.blocks.ChunkPosition;
 import io.github.thebusybiscuit.slimefun4.api.ErrorReport;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunMachineCrashEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunTickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.MachineProcessHolder;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -207,7 +208,12 @@ public class TickerTask implements Runnable {
             // placeholder current) and resolves any pending /sf timings summary.
             // Placed in finally so an exception mid-tick still records timing and
             // clears the per-block collection state.
-            Slimefun.getProfiler().endTick(System.nanoTime() - tickStart);
+            long tickDuration = System.nanoTime() - tickStart;
+            Slimefun.getProfiler().endTick(tickDuration);
+
+            if (SlimefunTickEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                Bukkit.getPluginManager().callEvent(new SlimefunTickEvent(tickDuration));
+            }
         }
     }
 
