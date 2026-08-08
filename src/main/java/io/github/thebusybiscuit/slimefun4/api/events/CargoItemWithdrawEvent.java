@@ -21,6 +21,10 @@ import io.github.thebusybiscuit.slimefun4.core.networks.cargo.CargoNet;
  * (or drops it above the container if the source slot was occupied in the meantime,
  * mirroring the regular "could not distribute" fallback) and skips the distribution
  * for this tick.
+ * <p>
+ * The withdrawn item can be replaced via {@link #setItem(ItemStack)} before distribution
+ * begins, allowing addons to transform items in transit (e.g., rename, enchant, or
+ * replace entirely).
  *
  * @author Zurker
  *
@@ -34,6 +38,7 @@ public class CargoItemWithdrawEvent extends Event implements Cancellable {
     private final Location inputNode;
     private final Block inputTarget;
     private final ItemStack item;
+    private ItemStack modifiedItem;
     private final int previousSlot;
 
     private boolean cancelled;
@@ -45,6 +50,7 @@ public class CargoItemWithdrawEvent extends Event implements Cancellable {
         this.inputNode = inputNode;
         this.inputTarget = inputTarget;
         this.item = item;
+        this.modifiedItem = item;
         this.previousSlot = previousSlot;
     }
 
@@ -80,12 +86,37 @@ public class CargoItemWithdrawEvent extends Event implements Cancellable {
 
     /**
      * This returns the withdrawn {@link ItemStack} that is about to be distributed.
+     * If {@link #setItem(ItemStack)} was called, returns the replacement.
      *
-     * @return The withdrawn {@link ItemStack}
+     * @return The {@link ItemStack} that will be distributed
      */
     @Nonnull
     public ItemStack getItem() {
+        return modifiedItem;
+    }
+
+    /**
+     * This returns the original {@link ItemStack} as it was withdrawn from the source
+     * container, before any listener modification.
+     *
+     * @return The original withdrawn {@link ItemStack}
+     */
+    @Nonnull
+    public ItemStack getOriginalItem() {
         return item;
+    }
+
+    /**
+     * This sets the {@link ItemStack} that will be distributed to the output nodes,
+     * overriding the originally withdrawn item. The replacement is distributed as-is;
+     * the source container's slot was already emptied.
+     *
+     * @param item
+     *            The replacement {@link ItemStack}, must not be null
+     */
+    public void setItem(@Nonnull ItemStack item) {
+        java.util.Objects.requireNonNull(item, "The item must not be null");
+        this.modifiedItem = item;
     }
 
     /**

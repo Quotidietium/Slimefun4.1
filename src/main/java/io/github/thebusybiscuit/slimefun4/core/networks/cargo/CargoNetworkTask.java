@@ -175,6 +175,9 @@ class CargoNetworkTask implements Runnable {
                 insertItem(inputTarget, previousSlot, stack);
                 return;
             }
+
+            // Read back the (possibly modified) item for distribution.
+            stack = event.getItem();
         }
 
         try {
