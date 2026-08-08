@@ -8,6 +8,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.implementation.items.autocrafters.AbstractAutoCrafter;
 import io.github.thebusybiscuit.slimefun4.implementation.items.autocrafters.AbstractRecipe;
@@ -40,6 +41,7 @@ public class AutoCrafterCraftEvent extends Event implements Cancellable {
     private final Block block;
     private final Inventory inventory;
     private final AbstractRecipe recipe;
+    private ItemStack result;
 
     private boolean cancelled;
 
@@ -53,6 +55,7 @@ public class AutoCrafterCraftEvent extends Event implements Cancellable {
         this.block = block;
         this.inventory = inventory;
         this.recipe = recipe;
+        this.result = recipe.getResult();
     }
 
     /**
@@ -95,6 +98,31 @@ public class AutoCrafterCraftEvent extends Event implements Cancellable {
     @Nonnull
     public AbstractRecipe getRecipe() {
         return recipe;
+    }
+
+    /**
+     * This returns the {@link ItemStack} that will be produced by this craft,
+     * initialized from {@link AbstractRecipe#getResult()} but overridable via
+     * {@link #setResult(ItemStack)}.
+     *
+     * @return The result {@link ItemStack}
+     */
+    @Nonnull
+    public ItemStack getResult() {
+        return result;
+    }
+
+    /**
+     * This sets the {@link ItemStack} that will be produced by this craft,
+     * overriding the recipe's default result. The replacement is added to the
+     * target inventory without being re-checked for fit.
+     *
+     * @param result
+     *            The replacement result, must not be null
+     */
+    public void setResult(@Nonnull ItemStack result) {
+        Validate.notNull(result, "The result must not be null");
+        this.result = result;
     }
 
     @Override

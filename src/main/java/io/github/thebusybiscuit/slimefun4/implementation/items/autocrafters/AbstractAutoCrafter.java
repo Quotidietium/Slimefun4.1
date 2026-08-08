@@ -182,6 +182,8 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
                 Inventory inv = inventoryHolder.getInventory();
 
                 // Auto Crafters can tick very frequently, only allocate an event when someone listens
+                ItemStack craftedResult = recipe.getResult();
+
                 if (AutoCrafterCraftEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     AutoCrafterCraftEvent event = new AutoCrafterCraftEvent(this, b, inv, recipe);
                     Bukkit.getPluginManager().callEvent(event);
@@ -189,13 +191,15 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
                     if (event.isCancelled()) {
                         return;
                     }
+
+                    craftedResult = event.getResult();
                 }
 
-                if (craft(inv, recipe)) {
+                if (craft(inv, recipe, craftedResult)) {
                     // Notify listeners about the completed craft before the side effects
                     if (AutoCrafterCraftCompleteEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                        AutoCrafterCraftCompleteEvent event = new AutoCrafterCraftCompleteEvent(this, b, inv, recipe);
-                        Bukkit.getPluginManager().callEvent(event);
+                        AutoCrafterCraftCompleteEvent completeEvent = new AutoCrafterCraftCompleteEvent(this, b, inv, recipe);
+                        Bukkit.getPluginManager().callEvent(completeEvent);
                     }
 
                     // We are done crafting!
@@ -422,6 +426,29 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
         Validate.notNull(inv, "The Inventory must not be null");
         Validate.notNull(recipe, "The Recipe shall not be null");
 
+        return craft(inv, recipe, recipe.getResult());
+    }
+
+    /**
+     * Performs the actual crafting: validates ingredients, consumes them and adds the
+     * given result to the inventory. The result can differ from
+     * {@link AbstractRecipe#getResult()} when a listener modified it via
+     * {@link AutoCrafterCraftEvent#setResult(ItemStack)}.
+     *
+     * @param inv
+     *            The target {@link Inventory}
+     * @param recipe
+     *            The {@link AbstractRecipe} to craft
+     * @param result
+     *            The result {@link ItemStack} to produce
+     *
+     * @return Whether the crafting succeeded
+     */
+    public boolean craft(@Nonnull Inventory inv, @Nonnull AbstractRecipe recipe, @Nonnull ItemStack result) {
+        Validate.notNull(inv, "The Inventory must not be null");
+        Validate.notNull(recipe, "The Recipe shall not be null");
+        Validate.notNull(result, "The result shall not be null");
+
         // Make sure that the Recipe is actually enabled
         if (!recipe.isEnabled()) {
             return false;
@@ -460,7 +487,7 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
                 }
             }
 
-            boolean success = inv.addItem(recipe.getResult().clone()).isEmpty();
+            boolean success = inv.addItem(result.clone()).isEmpty();
 
             if (success) {
                 // Fixes #2926 - Push leftover items (e.g. empty buckets) back into the inventory.
