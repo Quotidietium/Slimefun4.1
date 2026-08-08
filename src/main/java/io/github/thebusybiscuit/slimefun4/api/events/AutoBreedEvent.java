@@ -20,6 +20,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
  * Cancelling this event skips this breeding operation entirely: the energy is kept,
  * the food is not consumed and the animal is left alone. The breeder retries on its
  * next tick.
+ * <p>
+ * The love mode duration (default 600 ticks = 30 seconds) can be modified via
+ * {@link #setLoveModeTicks(int)} before the animal enters love mode, allowing addons
+ * to extend or shorten the breeding window.
  *
  * @author Zurker
  *
@@ -33,6 +37,7 @@ public class AutoBreedEvent extends Event implements Cancellable {
     private final Block block;
     private final Animals animal;
     private final ItemStack food;
+    private int loveModeTicks = 600;
 
     private boolean cancelled;
 
@@ -87,6 +92,28 @@ public class AutoBreedEvent extends Event implements Cancellable {
     @Nonnull
     public ItemStack getFood() {
         return food;
+    }
+
+    /**
+     * This returns the love mode duration (in ticks) that will be applied to the
+     * animal. Default is 600 ticks (30 seconds).
+     *
+     * @return The love mode duration in ticks
+     */
+    public int getLoveModeTicks() {
+        return loveModeTicks;
+    }
+
+    /**
+     * This sets the love mode duration that will be applied to the animal. A value
+     * of 0 effectively prevents breeding while still consuming the food.
+     *
+     * @param ticks
+     *            The new love mode duration, must not be negative
+     */
+    public void setLoveModeTicks(int ticks) {
+        Validate.isTrue(ticks >= 0, "The love mode duration must not be negative");
+        this.loveModeTicks = ticks;
     }
 
     @Override

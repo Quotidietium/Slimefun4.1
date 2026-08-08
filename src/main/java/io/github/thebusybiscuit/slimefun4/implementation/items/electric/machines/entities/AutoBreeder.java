@@ -125,6 +125,8 @@ public class AutoBreeder extends SlimefunItem implements InventoryBlock, EnergyN
                         return;
                     }
 
+                    int loveTicks = 600;
+
                     if (AutoBreedEvent.getHandlerList().getRegisteredListeners().length > 0) {
                         AutoBreedEvent event = new AutoBreedEvent(this, b, (Animals) n, inv.getItemInSlot(slot));
                         Bukkit.getPluginManager().callEvent(event);
@@ -132,12 +134,14 @@ public class AutoBreeder extends SlimefunItem implements InventoryBlock, EnergyN
                         if (event.isCancelled()) {
                             return;
                         }
+
+                        loveTicks = event.getLoveModeTicks();
                     }
 
                     removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
                     inv.consumeItem(slot);
 
-                    ((Animals) n).setLoveModeTicks(600);
+                    ((Animals) n).setLoveModeTicks(loveTicks);
                     n.getWorld().spawnParticle(Particle.HEART, ((LivingEntity) n).getEyeLocation(), 8, 0.2F, 0.2F, 0.2F);
                     return;
                 }
