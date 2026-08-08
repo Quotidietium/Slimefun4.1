@@ -101,17 +101,19 @@ public class EnhancedFurnaceListener implements Listener {
                     // amount may resolve to 0 when the result slot is already full. ItemStack cannot
                     // be constructed with amount 0 (throws IllegalArgumentException), so skip in that case.
                     if (amount > 0) {
-                        // Clone the recipe output so its ItemMeta (display name, lore, ...)
-                        // survives - a plain new ItemStack(type, amount) would strip it.
-                        ItemStack newResult = item.clone();
-                        newResult.setAmount(amount);
-
                         EnhancedFurnaceSmeltEvent event = new EnhancedFurnaceSmeltEvent(enhancedFurnace, e.getBlock(), e, amount);
                         Bukkit.getPluginManager().callEvent(event);
 
                         if (event.isCancelled()) {
                             return;
                         }
+
+                        // Read the amount back from the event: a listener may have called
+                        // setAmount() to override the fortune roll without cancelling.
+                        // Clone the recipe output so its ItemMeta (display name, lore, ...)
+                        // survives - a plain new ItemStack(type, amount) would strip it.
+                        ItemStack newResult = item.clone();
+                        newResult.setAmount(event.getAmount());
 
                         e.setResult(newResult);
                     }

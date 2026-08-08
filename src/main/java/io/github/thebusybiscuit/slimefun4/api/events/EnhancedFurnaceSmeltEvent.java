@@ -33,7 +33,7 @@ public class EnhancedFurnaceSmeltEvent extends Event implements Cancellable {
     private final EnhancedFurnace furnace;
     private final Block block;
     private final FurnaceSmeltEvent smeltEvent;
-    private final int amount;
+    private int amount;
 
     private boolean cancelled;
 
@@ -87,6 +87,19 @@ public class EnhancedFurnaceSmeltEvent extends Event implements Cancellable {
      */
     public int getAmount() {
         return amount;
+    }
+
+    /**
+     * This sets the amount of items that will be produced for this smelt. Use this to
+     * override the fortune roll without cancelling the event entirely. The value must be
+     * at least 1 and at most the item's max stack size.
+     *
+     * @param amount
+     *            The new output amount
+     */
+    public void setAmount(int amount) {
+        Validate.isTrue(amount >= 1, "The amount must be at least 1");
+        this.amount = amount;
     }
 
     @Override
