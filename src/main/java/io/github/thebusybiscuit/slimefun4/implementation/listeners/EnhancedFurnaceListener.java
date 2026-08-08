@@ -63,7 +63,7 @@ public class EnhancedFurnaceListener implements Listener {
             }
 
             int burnTime = e.getBurnTime();
-            int newBurnTime = enhancedFurnace.getFuelEfficiency() * burnTime;
+            int newBurnTime = event.getFuelEfficiency() * burnTime;
 
             e.setBurnTime(Math.min(newBurnTime, Short.MAX_VALUE - 1));
         }

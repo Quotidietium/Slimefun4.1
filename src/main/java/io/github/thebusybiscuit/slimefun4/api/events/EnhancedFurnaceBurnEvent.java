@@ -31,6 +31,7 @@ public class EnhancedFurnaceBurnEvent extends Event implements Cancellable {
     private final EnhancedFurnace furnace;
     private final Block block;
     private final FurnaceBurnEvent burnEvent;
+    private int fuelEfficiency;
 
     private boolean cancelled;
 
@@ -42,6 +43,7 @@ public class EnhancedFurnaceBurnEvent extends Event implements Cancellable {
         this.furnace = furnace;
         this.block = block;
         this.burnEvent = burnEvent;
+        this.fuelEfficiency = furnace.getFuelEfficiency();
     }
 
     /**
@@ -76,14 +78,28 @@ public class EnhancedFurnaceBurnEvent extends Event implements Cancellable {
     }
 
     /**
-     * This is a convenience method that returns the fuel efficiency of the
-     * {@link EnhancedFurnace}, the multiplier that is about to be applied to the
-     * burn time.
+     * This returns the fuel efficiency multiplier that is about to be applied to the
+     * burn time. Initialized from the {@link EnhancedFurnace}'s efficiency, but can be
+     * overridden via {@link #setFuelEfficiency(int)}.
      *
      * @return The fuel efficiency multiplier
      */
     public int getFuelEfficiency() {
-        return furnace.getFuelEfficiency();
+        return fuelEfficiency;
+    }
+
+    /**
+     * This sets the fuel efficiency multiplier that will be applied to the burn time.
+     * Use this to boost or penalize the fuel efficiency without cancelling the event.
+     * A value of 0 is equivalent to cancelling (vanilla burn time is used as-is since
+     * the multiplier is skipped when efficiency is 0).
+     *
+     * @param fuelEfficiency
+     *            The new fuel efficiency multiplier, must be at least 0
+     */
+    public void setFuelEfficiency(int fuelEfficiency) {
+        Validate.isTrue(fuelEfficiency >= 0, "The fuel efficiency must not be negative");
+        this.fuelEfficiency = fuelEfficiency;
     }
 
     @Override
