@@ -261,19 +261,35 @@ class TestExperienceEvents {
     void testFlaskEventFieldsAndValidation() {
         PlayerMock player = server.addPlayer();
         ItemStack item = flask.getItem().clone();
+        ItemStack result = new ItemStack(Material.EXPERIENCE_BOTTLE);
 
-        KnowledgeFlaskFillEvent event = new KnowledgeFlaskFillEvent(player, flask, item);
+        KnowledgeFlaskFillEvent event = new KnowledgeFlaskFillEvent(player, flask, item, 1, result);
 
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(flask, event.getFlask());
         Assertions.assertEquals(item, event.getItem());
+        Assertions.assertEquals(1, event.getLevelCost());
+        Assertions.assertEquals(result, event.getResult());
         Assertions.assertFalse(event.isCancelled());
+
+        // setLevelCost
+        event.setLevelCost(3);
+        Assertions.assertEquals(3, event.getLevelCost());
+
+        // setResult
+        ItemStack custom = new ItemStack(Material.DIAMOND);
+        event.setResult(custom);
+        Assertions.assertEquals(custom, event.getResult());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeFlaskFillEvent(player, null, item));
-        Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeFlaskFillEvent(player, flask, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeFlaskFillEvent(player, null, item, 1, result));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeFlaskFillEvent(player, flask, null, 1, result));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeFlaskFillEvent(player, flask, item, -1, result));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeFlaskFillEvent(player, flask, item, 1, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setLevelCost(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setResult(null));
     }
 
     @Test

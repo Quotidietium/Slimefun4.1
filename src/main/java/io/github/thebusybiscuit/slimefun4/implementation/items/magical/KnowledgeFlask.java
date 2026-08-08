@@ -39,16 +39,16 @@ public class KnowledgeFlask extends SimpleSlimefunItem<ItemUseHandler> {
             Player p = e.getPlayer();
 
             if (p.getLevel() >= 1 && (e.getClickedBlock().isEmpty() || !(e.getClickedBlock().get().getType().isInteractable()))) {
-                KnowledgeFlaskFillEvent event = new KnowledgeFlaskFillEvent(p, this, e.getItem());
+                KnowledgeFlaskFillEvent event = new KnowledgeFlaskFillEvent(p, this, e.getItem(), 1, SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item());
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
                     return;
                 }
 
-                p.setLevel(p.getLevel() - 1);
+                p.setLevel(p.getLevel() - event.getLevelCost());
 
-                ItemStack item = SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item();
+                ItemStack item = event.getResult();
 
                 if (!p.getInventory().addItem(item).isEmpty()) {
                     // The Item could not be added, let's drop it to the ground (fixes #2728)
