@@ -19,6 +19,9 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.armor.SlimefunArm
  * <p>
  * Cancelling this event skips the application of this armor piece's effects
  * for this tick. The effects are re-evaluated on the next armor tick.
+ * <p>
+ * The effects can be replaced via {@link #setEffects(PotionEffect[])} before they
+ * are applied, allowing addons to boost, reduce, add, or remove individual effects.
  *
  * @author Zurker
  *
@@ -31,7 +34,8 @@ public class SlimefunArmorEffectEvent extends Event implements Cancellable {
     private final Player player;
     private final SlimefunArmorPiece armorItem;
     private final ItemStack item;
-    private final PotionEffect[] effects;
+    private final PotionEffect[] originalEffects;
+    private PotionEffect[] effects;
 
     private boolean cancelled;
 
@@ -44,6 +48,7 @@ public class SlimefunArmorEffectEvent extends Event implements Cancellable {
         this.player = player;
         this.armorItem = armorItem;
         this.item = item;
+        this.originalEffects = effects;
         this.effects = effects;
     }
 
@@ -79,12 +84,37 @@ public class SlimefunArmorEffectEvent extends Event implements Cancellable {
 
     /**
      * This returns the {@link PotionEffect PotionEffects} that are about to be applied.
+     * If {@link #setEffects(PotionEffect[])} was called, returns the replacement.
      *
      * @return The effects to apply
      */
     @Nonnull
     public PotionEffect[] getEffects() {
         return effects;
+    }
+
+    /**
+     * This returns the original {@link PotionEffect PotionEffects} from the armor piece
+     * definition, before any listener modification.
+     *
+     * @return The original effects
+     */
+    @Nonnull
+    public PotionEffect[] getOriginalEffects() {
+        return originalEffects;
+    }
+
+    /**
+     * This sets the {@link PotionEffect PotionEffects} that will be applied, overriding
+     * the armor piece's default effects. An empty array is equivalent to cancelling
+     * the event (no effects applied this tick).
+     *
+     * @param effects
+     *            The replacement effects, must not be null
+     */
+    public void setEffects(@Nonnull PotionEffect[] effects) {
+        Validate.notNull(effects, "The effects must not be null");
+        this.effects = effects;
     }
 
     @Override

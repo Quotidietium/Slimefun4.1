@@ -112,6 +112,9 @@ public class SlimefunArmorTask extends AbstractArmorTask {
             if (event.isCancelled()) {
                 return;
             }
+
+            // Read back the (possibly modified) effects for application.
+            effects = event.getEffects();
         }
 
         for (PotionEffect effect : effects) {
