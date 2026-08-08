@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.chat.ChatInput;
 import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.GPSNetworkComplexityEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.GPSTransmitterStatusEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.WaypointCreateEvent;
 import io.github.thebusybiscuit.slimefun4.api.geo.GEOResource;
@@ -65,6 +66,7 @@ public class GPSNetwork {
      * and the {@link TeleportationManager} read them from any Thread.
      */
     private final Map<UUID, Set<Location>> transmitters = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> cachedComplexity = new ConcurrentHashMap<>();
     private final TeleportationManager teleportation = new TeleportationManager();
 
     private final ResourceManager resourceManager;
@@ -124,6 +126,17 @@ public class GPSNetwork {
         if (changed[0] && GPSTransmitterStatusEvent.getHandlerList().getRegisteredListeners().length > 0) {
             GPSTransmitterStatusEvent event = new GPSTransmitterStatusEvent(l, uuid, online);
             Bukkit.getPluginManager().callEvent(event);
+        }
+
+        // Fire a complexity change event if the value actually changed.
+        if (changed[0] && GPSNetworkComplexityEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            int newComplexity = getNetworkComplexity(uuid);
+            int oldComplexity = cachedComplexity.getOrDefault(uuid, 0);
+
+            if (newComplexity != oldComplexity) {
+                cachedComplexity.put(uuid, newComplexity);
+                Bukkit.getPluginManager().callEvent(new GPSNetworkComplexityEvent(uuid, oldComplexity, newComplexity));
+            }
         }
     }
 
