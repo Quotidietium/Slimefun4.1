@@ -29,6 +29,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.blocks.ChunkPosition;
 import io.github.thebusybiscuit.slimefun4.api.ErrorReport;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunMachineCrashEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.MachineProcessHolder;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -296,6 +297,16 @@ public class TickerTask implements Runnable {
             // Generate a new Error-Report
             new ErrorReport<>(x, l, item);
         } else if (errors == 4) {
+            if (SlimefunMachineCrashEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                SlimefunMachineCrashEvent crashEvent = new SlimefunMachineCrashEvent(l, item);
+                Bukkit.getPluginManager().callEvent(crashEvent);
+
+                if (crashEvent.isCancelled()) {
+                    // An addon chose to spare this machine; it stays broken but is not destroyed.
+                    return;
+                }
+            }
+
             Slimefun.logger().log(Level.SEVERE, "X: {0} Y: {1} Z: {2} ({3})", new Object[] { l.getBlockX(), l.getBlockY(), l.getBlockZ(), item.getId() });
             Slimefun.logger().log(Level.SEVERE, "has thrown 4 error messages in the last 4 Ticks, the Block has been terminated.");
             Slimefun.logger().log(Level.SEVERE, "Check your /plugins/Slimefun/error-reports/ folder for details.");
