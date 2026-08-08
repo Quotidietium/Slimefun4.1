@@ -5,6 +5,7 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -22,6 +23,9 @@ import io.github.thebusybiscuit.slimefun4.api.gps.Waypoint;
  * <p>
  * Cancelling this event prevents the teleportation from starting: the progress
  * sequence never begins and the {@link Player} stays where they are.
+ * <p>
+ * The destination can be redirected via {@link #setDestination(Location)} before the
+ * teleportation begins, allowing addons to redirect or adjust the target location.
  *
  * @author Zurker
  *
@@ -35,7 +39,7 @@ public class TeleportationStartEvent extends Event implements Cancellable {
     private final UUID uuid;
     private final int complexity;
     private final Location source;
-    private final Location destination;
+    private Location destination;
     private final boolean resistance;
 
     private boolean cancelled;
@@ -97,6 +101,19 @@ public class TeleportationStartEvent extends Event implements Cancellable {
     @Nonnull
     public Location getDestination() {
         return destination;
+    }
+
+    /**
+     * This sets the {@link Location} the {@link Player} will teleport to, overriding
+     * the original destination. The teleportation time is recalculated from the new
+     * distance.
+     *
+     * @param destination
+     *            The new destination {@link Location}, must not be null
+     */
+    public void setDestination(@Nonnull Location destination) {
+        Validate.notNull(destination, "The destination must not be null");
+        this.destination = destination;
     }
 
     /**
