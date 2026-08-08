@@ -92,16 +92,23 @@ class TestVitaminsCureEvent {
     void testEventFieldsAndValidation() {
         Player player = server.addPlayer();
 
-        VitaminsCureEvent event = new VitaminsCureEvent(player, vitamins);
+        VitaminsCureEvent event = new VitaminsCureEvent(player, vitamins, 8);
 
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(vitamins, event.getVitamins());
+        Assertions.assertEquals(8, event.getHealAmount());
         Assertions.assertFalse(event.isCancelled());
+
+        // setHealAmount: override the healing
+        event.setHealAmount(20);
+        Assertions.assertEquals(20, event.getHealAmount());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> new VitaminsCureEvent(player, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new VitaminsCureEvent(player, null, 8));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new VitaminsCureEvent(player, vitamins, -1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setHealAmount(-1));
     }
 
     @Test

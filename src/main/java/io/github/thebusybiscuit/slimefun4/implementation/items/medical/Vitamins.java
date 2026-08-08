@@ -28,14 +28,17 @@ public class Vitamins extends MedicalSupply<ItemUseHandler> {
     public @Nonnull ItemUseHandler getItemHandler() {
         return e -> {
             Player p = e.getPlayer();
+            int healAmt = getHealAmount();
 
             if (VitaminsCureEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                VitaminsCureEvent event = new VitaminsCureEvent(p, this);
+                VitaminsCureEvent event = new VitaminsCureEvent(p, this, healAmt);
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
                     return;
                 }
+
+                healAmt = event.getHealAmount();
             }
 
             SoundEffect.VITAMINS_CONSUME_SOUND.playFor(p);
@@ -48,7 +51,7 @@ public class Vitamins extends MedicalSupply<ItemUseHandler> {
             p.setFireTicks(0);
             clearNegativeEffects(p);
             RadiationUtils.clearExposure(p);
-            heal(p);
+            heal(p, healAmt);
         };
     }
 }
