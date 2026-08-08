@@ -171,6 +171,9 @@ public class GrapplingHookListener implements Listener {
                 Bukkit.getPluginManager().callEvent(pullEvent);
 
                 if (!pullEvent.isCancelled()) {
+                    // Read back the (possibly modified) target for pull computation.
+                    target = pullEvent.getTarget();
+
                     Vector velocity = new Vector(0.0, 0.2, 0.0);
 
                     // The player may have changed worlds (e.g. via teleport/portal) between firing

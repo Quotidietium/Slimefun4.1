@@ -18,6 +18,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.tools.GrapplingHo
  * <p>
  * Cancelling this event skips the pull: the {@link Player} is neither teleported
  * nor given velocity. The hook itself is still dropped and cleaned up as usual.
+ * <p>
+ * The pull target can be redirected via {@link #setTarget(Location)} before the
+ * velocity and teleport are computed, allowing addons to adjust or clamp the
+ * destination.
  *
  * @author Zurker
  *
@@ -28,7 +32,7 @@ public class GrapplingHookPullEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
 
     private final Arrow arrow;
-    private final Location target;
+    private Location target;
 
     private boolean cancelled;
 
@@ -61,6 +65,19 @@ public class GrapplingHookPullEvent extends PlayerEvent implements Cancellable {
     @Nonnull
     public Location getTarget() {
         return target;
+    }
+
+    /**
+     * This sets the {@link Location} the {@link Player} will be pulled towards,
+     * overriding the arrow's landing position. The velocity and teleport are
+     * computed from this target.
+     *
+     * @param target
+     *            The new pull target, must not be null
+     */
+    public void setTarget(@Nonnull Location target) {
+        Validate.notNull(target, "The target must not be null");
+        this.target = target;
     }
 
     @Override
