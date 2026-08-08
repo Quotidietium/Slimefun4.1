@@ -9,6 +9,7 @@ import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import io.github.thebusybiscuit.slimefun4.api.events.PlayerAllResearchesUnlockEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ResearchUnlockEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.guide.options.SlimefunGuideSettings;
@@ -106,6 +107,18 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
     private void unlockResearch(@Nonnull Player p, @Nonnull PlayerProfile profile) {
         profile.setResearched(research, true);
         Slimefun.getLocalization().sendMessage(p, "messages.unlocked", true, msg -> msg.replace(PLACEHOLDER, research.getName(p)));
+
+        // Check if this was the last enabled research — fire a milestone event.
+        if (PlayerAllResearchesUnlockEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            java.util.stream.Stream<io.github.thebusybiscuit.slimefun4.api.researches.Research> enabled = Slimefun.getRegistry().getResearches().stream().filter(io.github.thebusybiscuit.slimefun4.api.researches.Research::isEnabled);
+            boolean allUnlocked = enabled.allMatch(profile::hasUnlocked);
+
+            if (allUnlocked) {
+                int total = (int) Slimefun.getRegistry().getResearches().stream().filter(io.github.thebusybiscuit.slimefun4.api.researches.Research::isEnabled).count();
+                Bukkit.getPluginManager().callEvent(new PlayerAllResearchesUnlockEvent(p, profile, total));
+            }
+        }
+
         onFinish(p);
 
         // Check if the Server and the Player have enabled fireworks for researches
