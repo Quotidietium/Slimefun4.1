@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunAutoSaveEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.debug.Debug;
 import io.github.thebusybiscuit.slimefun4.core.debug.TestCase;
@@ -94,6 +95,10 @@ public class AutoSavingService {
 
         if (players > 0) {
             Slimefun.logger().log(Level.INFO, "Auto-saved all player data for {0} player(s)!", players);
+        }
+
+        if (SlimefunAutoSaveEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            Bukkit.getPluginManager().callEvent(new SlimefunAutoSaveEvent(players));
         }
     }
 
