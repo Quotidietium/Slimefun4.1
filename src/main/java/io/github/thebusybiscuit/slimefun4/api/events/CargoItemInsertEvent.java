@@ -19,6 +19,10 @@ import io.github.thebusybiscuit.slimefun4.core.networks.cargo.CargoNet;
  * Cancelling this event skips this output node; the {@link ItemStack} stays in transit
  * and the {@link CargoNet} tries the next output node (the same semantics as when a
  * protection plugin denies access to the destination container).
+ * <p>
+ * The item in transit can be replaced via {@link #setItem(ItemStack)} before insertion,
+ * allowing addons to transform items per output node (e.g., route different variants to
+ * different chests).
  *
  * @author Zurker
  *
@@ -33,6 +37,7 @@ public class CargoItemInsertEvent extends Event implements Cancellable {
     private final Location outputNode;
     private final Block outputTarget;
     private final ItemStack item;
+    private ItemStack modifiedItem;
 
     private boolean cancelled;
 
@@ -44,6 +49,7 @@ public class CargoItemInsertEvent extends Event implements Cancellable {
         this.outputNode = outputNode;
         this.outputTarget = outputTarget;
         this.item = item;
+        this.modifiedItem = item;
     }
 
     /**
@@ -88,12 +94,38 @@ public class CargoItemInsertEvent extends Event implements Cancellable {
 
     /**
      * This returns the {@link ItemStack} that is about to be inserted.
+     * If {@link #setItem(ItemStack)} was called, returns the replacement.
      *
      * @return The {@link ItemStack} in transit
      */
     @Nonnull
     public ItemStack getItem() {
+        return modifiedItem;
+    }
+
+    /**
+     * This returns the original {@link ItemStack} as it entered this output node,
+     * before any listener modification.
+     *
+     * @return The original {@link ItemStack}
+     */
+    @Nonnull
+    public ItemStack getOriginalItem() {
         return item;
+    }
+
+    /**
+     * This sets the {@link ItemStack} that will be inserted into this output node,
+     * overriding the item in transit. The replacement is inserted in place of the
+     * original; any remainder after insertion becomes the new in-transit stack for
+     * subsequent output nodes.
+     *
+     * @param item
+     *            The replacement {@link ItemStack}, must not be null
+     */
+    public void setItem(@Nonnull ItemStack item) {
+        java.util.Objects.requireNonNull(item, "The item must not be null");
+        this.modifiedItem = item;
     }
 
     @Override

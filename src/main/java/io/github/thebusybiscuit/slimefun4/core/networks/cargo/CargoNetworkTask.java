@@ -294,6 +294,9 @@ class CargoNetworkTask implements Runnable {
                             index++;
                             continue;
                         }
+
+                        // Read back the (possibly modified) item for insertion.
+                        item = insertEvent.getItem();
                     }
 
                     try {
