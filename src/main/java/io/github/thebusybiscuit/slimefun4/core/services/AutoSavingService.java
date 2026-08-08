@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerProfileUnloadEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunAutoSaveEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunBlockDataSaveEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.debug.Debug;
 import io.github.thebusybiscuit.slimefun4.core.debug.TestCase;
@@ -134,6 +135,10 @@ public class AutoSavingService {
         }
 
         BlockStorage.saveChunks();
+
+        if (SlimefunBlockDataSaveEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            Bukkit.getPluginManager().callEvent(new SlimefunBlockDataSaveEvent(worlds.size()));
+        }
     }
 
 }
