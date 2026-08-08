@@ -9,6 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -18,6 +19,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.api.events.SmelteryFireConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -92,6 +94,17 @@ public class Smeltery extends AbstractSmeltery {
 
         if (!isFireRenewed) {
             Block fire = b.getRelative(BlockFace.DOWN).getRelative(BlockFace.DOWN);
+
+            if (SmelteryFireConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                SmelteryFireConsumeEvent event = new SmelteryFireConsumeEvent(p, b, fire);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon chose to keep the fire burning; it is not consumed.
+                    return;
+                }
+            }
+
             fire.getWorld().playEffect(fire.getLocation(), Effect.STEP_SOUND, fire.getType());
             fire.setType(Material.AIR);
         }
