@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.ExpCollectorCollectEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.ExpCollectorProduceEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemHandler;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -180,13 +181,27 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
         int withdrawn = 0;
         BlockMenu menu = BlockStorage.getInventory(location);
         for (int level = 0; level < getStoredExperience(location); level = level + 10) {
-            if (menu.fits(SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item(), getOutputSlots())) {
-                withdrawn = withdrawn + 10;
-                menu.pushItem(SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item(), getOutputSlots());
-            } else {
+            ItemStack flask = SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item();
+
+            if (!menu.fits(flask, getOutputSlots())) {
                 // There is no room for more bottles, so lets stop checking if more will fit.
                 break;
             }
+
+            if (ExpCollectorProduceEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                ExpCollectorProduceEvent event = new ExpCollectorProduceEvent(this, menu.getBlock(), 10, flask.clone());
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon vetoed this flask; stop producing (XP stays stored).
+                    break;
+                }
+
+                flask = event.getResult();
+            }
+
+            withdrawn = withdrawn + 10;
+            menu.pushItem(flask, getOutputSlots());
         }
         BlockStorage.addBlockInfo(location, DATA_KEY, String.valueOf(experiencePoints - withdrawn));
     }
