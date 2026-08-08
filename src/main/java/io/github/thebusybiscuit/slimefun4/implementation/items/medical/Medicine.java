@@ -22,19 +22,23 @@ public class Medicine extends MedicalSupply<ItemConsumptionHandler> {
     @Override
     public ItemConsumptionHandler getItemHandler() {
         return (e, p, item) -> {
+            int healAmt = getHealAmount();
+
             if (MedicineConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                MedicineConsumeEvent event = new MedicineConsumeEvent(p, this);
+                MedicineConsumeEvent event = new MedicineConsumeEvent(p, this, healAmt);
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
                     return;
                 }
+
+                healAmt = event.getHealAmount();
             }
 
             p.setFireTicks(0);
             clearNegativeEffects(p);
             RadiationUtils.clearExposure(p);
-            heal(p);
+            heal(p, healAmt);
         };
     }
 

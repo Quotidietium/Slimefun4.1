@@ -85,16 +85,22 @@ class TestMedicineConsumeEvent {
     void testEventFieldsAndValidation() {
         Player player = server.addPlayer();
 
-        MedicineConsumeEvent event = new MedicineConsumeEvent(player, medicine);
+        MedicineConsumeEvent event = new MedicineConsumeEvent(player, medicine, 8);
 
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(medicine, event.getMedicine());
+        Assertions.assertEquals(8, event.getHealAmount());
         Assertions.assertFalse(event.isCancelled());
+
+        event.setHealAmount(20);
+        Assertions.assertEquals(20, event.getHealAmount());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> new MedicineConsumeEvent(player, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new MedicineConsumeEvent(player, null, 8));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new MedicineConsumeEvent(player, medicine, -1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setHealAmount(-1));
     }
 
     @Test
