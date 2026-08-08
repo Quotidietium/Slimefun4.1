@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.api.events.AncientAltarCraftEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AncientAltarItemConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AncientAltarRitualAbortEvent;
 import io.github.thebusybiscuit.slimefun4.core.services.sounds.SoundEffect;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -142,8 +143,20 @@ public class AncientAltarTask implements Runnable {
             abort();
         } else {
             Item entity = item.get();
+            ItemStack original = pedestalItem.getOriginalItemStack(entity);
+
+            if (AncientAltarItemConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                AncientAltarItemConsumeEvent event = new AncientAltarItemConsumeEvent(player, altar, pedestal, original);
+                Bukkit.getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    // An addon protected this ingredient; it stays on the pedestal and is not consumed.
+                    return;
+                }
+            }
+
             particleLocations.add(pedestal.getLocation().add(0.5, 1.5, 0.5));
-            items.add(pedestalItem.getOriginalItemStack(entity));
+            items.add(original);
             SoundEffect.ANCIENT_ALTAR_ITEM_CHECK_SOUND.playAt(pedestal);
 
             dropLocation.getWorld().spawnParticle(VersionedParticle.ENCHANT, pedestal.getLocation().add(0.5, 1.5, 0.5), 16, 0.3F, 0.2F, 0.3F);
