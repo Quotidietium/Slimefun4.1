@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.api.events.GEOMiningCompleteEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.GEOMiningStartEvent;
 import io.github.thebusybiscuit.slimefun4.api.geo.GEOResource;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
@@ -299,7 +300,21 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                 operation.addProgress(getSpeed());
             } else {
                 inv.replaceExistingItem(4, CustomItemStack.create(Material.BLACK_STAINED_GLASS_PANE, " "));
-                inv.pushItem(operation.getResult(), OUTPUT_SLOTS);
+                ItemStack result = operation.getResult();
+
+                if (GEOMiningCompleteEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    GEOMiningCompleteEvent completeEvent = new GEOMiningCompleteEvent(this, b.getLocation(), result);
+                    Bukkit.getPluginManager().callEvent(completeEvent);
+
+                    if (completeEvent.isCancelled()) {
+                        processor.endOperation(b);
+                        return;
+                    }
+
+                    result = completeEvent.getResult();
+                }
+
+                inv.pushItem(result, OUTPUT_SLOTS);
 
                 processor.endOperation(b);
             }
