@@ -154,6 +154,17 @@ public class ProduceCollector extends AContainer implements RecipeDisplayItem {
                             // An addon vetoed this produce; keep scanning the remaining produces.
                             continue;
                         }
+
+                        inv.consumeItem(slot);
+
+                        // If the result was overridden, wrap it in a new recipe so AContainer
+                        // produces the modified output.
+                        ItemStack result = event.getResult();
+                        if (!result.equals(produce.getOutput()[0])) {
+                            return new MachineRecipe(5, produce.getInput(), new ItemStack[] { result });
+                        }
+
+                        return produce;
                     }
 
                     inv.consumeItem(slot);

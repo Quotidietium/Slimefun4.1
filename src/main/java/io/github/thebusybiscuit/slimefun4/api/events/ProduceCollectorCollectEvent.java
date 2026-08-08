@@ -8,6 +8,7 @@ import org.bukkit.block.Block;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.entities.AnimalProduce;
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.entities.ProduceCollector;
@@ -35,6 +36,7 @@ public class ProduceCollectorCollectEvent extends Event implements Cancellable {
     private final ProduceCollector collector;
     private final Block block;
     private final AnimalProduce produce;
+    private ItemStack result;
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -46,6 +48,7 @@ public class ProduceCollectorCollectEvent extends Event implements Cancellable {
         this.collector = collector;
         this.block = block;
         this.produce = produce;
+        this.result = produce.getOutput()[0];
     }
 
     /**
@@ -76,6 +79,29 @@ public class ProduceCollectorCollectEvent extends Event implements Cancellable {
     @Nonnull
     public AnimalProduce getProduce() {
         return produce;
+    }
+
+    /**
+     * This returns the {@link ItemStack} that will be produced, initialized from
+     * {@link AnimalProduce#getOutput()} but overridable via {@link #setResult(ItemStack)}.
+     *
+     * @return The result {@link ItemStack}
+     */
+    @Nonnull
+    public ItemStack getResult() {
+        return result;
+    }
+
+    /**
+     * This sets the {@link ItemStack} that will be produced, overriding the produce's
+     * default output.
+     *
+     * @param result
+     *            The replacement result, must not be null
+     */
+    public void setResult(@Nonnull ItemStack result) {
+        Validate.notNull(result, "The result must not be null");
+        this.result = result;
     }
 
     @Override
