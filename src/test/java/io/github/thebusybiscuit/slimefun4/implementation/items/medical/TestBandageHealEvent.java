@@ -8,6 +8,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
+import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedPotionEffectType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -102,17 +106,26 @@ class TestBandageHealEvent {
     @DisplayName("BandageHealEvent exposes its fields and validates constructor arguments")
     void testEventFieldsAndValidation() {
         Player player = server.addPlayer();
+        PotionEffect effect = new PotionEffect(VersionedPotionEffectType.INSTANT_HEALTH, 1, 2);
 
-        BandageHealEvent event = new BandageHealEvent(player, bandage);
+        BandageHealEvent event = new BandageHealEvent(player, bandage, effect);
 
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(bandage, event.getBandage());
+        Assertions.assertEquals(effect, event.getEffect());
         Assertions.assertFalse(event.isCancelled());
+
+        // setEffect: override the healing
+        PotionEffect custom = new PotionEffect(VersionedPotionEffectType.INSTANT_HEALTH, 1, 5);
+        event.setEffect(custom);
+        Assertions.assertEquals(custom, event.getEffect());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> new BandageHealEvent(player, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new BandageHealEvent(player, null, effect));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new BandageHealEvent(player, bandage, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setEffect(null));
     }
 
     @Test
@@ -126,6 +139,7 @@ class TestBandageHealEvent {
             public void onHeal(BandageHealEvent event) {
                 seen[0] = true;
                 Assertions.assertEquals(bandage, event.getBandage());
+                Assertions.assertNotNull(event.getEffect(), "The effect must be initialized");
             }
         };
         server.getPluginManager().registerEvents(watcher, plugin);

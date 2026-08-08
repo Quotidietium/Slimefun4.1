@@ -51,13 +51,17 @@ public class Bandage extends SimpleSlimefunItem<ItemUseHandler> {
                 return;
             }
 
+            PotionEffect healEffect = new PotionEffect(VersionedPotionEffectType.INSTANT_HEALTH, 1, healingLevel);
+
             if (BandageHealEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                BandageHealEvent event = new BandageHealEvent(p, this);
+                BandageHealEvent event = new BandageHealEvent(p, this, healEffect);
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
                     return;
                 }
+
+                healEffect = event.getEffect();
             }
 
             if (p.getGameMode() != GameMode.CREATIVE) {
@@ -65,7 +69,7 @@ public class Bandage extends SimpleSlimefunItem<ItemUseHandler> {
             }
 
             p.getWorld().playEffect(p.getLocation(), Effect.STEP_SOUND, Material.WHITE_WOOL);
-            p.addPotionEffect(new PotionEffect(VersionedPotionEffectType.INSTANT_HEALTH, 1, healingLevel));
+            p.addPotionEffect(healEffect);
             p.setFireTicks(0);
 
             e.cancel();
