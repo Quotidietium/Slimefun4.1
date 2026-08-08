@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import io.github.thebusybiscuit.slimefun4.api.events.PlayerProfileUnloadEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunAutoSaveEvent;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.core.debug.Debug;
@@ -85,6 +86,10 @@ public class AutoSavingService {
             // At this point, we've already saved their profile so we can safely remove it
             // without worry for having a data sync issue (e.g. data is changed but then we try to re-load older data)
             if (saved && profile.isMarkedForDeletion() && profile.getPlayer() == null) {
+                if (PlayerProfileUnloadEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    Bukkit.getPluginManager().callEvent(new PlayerProfileUnloadEvent(profile));
+                }
+
                 iterator.remove();
 
                 Debug.log(TestCase.PLAYER_PROFILE_DATA, "Removed data from memory for {}",
