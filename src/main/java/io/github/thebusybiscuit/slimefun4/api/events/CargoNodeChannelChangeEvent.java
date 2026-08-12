@@ -19,6 +19,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.cargo.CargoNode;
  * Cancelling this event vetoes the change: the stored frequency stays untouched and
  * the menu is not refreshed, as if the click had never happened.
  * <p>
+ * Addons may also redirect the change via {@link #setNewChannel(int)}, e.g. to skip
+ * channels that are locked for this {@link Player}; the redirected channel is what
+ * gets stored.
+ * <p>
  * Channels are zero-based here (the menu displays them one-based) and wrap around:
  * decreasing channel 0 selects 15, increasing channel 15 selects 0. The previous
  * channel may be 16, the special "chest terminal" display state. The event is fired
@@ -39,8 +43,8 @@ public class CargoNodeChannelChangeEvent extends PlayerEvent implements Cancella
     private final CargoNode cargoNode;
     private final Block block;
     private final int previousChannel;
-    private final int newChannel;
 
+    private int newChannel;
     private boolean cancelled;
 
     public CargoNodeChannelChangeEvent(@Nonnull Player player, @Nonnull CargoNode cargoNode, @Nonnull Block block, int previousChannel, int newChannel) {
@@ -92,6 +96,20 @@ public class CargoNodeChannelChangeEvent extends PlayerEvent implements Cancella
      */
     public int getNewChannel() {
         return newChannel;
+    }
+
+    /**
+     * This sets the channel that will be stored after this change, zero-based,
+     * overriding the channel the {@link Player} picked. The wrap-around arithmetic
+     * of the click handler is not re-applied: the value given here is stored as-is.
+     *
+     * @param newChannel
+     *            The channel to store, between 0 and 15
+     */
+    public void setNewChannel(int newChannel) {
+        Validate.isTrue(newChannel >= 0 && newChannel <= 15, "The new channel must be between 0 and 15");
+
+        this.newChannel = newChannel;
     }
 
     @Override

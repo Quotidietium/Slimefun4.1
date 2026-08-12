@@ -110,6 +110,9 @@ class TestCargoNodeChannelChangeEvent {
         Assertions.assertEquals(4, event.getNewChannel());
         Assertions.assertFalse(event.isCancelled());
 
+        event.setNewChannel(12);
+        Assertions.assertEquals(12, event.getNewChannel());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
@@ -119,6 +122,8 @@ class TestCargoNodeChannelChangeEvent {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new CargoNodeChannelChangeEvent(player, node, b, 17, 4));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new CargoNodeChannelChangeEvent(player, node, b, 3, -1));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new CargoNodeChannelChangeEvent(player, node, b, 3, 16));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setNewChannel(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setNewChannel(16));
     }
 
     @Test
@@ -204,6 +209,32 @@ class TestCargoNodeChannelChangeEvent {
             Assertions.assertEquals(3, node.getSelectedChannel(b));
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("Redirecting the change via setNewChannel stores the redirected channel")
+    void testSetNewChannelRedirectsStored() {
+        Player player = server.addPlayer();
+        Block b = placeNode(35, 35, 3);
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onChannelChange(CargoNodeChannelChangeEvent event) {
+                Assertions.assertEquals(7, event.getNewChannel(), "The new channel must default to the picked channel");
+                event.setNewChannel(12);
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            boolean applied = node.applyChannelChange(player, b, 7);
+
+            Assertions.assertTrue(applied, "The change must have been applied");
+            Assertions.assertEquals("12", storedFrequency(b), "The redirected channel must have been stored");
+            Assertions.assertEquals(12, node.getSelectedChannel(b), "The selected channel must read back as 12");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 

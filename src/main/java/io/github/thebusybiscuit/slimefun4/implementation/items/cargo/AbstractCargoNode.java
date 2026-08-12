@@ -156,6 +156,9 @@ abstract class AbstractCargoNode extends SimpleSlimefunItem<BlockPlaceHandler> i
                 // An addon vetoed this change; the stored frequency and the menu stay as they are.
                 return false;
             }
+
+            // An addon may have redirected the channel change
+            newChannel = event.getNewChannel();
         }
 
         BlockStorage.addBlockInfo(b, FREQUENCY, String.valueOf(newChannel));
