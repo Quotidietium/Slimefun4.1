@@ -265,9 +265,19 @@ class TestRuneEvents {
         Assertions.assertEquals(stack, event.getItemStack());
         Assertions.assertFalse(event.isCancelled());
 
+        // The ritual can be redirected to a different dropped item
+        Item retarget = Mockito.mock(Item.class);
+        ItemStack retargetStack = new ItemStack(Material.EMERALD);
+        Mockito.when(retarget.getItemStack()).thenReturn(retargetStack);
+        event.setTarget(retarget);
+        Assertions.assertEquals(retarget, event.getItem());
+        Assertions.assertEquals(retargetStack, event.getItemStack(), "The item stack must follow the new target");
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTarget(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTarget(Mockito.mock(Item.class)), "An item without a stack must be rejected");
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SoulboundRuneApplyEvent(player, null, targetEntity, stack));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SoulboundRuneApplyEvent(player, runeEntity, null, stack));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SoulboundRuneApplyEvent(player, runeEntity, targetEntity, null));
@@ -341,6 +351,46 @@ class TestRuneEvents {
             Assertions.assertFalse(SlimefunUtils.isSoulbound(targetStack), "A cancelled ritual must not bind any souls");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("Redirecting SoulboundRuneApplyEvent binds the replacement target instead")
+    void testSoulboundRuneRetargeted() {
+        PlayerMock player = server.addPlayer();
+        World world = Mockito.mock(World.class);
+        Location loc = new Location(world, 0.5, 64, 0.5);
+
+        Item runeEntity = newDroppedItem(loc, soulboundRune.getItem().clone());
+
+        // The rune finds the diamond sword, but the listener prefers the emerald
+        ItemStack swordStack = new ItemStack(Material.DIAMOND_SWORD);
+        Item swordEntity = newDroppedItem(loc, swordStack);
+        stubNearbyTarget(world, swordEntity);
+
+        ItemStack emeraldStack = new ItemStack(Material.EMERALD);
+        Item emeraldEntity = newDroppedItem(loc, emeraldStack);
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onApply(SoulboundRuneApplyEvent event) {
+                Assertions.assertEquals(swordEntity, event.getItem(), "The ritual must default to the item the rune found");
+                event.setTarget(emeraldEntity);
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            boolean consumed = soulboundRune.getItemHandler().onItemDrop(Mockito.mock(PlayerDropItemEvent.class), player, runeEntity);
+
+            Assertions.assertTrue(consumed);
+            Mockito.verify(runeEntity).remove();
+            Mockito.verify(emeraldEntity).remove();
+            Mockito.verify(swordEntity, Mockito.never()).remove();
+            Assertions.assertTrue(SlimefunUtils.isSoulbound(emeraldStack), "The replacement target must have become soulbound");
+            Assertions.assertFalse(SlimefunUtils.isSoulbound(swordStack), "The originally found item must have been left untouched");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 

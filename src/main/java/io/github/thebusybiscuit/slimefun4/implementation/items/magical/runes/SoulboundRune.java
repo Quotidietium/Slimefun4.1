@@ -87,21 +87,25 @@ public class SoulboundRune extends SimpleSlimefunItem<ItemDropHandler> {
                     return;
                 }
 
+                // An addon may have redirected the ritual to a different item
+                Item target = event.getItem();
+                ItemStack targetStack = event.getItemStack();
+
                 // This lightning is just an effect, it deals no damage.
                 l.getWorld().strikeLightningEffect(l);
 
                 Slimefun.runSync(() -> {
                     // Being sure entities are still valid and not picked up or whatsoever.
-                    if (rune.isValid() && item.isValid() && itemStack.getAmount() == 1) {
+                    if (rune.isValid() && target.isValid() && targetStack.getAmount() == 1) {
 
                         l.getWorld().createExplosion(l, 0);
                         SoundEffect.SOULBOUND_RUNE_RITUAL_SOUND.playAt(l, SoundCategory.PLAYERS);
 
-                        item.remove();
+                        target.remove();
                         rune.remove();
 
-                        SlimefunUtils.setSoulbound(itemStack, true);
-                        l.getWorld().dropItemNaturally(l, itemStack);
+                        SlimefunUtils.setSoulbound(targetStack, true);
+                        l.getWorld().dropItemNaturally(l, targetStack);
 
                         Slimefun.getLocalization().sendMessage(p, "messages.soulbound-rune.success", true);
                     } else {

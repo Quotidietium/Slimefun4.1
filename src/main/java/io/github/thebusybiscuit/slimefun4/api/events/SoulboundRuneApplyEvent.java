@@ -20,6 +20,13 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.magical.runes.Sou
  * <p>
  * Cancelling this event aborts the ritual: both the rune and the target {@link Item}
  * remain on the ground, untouched.
+ * <p>
+ * Addons may also redirect the ritual to a different dropped {@link Item} via
+ * {@link #setTarget(Item)}, e.g. to prefer a more valuable candidate over the first
+ * one the rune found. The replacement target is not re-checked against the rune's
+ * compatibility rules; if it no longer qualifies when the ritual completes (picked
+ * up, stacked or otherwise invalid), the ritual simply fails like it would for the
+ * original target.
  *
  * @author Zurker
  *
@@ -31,9 +38,9 @@ public class SoulboundRuneApplyEvent extends PlayerEvent implements Cancellable 
     private static final HandlerList handlers = new HandlerList();
 
     private final Item rune;
-    private final Item item;
-    private final ItemStack itemStack;
 
+    private Item item;
+    private ItemStack itemStack;
     private boolean cancelled;
 
     public SoulboundRuneApplyEvent(@Nonnull Player player, @Nonnull Item rune, @Nonnull Item item, @Nonnull ItemStack itemStack) {
@@ -63,6 +70,7 @@ public class SoulboundRuneApplyEvent extends PlayerEvent implements Cancellable 
      * {@link Soulbound}.
      *
      * @return The target {@link Item} entity
+     * @see #setTarget(Item)
      */
     @Nonnull
     public Item getItem() {
@@ -70,9 +78,28 @@ public class SoulboundRuneApplyEvent extends PlayerEvent implements Cancellable 
     }
 
     /**
-     * This returns the {@link ItemStack} that is about to become {@link Soulbound}.
+     * This redirects the ritual to a different dropped {@link Item}: that item's
+     * {@link ItemStack} will become {@link Soulbound} instead of the one the
+     * {@link SoulboundRune} found. {@link #getItemStack()} follows the new target.
+     *
+     * @param item
+     *            The new target {@link Item} entity, must not be null and must
+     *            carry an {@link ItemStack}
+     */
+    public void setTarget(@Nonnull Item item) {
+        Validate.notNull(item, "The target item must not be null");
+        Validate.notNull(item.getItemStack(), "The target's ItemStack must not be null");
+
+        this.item = item;
+        this.itemStack = item.getItemStack();
+    }
+
+    /**
+     * This returns the {@link ItemStack} that is about to become {@link Soulbound},
+     * which is the stack of the current target {@link Item}.
      *
      * @return The target {@link ItemStack}
+     * @see #setTarget(Item)
      */
     @Nonnull
     public ItemStack getItemStack() {
