@@ -27,6 +27,11 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.geo.OilPump;
  * supplies are consumed. {@link AsyncMachineOperationStartEvent} still fires
  * afterwards, once the operation exists and both are already gone. For the
  * solid-resource counterpart see {@link GEOMiningStartEvent}.
+ * <p>
+ * Addons may also adjust how many supply units the extraction consumes via
+ * {@link #setSuppliesCost(int)}, e.g. to make an upgraded pump extract for free
+ * (a cost of zero) or to drain the chunk faster. The cost defaults to one and
+ * must not exceed the remaining {@link #getSupplies() supplies}.
  *
  * @author Zurker
  *
@@ -44,6 +49,7 @@ public class OilPumpExtractEvent extends Event implements Cancellable {
     private final int slot;
     private final int supplies;
 
+    private int suppliesCost = 1;
     private boolean cancelled;
 
     public OilPumpExtractEvent(@Nonnull OilPump pump, @Nonnull Location location, @Nonnull GEOResource resource, int slot, int supplies) {
@@ -103,12 +109,38 @@ public class OilPumpExtractEvent extends Event implements Cancellable {
     /**
      * This returns the remaining supplies in the {@link org.bukkit.Chunk}
      * before this extraction, so after a non-cancelled extraction exactly
-     * {@code supplies - 1} units remain.
+     * {@code supplies - getSuppliesCost()} units remain.
      *
      * @return The remaining supplies before this extraction
      */
     public int getSupplies() {
         return supplies;
+    }
+
+    /**
+     * This returns how many supply units this extraction will consume. It defaults
+     * to one unit per filled bucket.
+     *
+     * @return The supplies cost of this extraction
+     * @see #setSuppliesCost(int)
+     */
+    public int getSuppliesCost() {
+        return suppliesCost;
+    }
+
+    /**
+     * This sets how many supply units this extraction will consume. A cost of zero
+     * makes the pump extract without draining the {@link org.bukkit.Chunk} (e.g. for
+     * an efficiency upgrade); a higher cost drains it faster.
+     *
+     * @param suppliesCost
+     *            The supplies cost, between 0 and the remaining {@link #getSupplies()}
+     */
+    public void setSuppliesCost(int suppliesCost) {
+        Validate.isTrue(suppliesCost >= 0, "The supplies cost must not be negative");
+        Validate.isTrue(suppliesCost <= supplies, "The supplies cost must not exceed the remaining supplies");
+
+        this.suppliesCost = suppliesCost;
     }
 
     @Override

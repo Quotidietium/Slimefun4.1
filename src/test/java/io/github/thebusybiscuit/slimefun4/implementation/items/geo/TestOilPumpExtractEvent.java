@@ -177,11 +177,20 @@ class TestOilPumpExtractEvent {
         Assertions.assertSame(oil, event.getResource());
         Assertions.assertEquals(INPUT_SLOT, event.getSlot());
         Assertions.assertEquals(3, event.getSupplies());
+        Assertions.assertEquals(1, event.getSuppliesCost(), "The supplies cost must default to one unit");
         Assertions.assertFalse(event.isCancelled());
+
+        // The extraction can be throttled or made free within the remaining supplies
+        event.setSuppliesCost(0);
+        Assertions.assertEquals(0, event.getSuppliesCost());
+        event.setSuppliesCost(3);
+        Assertions.assertEquals(3, event.getSuppliesCost());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setSuppliesCost(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setSuppliesCost(4), "The cost must not exceed the remaining supplies");
         Assertions.assertThrows(IllegalArgumentException.class, () -> new OilPumpExtractEvent(null, b.getLocation(), oil, INPUT_SLOT, 3));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new OilPumpExtractEvent(pump, null, oil, INPUT_SLOT, 3));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new OilPumpExtractEvent(pump, b.getLocation(), null, INPUT_SLOT, 3));
@@ -207,6 +216,7 @@ class TestOilPumpExtractEvent {
                 Assertions.assertSame(oil, event.getResource(), "The event must carry the oil resource");
                 Assertions.assertEquals(INPUT_SLOT, event.getSlot());
                 Assertions.assertEquals(3, event.getSupplies(), "The event must carry the supplies before the extraction");
+                Assertions.assertEquals(1, event.getSuppliesCost(), "The supplies cost must default to one unit");
             }
         };
         server.getPluginManager().registerEvents(watcher, plugin);
@@ -249,6 +259,60 @@ class TestOilPumpExtractEvent {
             Assertions.assertFalse(hasOperation(b), "A vetoed extraction must not start an operation");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("setSuppliesCost scales the supplies drained per extraction")
+    void testSuppliesCostScalesExtraction() {
+        Block b = world.getBlockAt(60, 60, 60);
+        BlockMenu menu = placePump(60, 60);
+        setOilSupplies(b, 5);
+        menu.replaceExistingItem(INPUT_SLOT, new ItemStack(Material.BUCKET));
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onExtract(OilPumpExtractEvent event) {
+                event.setSuppliesCost(3);
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            tick(b);
+
+            assertBucketConsumed(menu);
+            Assertions.assertEquals(2, oilSupplies(b), "Three supply units must have been consumed");
+            Assertions.assertTrue(hasOperation(b), "The pumping operation must have been started");
+        } finally {
+            HandlerList.unregisterAll(scaling);
+        }
+    }
+
+    @Test
+    @DisplayName("A zero supplies cost extracts without draining the chunk")
+    void testZeroSuppliesCostExtractsForFree() {
+        Block b = world.getBlockAt(70, 60, 70);
+        BlockMenu menu = placePump(70, 70);
+        setOilSupplies(b, 3);
+        menu.replaceExistingItem(INPUT_SLOT, new ItemStack(Material.BUCKET));
+
+        Listener freeExtraction = new Listener() {
+            @EventHandler
+            public void onExtract(OilPumpExtractEvent event) {
+                event.setSuppliesCost(0);
+            }
+        };
+        server.getPluginManager().registerEvents(freeExtraction, plugin);
+
+        try {
+            tick(b);
+
+            assertBucketConsumed(menu);
+            Assertions.assertEquals(3, oilSupplies(b), "A zero cost must keep the supplies untouched");
+            Assertions.assertTrue(hasOperation(b), "The pumping operation must have been started");
+        } finally {
+            HandlerList.unregisterAll(freeExtraction);
         }
     }
 

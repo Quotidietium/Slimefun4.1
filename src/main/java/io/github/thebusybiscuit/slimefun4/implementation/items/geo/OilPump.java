@@ -103,6 +103,8 @@ public class OilPump extends AContainer implements RecipeDisplayItem {
                     OptionalInt supplies = Slimefun.getGPSNetwork().getResourceManager().getSupplies(oil, b.getWorld(), b.getX() >> 4, b.getZ() >> 4);
 
                     if (supplies.isPresent() && supplies.getAsInt() > 0) {
+                        int suppliesCost = 1;
+
                         if (OilPumpExtractEvent.getHandlerList().getRegisteredListeners().length > 0) {
                             OilPumpExtractEvent event = new OilPumpExtractEvent(this, b.getLocation(), oil, slot, supplies.getAsInt());
                             Bukkit.getPluginManager().callEvent(event);
@@ -111,12 +113,15 @@ public class OilPump extends AContainer implements RecipeDisplayItem {
                                 // An addon vetoed this extraction; the bucket and supplies stay, no recipe is started.
                                 return null;
                             }
+
+                            // An addon may have adjusted how many supplies this extraction consumes
+                            suppliesCost = event.getSuppliesCost();
                         }
 
                         MachineRecipe recipe = new MachineRecipe(26, new ItemStack[] { emptyBucket }, new ItemStack[] { SlimefunItems.OIL_BUCKET.item() });
 
                         inv.consumeItem(slot);
-                        Slimefun.getGPSNetwork().getResourceManager().setSupplies(oil, b.getWorld(), b.getX() >> 4, b.getZ() >> 4, supplies.getAsInt() - 1);
+                        Slimefun.getGPSNetwork().getResourceManager().setSupplies(oil, b.getWorld(), b.getX() >> 4, b.getZ() >> 4, supplies.getAsInt() - suppliesCost);
                         return recipe;
                     } else {
                         /*
