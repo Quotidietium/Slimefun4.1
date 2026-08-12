@@ -254,6 +254,104 @@ class TestExperienceEvents {
         }
     }
 
+    @Test
+    @DisplayName("The collected experience defaults to the orb's value and is modifiable and validated")
+    void testCollectExperienceDefaultAndValidation() {
+        Block b = world.getBlockAt(2, 1, 2);
+        ExperienceOrbMock orb = new ExperienceOrbMock(server, UUID.randomUUID(), 8);
+
+        ExpCollectorCollectEvent event = new ExpCollectorCollectEvent(collector, b, orb);
+
+        Assertions.assertEquals(8, event.getExperience(), "The collected experience must default to the orb's value");
+
+        event.setExperience(16);
+        Assertions.assertEquals(16, event.getExperience());
+
+        event.setExperience(0);
+        Assertions.assertEquals(0, event.getExperience(), "Zero must be allowed: consume the orb, store nothing");
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setExperience(-1));
+        Assertions.assertEquals(8, orb.getExperience(), "The orb itself must never be modified");
+    }
+
+    @Test
+    @DisplayName("A modified experience amount is stored instead of the orb's own value")
+    void testModifiedExperienceIsStored() {
+        Block b = setupCollector(50, 50, "10");
+        ExperienceOrbMock orb = spawnOrb(b, 8);
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onCollect(ExpCollectorCollectEvent event) {
+                event.setExperience(event.getExperience() * 2);
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            collector.tick(b);
+
+            Assertions.assertFalse(orb.isValid(), "The orb must have been collected");
+            Assertions.assertEquals(16, getStoredExperience(b), "The scaled experience must have been stored");
+            Assertions.assertEquals("5", BlockStorage.getLocationInfo(b.getLocation(), "energy-charge"), "The energy must have been consumed");
+        } finally {
+            HandlerList.unregisterAll(scaling);
+            cleanupOrb(orb);
+        }
+    }
+
+    @Test
+    @DisplayName("A zero experience amount consumes the orb but stores nothing")
+    void testZeroExperienceStoresNothing() {
+        Block b = setupCollector(60, 60, "10");
+        ExperienceOrbMock orb = spawnOrb(b, 8);
+
+        Listener voiding = new Listener() {
+            @EventHandler
+            public void onCollect(ExpCollectorCollectEvent event) {
+                event.setExperience(0);
+            }
+        };
+        server.getPluginManager().registerEvents(voiding, plugin);
+
+        try {
+            collector.tick(b);
+
+            Assertions.assertFalse(orb.isValid(), "The orb must have been consumed");
+            Assertions.assertEquals(0, getStoredExperience(b), "A zeroed collection must store nothing");
+            Assertions.assertEquals("5", BlockStorage.getLocationInfo(b.getLocation(), "energy-charge"), "The energy must have been consumed");
+        } finally {
+            HandlerList.unregisterAll(voiding);
+            cleanupOrb(orb);
+        }
+    }
+
+    @Test
+    @DisplayName("An untouched experience amount reproduces the orb's value, preserving the old behavior")
+    void testUntouchedExperienceKeepsOrbValue() {
+        Block b = setupCollector(70, 70, "10");
+        ExperienceOrbMock orb = spawnOrb(b, 8);
+
+        Listener watcher = new Listener() {
+            @EventHandler
+            public void onCollect(ExpCollectorCollectEvent event) {
+                // Only observe, do not touch the amount
+                Assertions.assertEquals(8, event.getExperience());
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            collector.tick(b);
+
+            Assertions.assertFalse(orb.isValid(), "The orb must have been collected");
+            Assertions.assertEquals(8, getStoredExperience(b), "An untouched amount must reproduce the orb's experience");
+        } finally {
+            HandlerList.unregisterAll(watcher);
+            cleanupOrb(orb);
+        }
+    }
+
     // ---------- KnowledgeFlaskFillEvent ----------
 
     @Test

@@ -20,6 +20,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
  * experience is stored. The {@link ExpCollector} continues to scan for other nearby
  * {@link ExperienceOrb ExperienceOrbs} and will try this one again on its next tick.
  * <p>
+ * The amount of experience stored from this orb can be adjusted via
+ * {@link #setExperience(int)} - e.g. to scale the yield of certain farms. Setting it
+ * to 0 consumes the orb without storing anything. The orb itself is never modified.
+ * <p>
  * Since an {@link ExpCollector} placed at a farm can collect an orb every tick, this
  * event is only allocated and fired when at least one listener is registered.
  *
@@ -35,6 +39,7 @@ public class ExpCollectorCollectEvent extends Event implements Cancellable {
     private final Block block;
     private final ExperienceOrb orb;
 
+    private int experience;
     private boolean cancelled;
 
     public ExpCollectorCollectEvent(@Nonnull ExpCollector collector, @Nonnull Block block, @Nonnull ExperienceOrb orb) {
@@ -45,6 +50,7 @@ public class ExpCollectorCollectEvent extends Event implements Cancellable {
         this.collector = collector;
         this.block = block;
         this.orb = orb;
+        this.experience = orb.getExperience();
     }
 
     /**
@@ -75,6 +81,30 @@ public class ExpCollectorCollectEvent extends Event implements Cancellable {
     @Nonnull
     public ExperienceOrb getOrb() {
         return orb;
+    }
+
+    /**
+     * This returns the amount of experience that will be stored from this orb.
+     * It defaults to the orb's own experience value.
+     *
+     * @return The experience to be stored
+     */
+    public int getExperience() {
+        return experience;
+    }
+
+    /**
+     * This sets the amount of experience that will be stored from this orb. The orb
+     * is consumed regardless; setting this to 0 stores nothing. The orb's own
+     * experience value is never modified.
+     *
+     * @param experience
+     *            The experience to be stored, must not be negative
+     */
+    public void setExperience(int experience) {
+        Validate.isTrue(experience >= 0, "The experience must not be negative, received: " + experience);
+
+        this.experience = experience;
     }
 
     @Override

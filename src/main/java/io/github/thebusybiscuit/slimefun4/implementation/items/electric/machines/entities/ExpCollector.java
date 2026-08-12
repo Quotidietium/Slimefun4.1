@@ -150,6 +150,8 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
                 return;
             }
 
+            int collectedExperience = orb.getExperience();
+
             // Exp Collectors at farms can collect an orb every tick, only allocate an event when someone listens
             if (ExpCollectorCollectEvent.getHandlerList().getRegisteredListeners().length > 0) {
                 ExpCollectorCollectEvent event = new ExpCollectorCollectEvent(this, block, orb);
@@ -158,9 +160,12 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
                 if (event.isCancelled()) {
                     continue;
                 }
+
+                // An addon may have adjusted how much experience this orb yields
+                collectedExperience = event.getExperience();
             }
 
-            experiencePoints = getStoredExperience(location) + orb.getExperience();
+            experiencePoints = getStoredExperience(location) + collectedExperience;
 
             removeCharge(location, getEnergyConsumption());
             orb.remove();
