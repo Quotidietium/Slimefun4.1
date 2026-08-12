@@ -10,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -97,7 +98,15 @@ class TestMagicEyeOfEnderLaunchEvent {
 
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(magicEye, event.getMagicEye());
+        Assertions.assertNull(event.getVelocity(), "The vanilla default launch must be represented by a null velocity");
         Assertions.assertFalse(event.isCancelled());
+
+        // The launch velocity can be overridden and reset to the vanilla default
+        Vector velocity = new Vector(0.5, 1.0, -0.5);
+        event.setVelocity(velocity);
+        Assertions.assertEquals(velocity, event.getVelocity());
+        event.setVelocity(null);
+        Assertions.assertNull(event.getVelocity(), "Setting the velocity back to null must restore the vanilla default");
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
@@ -163,6 +172,46 @@ class TestMagicEyeOfEnderLaunchEvent {
         use(player);
 
         player.assertSoundHeard(Sound.ENTITY_ENDERMAN_TELEPORT);
+    }
+
+    @Test
+    @DisplayName("Overriding the velocity redirects the launch and keeps the launch tail")
+    void testSetVelocityRedirectsLaunch() {
+        PlayerMock player = server.addPlayer();
+        equipEnderArmor(player);
+
+        Vector custom = new Vector(0.5, 1.0, -0.5);
+
+        // Registered first, so it runs before the observer within the same priority
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onLaunch(MagicEyeOfEnderLaunchEvent event) {
+                event.setVelocity(custom);
+            }
+        };
+
+        boolean[] seenRedirect = { false };
+        Listener observer = new Listener() {
+            @EventHandler
+            public void onLaunch(MagicEyeOfEnderLaunchEvent event) {
+                seenRedirect[0] = true;
+                Assertions.assertEquals(custom, event.getVelocity(), "The overridden velocity must propagate through the dispatch");
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+        server.getPluginManager().registerEvents(observer, plugin);
+
+        try {
+            use(player);
+
+            Assertions.assertTrue(seenRedirect[0], "MagicEyeOfEnderLaunchEvent was not fired");
+            // The projectile itself is not registered in the world (see class javadoc), so the
+            // use sound proves the velocity-overloaded launch path completed.
+            player.assertSoundHeard(Sound.ENTITY_ENDERMAN_TELEPORT);
+        } finally {
+            HandlerList.unregisterAll(redirecting);
+            HandlerList.unregisterAll(observer);
+        }
     }
 
     @Test

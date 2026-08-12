@@ -8,6 +8,7 @@ import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.util.Vector;
 
 import io.github.thebusybiscuit.slimefun4.api.events.MagicEyeOfEnderLaunchEvent;
 
@@ -42,6 +43,8 @@ public class MagicEyeOfEnder extends SimpleSlimefunItem<ItemUseHandler> {
             Player p = e.getPlayer();
 
             if (hasArmor(p.getInventory())) {
+                Vector velocity = null;
+
                 if (MagicEyeOfEnderLaunchEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     MagicEyeOfEnderLaunchEvent event = new MagicEyeOfEnderLaunchEvent(p, this);
                     Bukkit.getPluginManager().callEvent(event);
@@ -49,9 +52,17 @@ public class MagicEyeOfEnder extends SimpleSlimefunItem<ItemUseHandler> {
                     if (event.isCancelled()) {
                         return;
                     }
+
+                    // An addon may have overridden the launch velocity
+                    velocity = event.getVelocity();
                 }
 
-                p.launchProjectile(EnderPearl.class);
+                if (velocity == null) {
+                    p.launchProjectile(EnderPearl.class);
+                } else {
+                    p.launchProjectile(EnderPearl.class, velocity);
+                }
+
                 SoundEffect.MAGICAL_EYE_OF_ENDER_USE_SOUND.playFor(p);
             }
         };
