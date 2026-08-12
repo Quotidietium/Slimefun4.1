@@ -312,6 +312,101 @@ class TestCropAccelerateEvent {
     }
 
     @Test
+    @DisplayName("The growth stages default to 1 and reject negative values")
+    void testGrowthStagesDefaultAndValidation() {
+        Block b = world.getBlockAt(1, 1, 1);
+        Block crop = world.getBlockAt(2, 1, 1);
+        ItemStack fertilizer = SlimefunItems.FERTILIZER.item().clone();
+
+        CropAccelerateEvent event = new CropAccelerateEvent(accelerator, b, crop, fertilizer);
+
+        Assertions.assertEquals(1, event.getGrowthStages(), "The growth stages must default to 1");
+
+        event.setGrowthStages(3);
+        Assertions.assertEquals(3, event.getGrowthStages());
+
+        event.setGrowthStages(0);
+        Assertions.assertEquals(0, event.getGrowthStages());
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setGrowthStages(-1));
+    }
+
+    @Test
+    @DisplayName("Modifying the growth stages grows the crop multiple stages at once")
+    void testModifiedGrowthStagesApplied() {
+        Block crop = mockCrop(70, 70, 0, 7);
+        Ageable ageable = (Ageable) crop.getBlockData();
+        Block machine = setupAccelerator(70, 70, crop);
+
+        Listener boosting = new Listener() {
+            @EventHandler
+            public void onAccelerate(CropAccelerateEvent event) {
+                event.setGrowthStages(3);
+            }
+        };
+        server.getPluginManager().registerEvents(boosting, plugin);
+
+        try {
+            tick(machine);
+
+            Mockito.verify(ageable).setAge(3);
+        } finally {
+            HandlerList.unregisterAll(boosting);
+        }
+    }
+
+    @Test
+    @DisplayName("The growth stages are capped at the crop's maximum age")
+    void testGrowthStagesCappedAtMaximumAge() {
+        Block crop = mockCrop(80, 80, 5, 7);
+        Ageable ageable = (Ageable) crop.getBlockData();
+        Block machine = setupAccelerator(80, 80, crop);
+
+        Listener boosting = new Listener() {
+            @EventHandler
+            public void onAccelerate(CropAccelerateEvent event) {
+                event.setGrowthStages(10);
+            }
+        };
+        server.getPluginManager().registerEvents(boosting, plugin);
+
+        try {
+            tick(machine);
+
+            Mockito.verify(ageable).setAge(7);
+        } finally {
+            HandlerList.unregisterAll(boosting);
+        }
+    }
+
+    @Test
+    @DisplayName("Zero growth stages consume the resources without growing the crop")
+    void testZeroGrowthStagesConsumesWithoutGrowth() {
+        Block crop = mockCrop(90, 90, 2, 7);
+        Ageable ageable = (Ageable) crop.getBlockData();
+        Block machine = setupAccelerator(90, 90, crop);
+        BlockMenu menu = BlockStorage.getInventory(machine.getLocation());
+
+        Listener nullifying = new Listener() {
+            @EventHandler
+            public void onAccelerate(CropAccelerateEvent event) {
+                event.setGrowthStages(0);
+            }
+        };
+        server.getPluginManager().registerEvents(nullifying, plugin);
+
+        try {
+            tick(machine);
+
+            Assertions.assertEquals(1024 - ENERGY_CONSUMPTION, accelerator.getCharge(machine.getLocation()), "The energy must have been consumed");
+            Assertions.assertEquals(0, menu.getItemInSlot(10).getAmount(), "The fertilizer must have been consumed");
+            Mockito.verify(ageable).setAge(2);
+        } finally {
+            HandlerList.unregisterAll(nullifying);
+        }
+    }
+
+    @Test
     @DisplayName("A fully grown crop fires no event")
     void testFullyGrownCropFiresNothing() {
         Block crop = mockCrop(60, 60, 7, 7);

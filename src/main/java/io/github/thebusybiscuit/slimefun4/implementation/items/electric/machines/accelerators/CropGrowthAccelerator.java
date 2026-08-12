@@ -61,6 +61,8 @@ public abstract class CropGrowthAccelerator extends AbstractGrowthAccelerator {
         if (ageable.getAge() < ageable.getMaximumAge()) {
             for (int slot : getInputSlots()) {
                 if (SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), organicFertilizer, false, false)) {
+                    int stages = 1;
+
                     if (CropAccelerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
                         CropAccelerateEvent event = new CropAccelerateEvent(this, machine, crop, inv.getItemInSlot(slot));
                         Bukkit.getPluginManager().callEvent(event);
@@ -68,12 +70,14 @@ public abstract class CropGrowthAccelerator extends AbstractGrowthAccelerator {
                         if (event.isCancelled()) {
                             return false;
                         }
+
+                        stages = event.getGrowthStages();
                     }
 
                     removeCharge(machine.getLocation(), getEnergyConsumption());
                     inv.consumeItem(slot);
 
-                    ageable.setAge(ageable.getAge() + 1);
+                    ageable.setAge(Math.min(ageable.getAge() + stages, ageable.getMaximumAge()));
                     crop.setBlockData(ageable);
 
                     crop.getWorld().spawnParticle(VersionedParticle.HAPPY_VILLAGER, crop.getLocation().add(0.5D, 0.5D, 0.5D), 4, 0.1F, 0.1F, 0.1F);

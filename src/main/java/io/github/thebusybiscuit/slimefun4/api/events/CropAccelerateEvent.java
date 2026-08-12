@@ -20,6 +20,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
  * Cancelling this event skips this crop: no energy or fertilizer is consumed, the crop
  * keeps its age and the accelerator continues scanning the other crops within its
  * radius during this tick.
+ * <p>
+ * The number of growth stages applied (default 1) can be modified via
+ * {@link #setGrowthStages(int)}, allowing addons to boost or reduce the acceleration
+ * per fertilizer.
  *
  * @author Zurker
  *
@@ -33,6 +37,7 @@ public class CropAccelerateEvent extends Event implements Cancellable {
     private final Block block;
     private final Block crop;
     private final ItemStack fertilizer;
+    private int growthStages = 1;
 
     private boolean cancelled;
 
@@ -86,6 +91,29 @@ public class CropAccelerateEvent extends Event implements Cancellable {
     @Nonnull
     public ItemStack getFertilizer() {
         return fertilizer;
+    }
+
+    /**
+     * This returns the number of growth stages that will be applied. Default is 1.
+     *
+     * @return The growth stages
+     */
+    public int getGrowthStages() {
+        return growthStages;
+    }
+
+    /**
+     * This sets the number of growth stages to apply. A value of 0 consumes the
+     * fertilizer but does not grow the crop (useful for "pay without effect"
+     * scenarios). Values greater than 1 grow the crop multiple stages at once,
+     * capped at the crop's maximum age.
+     *
+     * @param stages
+     *            The new growth stages, must be at least 0
+     */
+    public void setGrowthStages(int stages) {
+        Validate.isTrue(stages >= 0, "The growth stages must not be negative");
+        this.growthStages = stages;
     }
 
     @Override
