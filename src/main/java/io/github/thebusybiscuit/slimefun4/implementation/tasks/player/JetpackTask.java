@@ -36,16 +36,21 @@ public class JetpackTask extends AbstractPlayerTask {
          * task keeps running. Gated on registered listeners to keep this per-tick
          * path allocation-free by default.
          */
+        float cost = COST;
+
         if (JetpackThrustEvent.getHandlerList().getRegisteredListeners().length > 0) {
-            JetpackThrustEvent event = new JetpackThrustEvent(p, jetpack, COST);
+            JetpackThrustEvent event = new JetpackThrustEvent(p, jetpack, cost);
             Bukkit.getPluginManager().callEvent(event);
 
             if (event.isCancelled()) {
                 return;
             }
+
+            // An addon may have adjusted the charge cost of this thrust
+            cost = event.getCost();
         }
 
-        if (jetpack.removeItemCharge(p.getInventory().getChestplate(), COST)) {
+        if (jetpack.removeItemCharge(p.getInventory().getChestplate(), cost)) {
             SoundEffect.JETPACK_THRUST_SOUND.playAt(p.getLocation(), SoundCategory.PLAYERS);
             p.getWorld().playEffect(p.getLocation(), Effect.SMOKE, 1, 1);
             p.setFallDistance(0F);

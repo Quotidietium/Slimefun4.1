@@ -18,6 +18,9 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.gadgets.
  * Cancelling this event skips this thrust: no charge is consumed and no
  * velocity is applied. The jetpack task keeps running, so the event fires
  * again on the next thrust tick.
+ * <p>
+ * Addons may also adjust how much charge this thrust consumes via
+ * {@link #setCost(float)}, e.g. to offer discounted flights in a region.
  *
  * @author Zurker
  *
@@ -28,8 +31,8 @@ public class JetpackThrustEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
 
     private final Jetpack jetpack;
-    private final float cost;
 
+    private float cost;
     private boolean cancelled;
 
     public JetpackThrustEvent(@Nonnull Player player, @Nonnull Jetpack jetpack, float cost) {
@@ -57,6 +60,21 @@ public class JetpackThrustEvent extends PlayerEvent implements Cancellable {
      */
     public float getCost() {
         return cost;
+    }
+
+    /**
+     * This sets the amount of charge this thrust will consume.
+     * The new cost applies only to this single thrust: the jetpack itself is
+     * never modified, so the next thrust starts from the default cost again.
+     * Note that a cost above the item's remaining charge cannot be paid, which
+     * ends the flight exactly as running out of charge would.
+     *
+     * @param cost
+     *            The new charge cost of this thrust, must be above zero
+     */
+    public void setCost(float cost) {
+        Validate.isTrue(cost > 0, "Cost must be above zero!");
+        this.cost = cost;
     }
 
     @Override
