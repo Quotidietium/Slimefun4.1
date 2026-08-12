@@ -35,10 +35,11 @@ import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
  * {@link PickaxeOfTheSeeker} {@link io.github.thebusybiscuit.slimefun4.core.handlers.ItemUseHandler}
  * with a constructed {@link PlayerRightClickEvent}.
  * <p>
- * In every test the ore sits directly below the player, so the locate path ends in the
+ * In most tests the ore sits directly below the player, so the locate path ends in the
  * "look straight down" rotation (pitch 90). The durability damage tail on the cancelled path
  * is not fully supported by MockBukkit, so a RuntimeException from that tail is ignored here -
- * the event decision happened beforehand.
+ * the event decision happened beforehand. The redirect test places a second ore off to the
+ * side and verifies the player faces the redirected ore instead.
  *
  * @author Zurker
  */
@@ -108,9 +109,15 @@ class TestPickaxeOfTheSeekerLocateEvent {
         Assertions.assertEquals(ore, event.getOre());
         Assertions.assertFalse(event.isCancelled());
 
+        // The locate can be redirected to a different ore
+        Block other = world.getBlockAt(1, 4, 1);
+        event.setOre(other);
+        Assertions.assertEquals(other, event.getOre());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setOre(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new PickaxeOfTheSeekerLocateEvent(player, null, ore));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new PickaxeOfTheSeekerLocateEvent(player, pickaxe, null));
     }
@@ -160,6 +167,52 @@ class TestPickaxeOfTheSeekerLocateEvent {
             Assertions.assertEquals(0.0f, player.getLocation().getPitch(), "A cancelled locate must not rotate the player");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("setOre redirects the rotation to the given ore")
+    void testSetOreRedirectsRotation() {
+        Player player = server.addPlayer();
+
+        // The closest ore sits directly below the player, the redirect target off to the side
+        Block closest = world.getBlockAt(40, 4, 40);
+        closest.setType(Material.IRON_ORE);
+        Block redirected = world.getBlockAt(42, 4, 40);
+        redirected.setType(Material.GOLD_ORE);
+        player.teleport(new Location(world, 40.5, 5, 40.5));
+
+        boolean[] seen = { false };
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onLocate(PickaxeOfTheSeekerLocateEvent event) {
+                seen[0] = true;
+                Assertions.assertEquals(closest.getLocation(), event.getOre().getLocation(), "The locate must default to the closest ore");
+                event.setOre(redirected);
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            PlayerInteractEvent interactEvent = new PlayerInteractEvent(player, Action.RIGHT_CLICK_AIR, pickaxe.getItem().clone(), null, null);
+
+            try {
+                pickaxe.getItemHandler().onRightClick(new PlayerRightClickEvent(interactEvent));
+            } catch (RuntimeException ignored) {
+                // durability damage tail not fully supported by MockBukkit - see class javadoc
+            }
+
+            Assertions.assertTrue(seen[0], "PickaxeOfTheSeekerLocateEvent was not fired");
+
+            /*
+             * Facing the ore directly below would end in the pitch-90 rotation. Facing the
+             * redirected ore two blocks east and half a block below eye level gives
+             * -atan(-1.5 / 2) = 36.8698... degrees instead.
+             */
+            float expectedPitch = (float) ((-Math.atan(-1.5 / 2.0)) * 180 / Math.PI);
+            Assertions.assertEquals(expectedPitch, player.getLocation().getPitch(), 1.0E-3f, "The player must face the redirected ore");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 

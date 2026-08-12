@@ -53,6 +53,7 @@ public class PickaxeOfTheSeeker extends SimpleSlimefunItem<ItemUseHandler> imple
                 Slimefun.getLocalization().sendMessage(p, "messages.pickaxe-of-the-seeker.no-ores");
             } else {
                 boolean rotate = true;
+                Block ore = closest;
 
                 if (PickaxeOfTheSeekerLocateEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     PickaxeOfTheSeekerLocateEvent event = new PickaxeOfTheSeekerLocateEvent(p, this, closest);
@@ -60,10 +61,13 @@ public class PickaxeOfTheSeeker extends SimpleSlimefunItem<ItemUseHandler> imple
 
                     if (event.isCancelled()) {
                         rotate = false;
+                    } else {
+                        // An addon may have redirected the locate to a different ore
+                        ore = event.getOre();
                     }
                 }
 
-                if (rotate && rotateTowards(p, closest)) {
+                if (rotate && rotateTowards(p, ore)) {
                     return;
                 }
             }

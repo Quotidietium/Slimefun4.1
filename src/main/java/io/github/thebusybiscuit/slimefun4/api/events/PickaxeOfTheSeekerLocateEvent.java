@@ -18,6 +18,9 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.tools.PickaxeOfTh
  * <p>
  * Cancelling this event skips the rotation only; the {@link PickaxeOfTheSeeker} is still
  * considered used and takes durability damage. This event is not fired when no ore is found.
+ * <p>
+ * Addons may also redirect the locate to a different ore {@link Block} via
+ * {@link #setOre(Block)}, e.g. to make the pickaxe prefer a rarer ore over the closest one.
  *
  * @author Zurker
  *
@@ -28,8 +31,8 @@ public class PickaxeOfTheSeekerLocateEvent extends PlayerEvent implements Cancel
     private static final HandlerList handlers = new HandlerList();
 
     private final PickaxeOfTheSeeker pickaxe;
-    private final Block ore;
 
+    private Block ore;
     private boolean cancelled;
 
     public PickaxeOfTheSeekerLocateEvent(@Nonnull Player player, @Nonnull PickaxeOfTheSeeker pickaxe, @Nonnull Block ore) {
@@ -59,6 +62,19 @@ public class PickaxeOfTheSeekerLocateEvent extends PlayerEvent implements Cancel
     @Nonnull
     public Block getOre() {
         return ore;
+    }
+
+    /**
+     * This sets the ore {@link Block} the {@link Player} will face, e.g. to prefer a
+     * rarer ore over the closest one the {@link PickaxeOfTheSeeker} located.
+     *
+     * @param ore
+     *            The ore {@link Block} to face instead
+     */
+    public void setOre(@Nonnull Block ore) {
+        Validate.notNull(ore, "The ore Block must not be null");
+
+        this.ore = ore;
     }
 
     @Override
