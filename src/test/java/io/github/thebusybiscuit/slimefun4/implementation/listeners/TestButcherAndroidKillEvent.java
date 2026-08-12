@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -124,9 +125,23 @@ class TestButcherAndroidKillEvent {
         Assertions.assertEquals(deathEvent, event.getDeathEvent());
         Assertions.assertFalse(event.isCancelled());
 
+        // The experience defaults to the per-kill roll (between 1 and 6)
+        int rolled = event.getExperience();
+        Assertions.assertTrue(rolled >= 1 && rolled <= 6, "The default experience must be the roll between 1 and 6");
+
+        // An explicit experience can be passed and adjusted, zero suppresses the orb
+        ButcherAndroidKillEvent explicit = new ButcherAndroidKillEvent(android, b, cow, deathEvent, 20);
+        Assertions.assertEquals(20, explicit.getExperience());
+        explicit.setExperience(0);
+        Assertions.assertEquals(0, explicit.getExperience());
+        explicit.setExperience(42);
+        Assertions.assertEquals(42, explicit.getExperience());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> explicit.setExperience(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new ButcherAndroidKillEvent(android, b, cow, deathEvent, -1));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ButcherAndroidKillEvent(null, b, cow, deathEvent));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ButcherAndroidKillEvent(android, null, cow, deathEvent));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ButcherAndroidKillEvent(android, b, null, deathEvent));
@@ -202,6 +217,78 @@ class TestButcherAndroidKillEvent {
             Assertions.assertFalse(cow.hasMetadata(METADATA_KEY), "The android metadata must have been cleaned up");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    /**
+     * Finds the experience orb spawned at the given {@link Location}, or null.
+     */
+    private ExperienceOrb orbAt(Location loc) {
+        for (ExperienceOrb orb : world.getEntitiesByClass(ExperienceOrb.class)) {
+            if (orb.getLocation().equals(loc)) {
+                return orb;
+            }
+        }
+
+        return null;
+    }
+
+    @Test
+    @DisplayName("Overriding the experience changes the spawned orb's yield")
+    void testSetExperienceScalesYield() {
+        ProgrammableAndroid android = Mockito.mock(ProgrammableAndroid.class);
+        Block androidBlock = world.getBlockAt(50, 1, 50);
+        CowMock cow = setupKill(50, 50, android, androidBlock);
+        Location killLocation = cow.getLocation();
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onKill(ButcherAndroidKillEvent event) {
+                int rolled = event.getExperience();
+                Assertions.assertTrue(rolled >= 1 && rolled <= 6, "The experience must default to the roll between 1 and 6");
+                event.setExperience(20);
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            kill(cow);
+            runHarvestTask();
+
+            ExperienceOrb orb = orbAt(killLocation);
+            Assertions.assertNotNull(orb, "An experience orb must have been spawned at the kill location");
+            Assertions.assertEquals(20, orb.getExperience(), "The orb must carry the overridden experience");
+            captureHarvest(android, androidBlock);
+        } finally {
+            HandlerList.unregisterAll(scaling);
+        }
+    }
+
+    @Test
+    @DisplayName("Zeroing the experience suppresses the orb but still harvests the drops")
+    void testSetExperienceZeroSuppressesOrb() {
+        ProgrammableAndroid android = Mockito.mock(ProgrammableAndroid.class);
+        Block androidBlock = world.getBlockAt(60, 1, 60);
+        CowMock cow = setupKill(60, 60, android, androidBlock);
+        Location killLocation = cow.getLocation();
+
+        Listener suppressing = new Listener() {
+            @EventHandler
+            public void onKill(ButcherAndroidKillEvent event) {
+                event.setExperience(0);
+            }
+        };
+        server.getPluginManager().registerEvents(suppressing, plugin);
+
+        try {
+            kill(cow);
+            runHarvestTask();
+
+            Assertions.assertNull(orbAt(killLocation), "No experience orb must have been spawned");
+            ItemStack[] harvested = captureHarvest(android, androidBlock);
+            Assertions.assertEquals(1, harvested.length, "The drops must still have been harvested");
+        } finally {
+            HandlerList.unregisterAll(suppressing);
         }
     }
 

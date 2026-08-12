@@ -1,6 +1,9 @@
 package io.github.thebusybiscuit.slimefun4.api.events;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.block.Block;
@@ -21,6 +24,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.androids.Programm
  * <p>
  * Cancelling this event skips the harvest entirely: the drops stay on the ground,
  * the android receives nothing and no experience orb is spawned.
+ * <p>
+ * Addons may also adjust the experience yield via {@link #setExperience(int)}, e.g. to
+ * reward more experience for rare mobs; setting it to zero suppresses the experience
+ * orb entirely.
  *
  * @author Zurker
  *
@@ -36,18 +43,27 @@ public class ButcherAndroidKillEvent extends Event implements Cancellable {
     private final LivingEntity entity;
     private final EntityDeathEvent deathEvent;
 
+    private int experience;
     private boolean cancelled;
 
-    public ButcherAndroidKillEvent(@Nonnull ProgrammableAndroid android, @Nonnull Block block, @Nonnull LivingEntity entity, @Nonnull EntityDeathEvent deathEvent) {
+    @ParametersAreNonnullByDefault
+    public ButcherAndroidKillEvent(ProgrammableAndroid android, Block block, LivingEntity entity, EntityDeathEvent deathEvent) {
+        this(android, block, entity, deathEvent, 1 + ThreadLocalRandom.current().nextInt(6));
+    }
+
+    @ParametersAreNonnullByDefault
+    public ButcherAndroidKillEvent(ProgrammableAndroid android, Block block, LivingEntity entity, EntityDeathEvent deathEvent, int experience) {
         Validate.notNull(android, "The ProgrammableAndroid must not be null");
         Validate.notNull(block, "The Block must not be null");
         Validate.notNull(entity, "The killed entity must not be null");
         Validate.notNull(deathEvent, "The death event must not be null");
+        Validate.isTrue(experience >= 0, "The experience must not be negative");
 
         this.android = android;
         this.block = block;
         this.entity = entity;
         this.deathEvent = deathEvent;
+        this.experience = experience;
     }
 
     /**
@@ -88,6 +104,30 @@ public class ButcherAndroidKillEvent extends Event implements Cancellable {
     @Nonnull
     public EntityDeathEvent getDeathEvent() {
         return deathEvent;
+    }
+
+    /**
+     * This returns the experience the spawned orb will carry. It defaults to the roll
+     * the {@link ButcherAndroid} performs for every kill (between 1 and 6).
+     *
+     * @return The experience yield
+     * @see #setExperience(int)
+     */
+    public int getExperience() {
+        return experience;
+    }
+
+    /**
+     * This sets the experience the spawned orb will carry. Setting it to zero
+     * suppresses the experience orb entirely; the drops are still harvested.
+     *
+     * @param experience
+     *            The experience yield, must not be negative
+     */
+    public void setExperience(int experience) {
+        Validate.isTrue(experience >= 0, "The experience must not be negative");
+
+        this.experience = experience;
     }
 
     @Override

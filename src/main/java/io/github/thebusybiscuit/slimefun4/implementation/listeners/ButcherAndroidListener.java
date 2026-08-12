@@ -46,8 +46,10 @@ public class ButcherAndroidListener implements Listener {
         if (e.getEntity().hasMetadata(METADATA_KEY)) {
             AndroidInstance obj = (AndroidInstance) e.getEntity().getMetadata(METADATA_KEY).get(0).value();
 
+            int experience = 1 + ThreadLocalRandom.current().nextInt(6);
+
             if (ButcherAndroidKillEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                ButcherAndroidKillEvent event = new ButcherAndroidKillEvent(obj.getAndroid(), obj.getBlock(), e.getEntity(), e);
+                ButcherAndroidKillEvent event = new ButcherAndroidKillEvent(obj.getAndroid(), obj.getBlock(), e.getEntity(), e, experience);
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
@@ -55,7 +57,12 @@ public class ButcherAndroidListener implements Listener {
                     e.getEntity().removeMetadata(METADATA_KEY, Slimefun.instance());
                     return;
                 }
+
+                // An addon may have adjusted or suppressed the experience yield
+                experience = event.getExperience();
             }
+
+            final int experienceYield = experience;
 
             Slimefun.runSync(() -> {
                 List<ItemStack> items = new ArrayList<>();
@@ -71,8 +78,11 @@ public class ButcherAndroidListener implements Listener {
                 addExtraDrops(items, e.getEntityType());
 
                 obj.getAndroid().addItems(obj.getBlock(), items.toArray(new ItemStack[0]));
-                ExperienceOrb exp = (ExperienceOrb) e.getEntity().getWorld().spawnEntity(e.getEntity().getLocation(), EntityType.EXPERIENCE_ORB);
-                exp.setExperience(1 + ThreadLocalRandom.current().nextInt(6));
+
+                if (experienceYield > 0) {
+                    ExperienceOrb exp = (ExperienceOrb) e.getEntity().getWorld().spawnEntity(e.getEntity().getLocation(), EntityType.EXPERIENCE_ORB);
+                    exp.setExperience(experienceYield);
+                }
             }, 1L);
 
             // Removing metadata to prevent memory leaks
