@@ -55,7 +55,8 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
 
             if (!list.isEmpty()) {
                 Block log = list.get(list.size() - 1);
-                log.getWorld().playEffect(log.getLocation(), Effect.STEP_SOUND, log.getType());
+                // BlockData is the primary data type of this effect
+                log.getWorld().playEffect(log.getLocation(), Effect.STEP_SOUND, log.getType().createBlockData());
 
                 OfflinePlayer owner = getOwner(b);
                 if (owner != null && Slimefun.getProtectionManager().hasPermission(owner, log.getLocation(), Interaction.BREAK_BLOCK)) {
@@ -72,21 +73,27 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
     @ParametersAreNonnullByDefault
     protected void breakLog(Block log, Block android, BlockMenu menu, BlockFace face) {
         if (AndroidChopTreeEvent.getHandlerList().getRegisteredListeners().length > 0) {
-            AndroidChopTreeEvent event = new AndroidChopTreeEvent(log, new AndroidInstance(this, android));
+            AndroidChopTreeEvent event = new AndroidChopTreeEvent(log, new AndroidInstance(this, android), List.of(new ItemStack(log.getType())));
             Bukkit.getPluginManager().callEvent(event);
 
             if (event.isCancelled()) {
                 // An addon vetoed the chop; the log stays and the android retries next tick.
                 return;
             }
+
+            // An addon may have adjusted what the chopped log drops
+            for (ItemStack drop : event.getDrops()) {
+                menu.pushItem(drop, getOutputSlots());
+            }
+        } else {
+            ItemStack drop = new ItemStack(log.getType());
+
+            // We try to push the log into the android's inventory, but nothing happens if it does not fit
+            menu.pushItem(drop, getOutputSlots());
         }
 
-        ItemStack drop = new ItemStack(log.getType());
-
-        // We try to push the log into the android's inventory, but nothing happens if it does not fit
-        menu.pushItem(drop, getOutputSlots());
-
-        log.getWorld().playEffect(log.getLocation(), Effect.STEP_SOUND, log.getType());
+        // BlockData is the primary data type of this effect
+        log.getWorld().playEffect(log.getLocation(), Effect.STEP_SOUND, log.getType().createBlockData());
 
         // If the android just chopped the bottom log, we replant the appropriate sapling
         if (log.getY() == android.getRelative(face).getY()) {

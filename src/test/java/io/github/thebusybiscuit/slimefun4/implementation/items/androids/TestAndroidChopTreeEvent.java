@@ -33,10 +33,10 @@ import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
  * by driving the real {@link WoodcutterAndroid#breakLog(Block, Block, BlockMenu, BlockFace)}
  * against a {@link BlockStorage}-backed android block and a log block.
  * <p>
- * The chop path ends in a {@code playEffect(STEP_SOUND)} that MockBukkit rejects, so a
- * RuntimeException from that tail is ignored here - the event was fired and the drop was
- * pushed into the android's inventory beforehand. A cancelled event returns before that
- * tail, so the cancel path is asserted without any exception.
+ * The chop tail plays its effect with {@code BlockData} (the primary data type of
+ * {@code STEP_SOUND}), which MockBukkit accepts, so the whole tail - drops pushed, effect,
+ * log broken or replanted - is observable end to end. The drop list exposed via
+ * {@link AndroidChopTreeEvent#getDrops()} mirrors the one of {@code AndroidMineEvent}.
  *
  * @author Zurker
  */
@@ -84,15 +84,14 @@ class TestAndroidChopTreeEvent {
     }
 
     /**
-     * Breaks the given log via the real chop path. The trailing {@code playEffect(STEP_SOUND)}
-     * is not fully supported by MockBukkit, so the RuntimeException from that tail is ignored -
-     * see the class javadoc.
+     * Breaks the given log via the real chop path. The chop tail is fully supported by
+     * MockBukkit; the catch is kept as a safety net only.
      */
     private void chop(Block androidBlock, Block log) {
         try {
             android.breakLog(log, androidBlock, BlockStorage.getInventory(androidBlock), BlockFace.EAST);
         } catch (RuntimeException ignored) {
-            // playEffect(STEP_SOUND) is not fully supported by MockBukkit - see class javadoc
+            // safety net - see the class javadoc
         }
     }
 
@@ -113,13 +112,21 @@ class TestAndroidChopTreeEvent {
         Assertions.assertEquals(instance, event.getAndroid());
         Assertions.assertEquals(android, event.getAndroid().getAndroid());
         Assertions.assertEquals(b, event.getAndroid().getBlock());
+        Assertions.assertTrue(event.getDrops().isEmpty(), "The legacy two-argument constructor carries an empty drop list");
         Assertions.assertFalse(event.isCancelled());
+
+        // The drops of the three-argument constructor are exposed and mutable
+        AndroidChopTreeEvent withDrops = new AndroidChopTreeEvent(log, instance, java.util.List.of(new ItemStack(Material.OAK_LOG)));
+        Assertions.assertEquals(1, withDrops.getDrops().size());
+        withDrops.getDrops().add(new ItemStack(Material.CHARCOAL));
+        Assertions.assertEquals(2, withDrops.getDrops().size());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new AndroidChopTreeEvent(null, instance));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new AndroidChopTreeEvent(log, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new AndroidChopTreeEvent(log, instance, null));
     }
 
     @Test
@@ -137,6 +144,8 @@ class TestAndroidChopTreeEvent {
                 Assertions.assertEquals(log, event.getBlock());
                 Assertions.assertEquals(android, event.getAndroid().getAndroid());
                 Assertions.assertEquals(b, event.getAndroid().getBlock());
+                Assertions.assertEquals(1, event.getDrops().size(), "The drops must default to the chopped log");
+                Assertions.assertEquals(Material.OAK_LOG, event.getDrops().get(0).getType());
             }
         };
         server.getPluginManager().registerEvents(watcher, plugin);
@@ -215,6 +224,60 @@ class TestAndroidChopTreeEvent {
             Assertions.assertNull(output(b), "A cancelled chop must not push any drop");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("Modified drops are pushed into the android instead of the log")
+    void testModifiedDropsArePushed() {
+        Block b = placeAndroid(60, 60);
+        Block log = world.getBlockAt(60, 2, 60);
+        log.setType(Material.OAK_LOG);
+
+        Listener modifying = new Listener() {
+            @EventHandler
+            public void onChop(AndroidChopTreeEvent event) {
+                event.getDrops().clear();
+                event.getDrops().add(new ItemStack(Material.CHARCOAL, 2));
+            }
+        };
+        server.getPluginManager().registerEvents(modifying, plugin);
+
+        try {
+            chop(b, log);
+
+            ItemStack slot = output(b);
+            Assertions.assertNotNull(slot, "The modified drops must have been pushed into the android");
+            Assertions.assertEquals(Material.CHARCOAL, slot.getType(), "The android must collect the modified drop");
+            Assertions.assertEquals(2, slot.getAmount());
+            Assertions.assertEquals(Material.AIR, log.getType(), "The log must still be broken");
+        } finally {
+            HandlerList.unregisterAll(modifying);
+        }
+    }
+
+    @Test
+    @DisplayName("Emptied drops break the log without pushing anything")
+    void testEmptiedDropsBreakWithoutDrop() {
+        Block b = placeAndroid(70, 70);
+        Block log = world.getBlockAt(70, 2, 70);
+        log.setType(Material.OAK_LOG);
+
+        Listener emptying = new Listener() {
+            @EventHandler
+            public void onChop(AndroidChopTreeEvent event) {
+                event.getDrops().clear();
+            }
+        };
+        server.getPluginManager().registerEvents(emptying, plugin);
+
+        try {
+            chop(b, log);
+
+            Assertions.assertNull(output(b), "An emptied drop list must not push anything");
+            Assertions.assertEquals(Material.AIR, log.getType(), "The log must still be broken");
+        } finally {
+            HandlerList.unregisterAll(emptying);
         }
     }
 
