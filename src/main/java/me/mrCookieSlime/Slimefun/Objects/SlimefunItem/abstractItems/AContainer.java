@@ -558,6 +558,8 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                     }
                 }
 
+                MachineRecipe operationRecipe = recipe;
+
                 if (MachineRecipeStartEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     MachineRecipeStartEvent event = new MachineRecipeStartEvent(AContainer.this, inv.getLocation(), recipe);
                     Bukkit.getPluginManager().callEvent(event);
@@ -566,13 +568,25 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                         // An addon vetoed this recipe; the inputs stay and the machine idles for this tick.
                         return new RecipeScan(null, false);
                     }
+
+                    if (event.getTicks() != recipe.getTicks()) {
+                        /*
+                         * An addon adjusted the duration of this single operation. Hand the
+                         * tick() a shallow recipe copy with the adjusted ticks - mutating the
+                         * shared recipe would change the duration of every machine of this
+                         * type permanently. The copy shares the input/output arrays, exactly
+                         * like a CraftingOperation would reference them anyway.
+                         */
+                        operationRecipe = new MachineRecipe(0, recipe.getInput(), recipe.getOutput());
+                        operationRecipe.setTicks(event.getTicks());
+                    }
                 }
 
                 for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
                     inv.consumeItem(entry.getKey(), entry.getValue());
                 }
 
-                return new RecipeScan(recipe, false);
+                return new RecipeScan(operationRecipe, false);
             } else {
                 found.clear();
             }

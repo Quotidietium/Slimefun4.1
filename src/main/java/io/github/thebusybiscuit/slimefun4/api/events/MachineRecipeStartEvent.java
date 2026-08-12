@@ -21,6 +21,10 @@ import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineRecip
  * complements {@link AsyncMachineOperationStartEvent}, which only fires after the
  * inputs were already consumed.
  * <p>
+ * The duration of the operation that is about to start can be adjusted via
+ * {@link #setTicks(int)}. The adjustment applies only to this single operation: the
+ * shared {@link MachineRecipe} of the machine is never modified.
+ * <p>
  * The event does not fire when a recipe matched but the output slots cannot hold the
  * results: the machine already idles in that case and no inputs would be consumed.
  *
@@ -37,6 +41,7 @@ public class MachineRecipeStartEvent extends Event implements Cancellable {
     private final Location location;
     private final MachineRecipe recipe;
 
+    private int ticks;
     private boolean cancelled;
 
     public MachineRecipeStartEvent(@Nonnull AContainer machine, @Nonnull Location location, @Nonnull MachineRecipe recipe) {
@@ -47,6 +52,7 @@ public class MachineRecipeStartEvent extends Event implements Cancellable {
         this.machine = machine;
         this.location = location;
         this.recipe = recipe;
+        this.ticks = recipe.getTicks();
     }
 
     /**
@@ -77,6 +83,31 @@ public class MachineRecipeStartEvent extends Event implements Cancellable {
     @Nonnull
     public MachineRecipe getRecipe() {
         return recipe;
+    }
+
+    /**
+     * This returns the duration (in ticks) of the operation that is about to start.
+     * It defaults to the matched {@link MachineRecipe}'s ticks (already divided by the
+     * machine's processing speed at registration time).
+     *
+     * @return The duration of the operation in ticks
+     */
+    public int getTicks() {
+        return ticks;
+    }
+
+    /**
+     * This sets the duration (in ticks) of the operation that is about to start.
+     * Only this single operation is affected: the machine's shared
+     * {@link MachineRecipe} keeps its original duration.
+     *
+     * @param ticks
+     *            The duration of the operation in ticks, must be at least 1
+     */
+    public void setTicks(int ticks) {
+        Validate.isTrue(ticks >= 1, "The operation duration must be at least 1 tick, received: " + ticks);
+
+        this.ticks = ticks;
     }
 
     @Override

@@ -22,6 +22,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.implementation.operations.CraftingOperation;
 import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
 
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
@@ -210,6 +211,84 @@ class TestMachineRecipeStartEvent {
 
         assertInputConsumed(menu);
         Assertions.assertTrue(hasOperation(b), "The crafting operation must have been started");
+    }
+
+    @Test
+    @DisplayName("The operation duration defaults to the recipe ticks and is modifiable and validated")
+    void testTicksDefaultAndValidation() {
+        Block b = world.getBlockAt(2, 60, 2);
+        MachineRecipe recipe = machine.getMachineRecipes().get(0);
+
+        MachineRecipeStartEvent event = new MachineRecipeStartEvent(machine, b.getLocation(), recipe);
+
+        Assertions.assertEquals(recipe.getTicks(), event.getTicks(), "The duration must default to the recipe's ticks");
+
+        event.setTicks(40);
+        Assertions.assertEquals(40, event.getTicks());
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTicks(0));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTicks(-1));
+    }
+
+    @Test
+    @DisplayName("A modified duration is applied to the started operation without touching the shared recipe")
+    void testModifiedTicksAppliedToOperationOnly() {
+        Block b = world.getBlockAt(60, 60, 60);
+        BlockMenu menu = placeMachine(60, 60);
+        menu.replaceExistingItem(INPUT_SLOT, new ItemStack(Material.COBBLESTONE));
+
+        MachineRecipe recipe = machine.getMachineRecipes().get(0);
+        int originalTicks = recipe.getTicks();
+
+        Listener accelerating = new Listener() {
+            @EventHandler
+            public void onRecipeStart(MachineRecipeStartEvent event) {
+                event.setTicks(3);
+            }
+        };
+        server.getPluginManager().registerEvents(accelerating, plugin);
+
+        try {
+            tick(b);
+
+            assertInputConsumed(menu);
+
+            CraftingOperation operation = machine.getMachineProcessor().getOperation(b.getLocation());
+            Assertions.assertNotNull(operation, "The crafting operation must have been started");
+            Assertions.assertEquals(3, operation.getTotalTicks(), "The operation must run with the modified duration");
+            Assertions.assertEquals(originalTicks, recipe.getTicks(), "The shared recipe must keep its original duration");
+        } finally {
+            HandlerList.unregisterAll(accelerating);
+        }
+    }
+
+    @Test
+    @DisplayName("An unchanged duration starts the operation with the recipe's own ticks")
+    void testUnchangedTicksKeepsRecipeDuration() {
+        Block b = world.getBlockAt(70, 60, 70);
+        BlockMenu menu = placeMachine(70, 70);
+        menu.replaceExistingItem(INPUT_SLOT, new ItemStack(Material.COBBLESTONE));
+
+        MachineRecipe recipe = machine.getMachineRecipes().get(0);
+
+        Listener watcher = new Listener() {
+            @EventHandler
+            public void onRecipeStart(MachineRecipeStartEvent event) {
+                // Only observe, do not touch the duration
+                Assertions.assertEquals(recipe.getTicks(), event.getTicks());
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            tick(b);
+
+            CraftingOperation operation = machine.getMachineProcessor().getOperation(b.getLocation());
+            Assertions.assertNotNull(operation, "The crafting operation must have been started");
+            Assertions.assertEquals(recipe.getTicks(), operation.getTotalTicks(), "An untouched duration must reproduce the recipe's ticks");
+        } finally {
+            HandlerList.unregisterAll(watcher);
+        }
     }
 
     @Test
