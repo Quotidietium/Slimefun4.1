@@ -102,10 +102,24 @@ class PlayerLanguageOption implements SlimefunGuideOption<String> {
         String defaultLanguageString = Slimefun.getLocalization().getMessage(p, "languages.default");
 
         menu.addItem(9, CustomItemStack.create(defaultLanguage.getItem(), ChatColor.GRAY + defaultLanguageString + ChatColor.DARK_GRAY + " (" + defaultLanguage.getName(p) + ")", "", "&7\u21E8 &e" + Slimefun.getLocalization().getMessage(p, "guide.languages.select-default")), (pl, i, item, action) -> {
-            Slimefun.instance().getServer().getPluginManager().callEvent(new PlayerLanguageChangeEvent(pl, Slimefun.getLocalization().getLanguage(pl), defaultLanguage));
-            setSelectedOption(pl, guide, null);
+            PlayerLanguageChangeEvent event = new PlayerLanguageChangeEvent(pl, Slimefun.getLocalization().getLanguage(pl), defaultLanguage);
+            Slimefun.instance().getServer().getPluginManager().callEvent(event);
 
-            Slimefun.getLocalization().sendMessage(pl, "guide.languages.updated", msg -> msg.replace("%lang%", defaultLanguageString));
+            if (event.isCancelled()) {
+                // An addon vetoed the language change
+                return false;
+            }
+
+            Language newLanguage = event.getNewLanguage();
+
+            if (newLanguage.isDefault()) {
+                setSelectedOption(pl, guide, null);
+                Slimefun.getLocalization().sendMessage(pl, "guide.languages.updated", msg -> msg.replace("%lang%", defaultLanguageString));
+            } else {
+                // An addon redirected the change to a specific language
+                setSelectedOption(pl, guide, newLanguage.getId());
+                Slimefun.getLocalization().sendMessage(pl, "guide.languages.updated", msg -> msg.replace("%lang%", newLanguage.getName(pl)));
+            }
 
             SlimefunGuideSettings.openSettings(pl, guide);
             return false;
@@ -115,10 +129,19 @@ class PlayerLanguageOption implements SlimefunGuideOption<String> {
 
         for (Language language : Slimefun.getLocalization().getLanguages()) {
             menu.addItem(slot, CustomItemStack.create(language.getItem(), ChatColor.GREEN + language.getName(p), "&b" + language.getTranslationProgress() + '%', "", "&7\u21E8 &e" + Slimefun.getLocalization().getMessage(p, "guide.languages.select")), (pl, i, item, action) -> {
-                Slimefun.instance().getServer().getPluginManager().callEvent(new PlayerLanguageChangeEvent(pl, Slimefun.getLocalization().getLanguage(pl), language));
-                setSelectedOption(pl, guide, language.getId());
+                PlayerLanguageChangeEvent event = new PlayerLanguageChangeEvent(pl, Slimefun.getLocalization().getLanguage(pl), language);
+                Slimefun.instance().getServer().getPluginManager().callEvent(event);
 
-                String name = language.getName(pl);
+                if (event.isCancelled()) {
+                    // An addon vetoed the language change
+                    return false;
+                }
+
+                // An addon may have redirected the change to another language
+                Language newLanguage = event.getNewLanguage();
+                setSelectedOption(pl, guide, newLanguage.getId());
+
+                String name = newLanguage.getName(pl);
                 Slimefun.getLocalization().sendMessage(pl, "guide.languages.updated", msg -> msg.replace("%lang%", name));
 
                 SlimefunGuideSettings.openSettings(pl, guide);
