@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.entities;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -44,6 +45,15 @@ class TestAsyncEntityAssembleEvent {
 
     private static IronGolemAssembler assembler;
 
+    /**
+     * The location passed to {@link IronGolemAssembler#spawnEntity(Location)}. The real
+     * spawn cannot run under MockBukkit: UNIT_TEST executes {@link Slimefun#runSync(Runnable)}
+     * instantly, so the spawn tail runs on the ticker's worker thread where WorldMock refuses
+     * entity adds ("Asynchronous entity add!"). The assembler below captures the location
+     * instead, which is exactly the boundary the spawn-location redirect crosses.
+     */
+    private static volatile Location lastSpawnLocation;
+
     @BeforeAll
     public static void load() {
         server = MockBukkit.mock();
@@ -60,7 +70,14 @@ class TestAsyncEntityAssembleEvent {
         SlimefunItemStack stack = new SlimefunItemStack("TEST_IRON_GOLEM_ASSEMBLER", Material.DISPENSER, "&fTest Iron Golem Assembler");
         Slimefun.getCfg().setValue("URID.enable-tickers", true);
         Slimefun.getItemCfg().setValue("TEST_IRON_GOLEM_ASSEMBLER.enabled", true);
-        assembler = new IronGolemAssembler(itemGroup, stack, RecipeType.NULL, new ItemStack[9]);
+        assembler = new IronGolemAssembler(itemGroup, stack, RecipeType.NULL, new ItemStack[9]) {
+            @Override
+            public IronGolem spawnEntity(Location l) {
+                // See the javadoc on lastSpawnLocation
+                lastSpawnLocation = l;
+                return null;
+            }
+        };
         assembler.register(plugin);
     }
 
@@ -72,6 +89,7 @@ class TestAsyncEntityAssembleEvent {
     @BeforeEach
     public void beforeEach() {
         server.getPluginManager().clearEvents();
+        lastSpawnLocation = null;
     }
 
     /**
@@ -102,6 +120,15 @@ class TestAsyncEntityAssembleEvent {
      * listener, is rethrown as a test failure.
      */
     private void tick(Block b) {
+        tick(b, true);
+    }
+
+    /**
+     * Ticks the assembler once on a worker thread. When {@code tolerateTailFailure} is
+     * false, a swallowed RuntimeException from the spawn tail fails the test instead of
+     * being ignored.
+     */
+    private void tick(Block b, boolean tolerateTailFailure) {
         Throwable[] error = new Throwable[1];
         Thread thread = new Thread(() -> {
             try {
@@ -109,6 +136,9 @@ class TestAsyncEntityAssembleEvent {
                 assembler.getItemHandler().tick(b, assembler, data);
             } catch (RuntimeException ignored) {
                 // See the javadoc above
+                if (!tolerateTailFailure) {
+                    error[0] = ignored;
+                }
             } catch (Throwable t) {
                 error[0] = t;
             }
@@ -127,10 +157,6 @@ class TestAsyncEntityAssembleEvent {
         }
     }
 
-    private long golemCount() {
-        return world.getEntities().stream().filter(e -> e instanceof IronGolem).count();
-    }
-
     @Test
     @DisplayName("AsyncEntityAssembleEvent exposes its fields and validates constructor arguments")
     void testEventFieldsAndValidation() {
@@ -140,7 +166,15 @@ class TestAsyncEntityAssembleEvent {
 
         Assertions.assertEquals(assembler, event.getAssembler());
         Assertions.assertEquals(b, event.getBlock());
+        Assertions.assertNull(event.getSpawnLocation(), "The spawn location must default to the assembler's offset");
         Assertions.assertFalse(event.isCancelled());
+
+        // The spawn can be redirected and reset to the default
+        org.bukkit.Location arena = new org.bukkit.Location(world, 100, 64, 100);
+        event.setSpawnLocation(arena);
+        Assertions.assertEquals(arena, event.getSpawnLocation());
+        event.setSpawnLocation(null);
+        Assertions.assertNull(event.getSpawnLocation(), "Setting null must reset to the assembler's offset");
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
@@ -184,7 +218,6 @@ class TestAsyncEntityAssembleEvent {
     void testEventCancellationSkipsAssembly() {
         Block b = setupAssembler(20, 20);
         BlockMenu menu = BlockStorage.getInventory(b);
-        long golemsBefore = golemCount();
 
         Listener cancelling = new Listener() {
             @EventHandler
@@ -199,7 +232,7 @@ class TestAsyncEntityAssembleEvent {
 
             Assertions.assertEquals(Material.CARVED_PUMPKIN, menu.getItemInSlot(19).getType(), "A cancelled assembly must keep the pumpkin");
             Assertions.assertEquals(4, menu.getItemInSlot(25).getAmount(), "A cancelled assembly must keep the iron blocks");
-            Assertions.assertEquals(golemsBefore, golemCount(), "A cancelled assembly must not spawn a golem");
+            Assertions.assertNull(lastSpawnLocation, "A cancelled assembly must not spawn anything");
         } finally {
             HandlerList.unregisterAll(cancelling);
         }
@@ -215,6 +248,41 @@ class TestAsyncEntityAssembleEvent {
 
         ItemStack pumpkin = menu.getItemInSlot(19);
         Assertions.assertTrue(pumpkin == null || pumpkin.getAmount() == 0, "The pumpkin must have been consumed");
+    }
+
+    @Test
+    @DisplayName("Redirecting the spawn location assembles the entity there instead")
+    void testSetSpawnLocationRedirectsSpawn() {
+        Block b = setupAssembler(60, 60);
+        Location arena = new Location(world, 60.5, 10, 60.5);
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onAssemble(AsyncEntityAssembleEvent event) {
+                Assertions.assertNull(event.getSpawnLocation(), "The spawn location must default to the assembler's offset");
+                event.setSpawnLocation(arena);
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            tick(b, false);
+
+            Assertions.assertEquals(arena, lastSpawnLocation, "The assembly must have been redirected to the arena");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
+        }
+    }
+
+    @Test
+    @DisplayName("Without a redirect the entity is assembled at the configured offset")
+    void testDefaultSpawnLocationUsesOffset() {
+        Block b = setupAssembler(70, 70);
+        Location defaultSpot = new Location(world, 70.5, 4.0, 70.5);
+
+        tick(b, false);
+
+        Assertions.assertEquals(defaultSpot, lastSpawnLocation, "The assembly must happen at the configured offset");
     }
 
     @Test

@@ -239,6 +239,8 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
                     boolean hasHead = findResource(menu, getHead(), headSlots);
 
                     if (hasBody && hasHead) {
+                        Location spawnLocation = null;
+
                         if (AsyncEntityAssembleEvent.getHandlerList().getRegisteredListeners().length > 0) {
                             AsyncEntityAssembleEvent event = new AsyncEntityAssembleEvent(AbstractEntityAssembler.this, b);
                             Bukkit.getPluginManager().callEvent(event);
@@ -246,6 +248,9 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
                             if (event.isCancelled()) {
                                 return;
                             }
+
+                            // An addon may have redirected the spawn
+                            spawnLocation = event.getSpawnLocation();
                         }
 
                         consumeResources(menu);
@@ -260,11 +265,15 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
                             return;
                         }
 
+                        Location customLocation = spawnLocation;
                         Slimefun.runSync(() -> {
-                            Location loc = new Location(b.getWorld(), b.getX() + 0.5D, b.getY() + offset, b.getZ() + 0.5D);
+                            Location loc = customLocation != null ? customLocation : new Location(b.getWorld(), b.getX() + 0.5D, b.getY() + offset, b.getZ() + 0.5D);
                             spawnEntity(loc);
 
-                            b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, getHead().getType());
+                            // BlockData is the primary data type of this effect
+                            Material headMaterial = getHead().getType();
+                            Object particleData = headMaterial.isBlock() ? headMaterial.createBlockData() : headMaterial;
+                            b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, particleData);
                         });
                     }
                 }

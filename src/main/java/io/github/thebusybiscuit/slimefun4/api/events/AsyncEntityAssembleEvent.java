@@ -1,8 +1,10 @@
 package io.github.thebusybiscuit.slimefun4.api.events;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -19,9 +21,16 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
  * Cancelling this event skips this assembly entirely: the materials and energy are
  * kept and no entity is spawned. The assembler retries on its next operation cycle.
  * <p>
+ * Addons may also redirect where the entity is spawned via
+ * {@link #setSpawnLocation(Location)}, e.g. to assemble a wither inside a containment
+ * arena instead of above the assembler. The location defaults to {@code null}, which
+ * means the assembler's configured offset above the block is used; setting it back to
+ * {@code null} restores that default.
+ * <p>
  * Note that this event fires from the machine's ticker thread, not the main server
- * thread. Listeners should only read state and cancel; any world interaction should be
- * deferred to a synchronous task.
+ * thread. Listeners should only read state, cancel or set the spawn location; any
+ * other world interaction should be deferred to a synchronous task. The spawn
+ * location is handed to the synchronous spawn task after the tick.
  *
  * @author Zurker
  *
@@ -34,6 +43,8 @@ public class AsyncEntityAssembleEvent extends Event implements Cancellable {
     private final AbstractEntityAssembler<?> assembler;
     private final Block block;
 
+    @Nullable
+    private Location spawnLocation;
     private boolean cancelled;
 
     public AsyncEntityAssembleEvent(@Nonnull AbstractEntityAssembler<?> assembler, @Nonnull Block block) {
@@ -63,6 +74,31 @@ public class AsyncEntityAssembleEvent extends Event implements Cancellable {
     @Nonnull
     public Block getBlock() {
         return block;
+    }
+
+    /**
+     * This returns the {@link Location} the entity will be spawned at, or {@code null}
+     * when the assembler's default is used: the configured offset above the assembler
+     * {@link Block}.
+     *
+     * @return The spawn {@link Location}, or null for the default
+     * @see #setSpawnLocation(Location)
+     */
+    @Nullable
+    public Location getSpawnLocation() {
+        return spawnLocation;
+    }
+
+    /**
+     * This redirects where the entity is spawned. Passing {@code null} resets the
+     * spawn location to the assembler's default (the configured offset above the
+     * assembler {@link Block}).
+     *
+     * @param spawnLocation
+     *            The spawn {@link Location}, or null for the default
+     */
+    public void setSpawnLocation(@Nullable Location spawnLocation) {
+        this.spawnLocation = spawnLocation;
     }
 
     @Override
