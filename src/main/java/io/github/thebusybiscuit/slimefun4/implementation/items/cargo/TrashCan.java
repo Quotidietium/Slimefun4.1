@@ -91,6 +91,21 @@ public class TrashCan extends SlimefunItem implements InventoryBlock {
                             // An addon vetoed the voiding; the items stay in the trash can.
                             return;
                         }
+
+                        List<ItemStack> spared = new ArrayList<>(event.getSparedItems());
+
+                        if (!spared.isEmpty()) {
+                            // Void everything that was not spared, one slot at a time.
+                            for (int slot : getInputSlots()) {
+                                ItemStack stack = menu.getItemInSlot(slot);
+
+                                if (stack != null && !spared.remove(stack)) {
+                                    menu.replaceExistingItem(slot, null);
+                                }
+                            }
+
+                            return;
+                        }
                     }
                 }
 

@@ -115,6 +115,85 @@ class TestTrashCanVoidEvent {
     }
 
     @Test
+    @DisplayName("spareItem validates its argument and is reported via getSparedItems")
+    void testSpareItemValidation() {
+        Block b = world.getBlockAt(1, 1, 1);
+        ItemStack dirt = new ItemStack(Material.DIRT);
+        ItemStack stone = new ItemStack(Material.STONE);
+
+        TrashCanVoidEvent event = new TrashCanVoidEvent(trashCan, b, List.of(dirt));
+
+        Assertions.assertTrue(event.getSparedItems().isEmpty());
+
+        event.spareItem(dirt);
+        Assertions.assertEquals(1, event.getSparedItems().size());
+        Assertions.assertEquals(dirt, event.getSparedItems().get(0));
+        Assertions.assertThrows(UnsupportedOperationException.class, () -> event.getSparedItems().add(stone), "The spared view must be unmodifiable");
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.spareItem(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.spareItem(stone), "Sparing an item that is not voided must be rejected");
+    }
+
+    @Test
+    @DisplayName("A spared item stays in its slot while the rest is voided")
+    void testSparedItemStays() {
+        BlockMenu menu = placeTrashCan(60, 60);
+        ItemStack dirt = new ItemStack(Material.DIRT);
+        menu.replaceExistingItem(INPUT_SLOT, dirt);
+        menu.replaceExistingItem(INPUT_SLOT + 1, new ItemStack(Material.COBBLESTONE, 3));
+
+        Listener sparing = new Listener() {
+            @EventHandler
+            public void onVoid(TrashCanVoidEvent event) {
+                for (ItemStack item : event.getItems()) {
+                    if (item.getType() == Material.DIRT) {
+                        event.spareItem(item);
+                    }
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(sparing, plugin);
+
+        try {
+            tick(menu);
+
+            ItemStack kept = menu.getItemInSlot(INPUT_SLOT);
+            Assertions.assertNotNull(kept, "The spared dirt must have been kept");
+            Assertions.assertEquals(Material.DIRT, kept.getType());
+            Assertions.assertNull(menu.getItemInSlot(INPUT_SLOT + 1), "The unspared cobblestone must have been voided");
+        } finally {
+            HandlerList.unregisterAll(sparing);
+        }
+    }
+
+    @Test
+    @DisplayName("Sparing every item voids nothing")
+    void testSparingEverythingVoidsNothing() {
+        BlockMenu menu = placeTrashCan(70, 70);
+        menu.replaceExistingItem(INPUT_SLOT, new ItemStack(Material.DIRT));
+        menu.replaceExistingItem(INPUT_SLOT + 1, new ItemStack(Material.COBBLESTONE, 3));
+
+        Listener sparing = new Listener() {
+            @EventHandler
+            public void onVoid(TrashCanVoidEvent event) {
+                for (ItemStack item : event.getItems()) {
+                    event.spareItem(item);
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(sparing, plugin);
+
+        try {
+            tick(menu);
+
+            Assertions.assertNotNull(menu.getItemInSlot(INPUT_SLOT), "A spared item must have been kept");
+            Assertions.assertNotNull(menu.getItemInSlot(INPUT_SLOT + 1), "A spared item must have been kept");
+        } finally {
+            HandlerList.unregisterAll(sparing);
+        }
+    }
+
+    @Test
     @DisplayName("A tick with items in the input fires the event and voids them")
     void testTickFiresEventAndVoids() {
         BlockMenu menu = placeTrashCan(10, 10);

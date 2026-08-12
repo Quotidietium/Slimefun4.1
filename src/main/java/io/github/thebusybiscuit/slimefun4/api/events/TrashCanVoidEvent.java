@@ -20,8 +20,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.cargo.TrashCan;
  * to be destroyed.
  * <p>
  * Cancelling this event keeps every item in the {@link TrashCan}; nothing is voided in
- * that tick. An addon that only wants to rescue specific items can cancel and pull them
- * out through the block's inventory itself.
+ * that tick. An addon that only wants to rescue specific items can either cancel and pull
+ * them out through the block's inventory itself, or spare them individually via
+ * {@link #spareItem(ItemStack)}: spared items stay in their slots while everything else
+ * is voided as usual.
  *
  * @author Zurker
  *
@@ -35,6 +37,7 @@ public class TrashCanVoidEvent extends Event implements Cancellable {
     private final TrashCan trashCan;
     private final Block block;
     private final List<ItemStack> items;
+    private final List<ItemStack> sparedItems = new java.util.ArrayList<>();
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -77,6 +80,33 @@ public class TrashCanVoidEvent extends Event implements Cancellable {
     @Nonnull
     public List<ItemStack> getItems() {
         return items;
+    }
+
+    /**
+     * This spares one {@link ItemStack} from being voided: it stays in its input slot
+     * while every other item is destroyed. The item must be one of {@link #getItems()};
+     * sparing the same stack twice (e.g. two identical stacks in two slots) spares as
+     * many slots as it was spared times.
+     *
+     * @param item
+     *            The {@link ItemStack} to spare, must be one of {@link #getItems()}
+     */
+    public void spareItem(@Nonnull ItemStack item) {
+        Validate.notNull(item, "The item must not be null");
+        Validate.isTrue(items.contains(item), "The item must be one of the items about to be voided");
+
+        sparedItems.add(item);
+    }
+
+    /**
+     * This returns an unmodifiable view of the {@link ItemStack ItemStacks} spared via
+     * {@link #spareItem(ItemStack)} so far.
+     *
+     * @return The spared items
+     */
+    @Nonnull
+    public List<ItemStack> getSparedItems() {
+        return java.util.Collections.unmodifiableList(sparedItems);
     }
 
     @Override
