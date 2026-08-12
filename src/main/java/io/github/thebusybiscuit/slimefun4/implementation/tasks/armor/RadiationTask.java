@@ -74,6 +74,11 @@ public class RadiationTask extends AbstractArmorTask {
                     RadiationExposureEvent event = new RadiationExposureEvent(p, exposureLevelBefore, exposureTotal);
                     Bukkit.getPluginManager().callEvent(event);
                     applyExposure = !event.isCancelled();
+
+                    if (applyExposure) {
+                        // An addon may have scaled the accumulation
+                        exposureTotal = event.getExposureChange();
+                    }
                 }
 
                 if (applyExposure) {
@@ -85,15 +90,21 @@ public class RadiationTask extends AbstractArmorTask {
                 }
             } else if (exposureLevelBefore > 0) {
                 boolean applyDecay = true;
+                int decay = 1;
 
                 if (RadiationExposureEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     RadiationExposureEvent event = new RadiationExposureEvent(p, exposureLevelBefore, -1);
                     Bukkit.getPluginManager().callEvent(event);
                     applyDecay = !event.isCancelled();
+
+                    if (applyDecay) {
+                        // An addon may have scaled the decay
+                        decay = -event.getExposureChange();
+                    }
                 }
 
                 if (applyDecay) {
-                    RadiationUtils.removeExposure(p, 1);
+                    RadiationUtils.removeExposure(p, decay);
                 }
             }
 
@@ -124,6 +135,7 @@ public class RadiationTask extends AbstractArmorTask {
             }
         } else {
             boolean applyDecay = true;
+            int decay = 1;
 
             if (RadiationExposureEvent.getHandlerList().getRegisteredListeners().length > 0) {
                 int exposureLevel = RadiationUtils.getExposure(p);
@@ -132,11 +144,16 @@ public class RadiationTask extends AbstractArmorTask {
                     RadiationExposureEvent event = new RadiationExposureEvent(p, exposureLevel, -1);
                     Bukkit.getPluginManager().callEvent(event);
                     applyDecay = !event.isCancelled();
+
+                    if (applyDecay) {
+                        // An addon may have scaled the decay
+                        decay = -event.getExposureChange();
+                    }
                 }
             }
 
             if (applyDecay) {
-                RadiationUtils.removeExposure(p, 1);
+                RadiationUtils.removeExposure(p, decay);
             }
         }
     }

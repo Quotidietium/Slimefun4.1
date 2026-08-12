@@ -148,6 +148,21 @@ class TestRadiationExposureEvent {
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        // The change can be scaled while keeping its sign, the after-value follows
+        event.setExposureChange(10);
+        Assertions.assertEquals(10, event.getExposureChange());
+        Assertions.assertEquals(13, event.getExposureAfter());
+
+        RadiationExposureEvent decay = new RadiationExposureEvent(p, 5, -1);
+        decay.setExposureChange(-3);
+        Assertions.assertEquals(-3, decay.getExposureChange());
+        Assertions.assertEquals(2, decay.getExposureAfter());
+
+        // Zero and sign flips are rejected
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setExposureChange(0));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setExposureChange(-2));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> decay.setExposureChange(2));
+
         // The after-value mirrors the clamping of RadiationUtils (0 to 100)
         Assertions.assertEquals(100, new RadiationExposureEvent(p, 99, 5).getExposureAfter());
         Assertions.assertEquals(0, new RadiationExposureEvent(p, 1, -1).getExposureAfter());
@@ -291,6 +306,56 @@ class TestRadiationExposureEvent {
             Assertions.assertEquals(2, RadiationUtils.getExposure(p), "The decay must have been applied");
         } finally {
             HandlerList.unregisterAll(watcher);
+        }
+    }
+
+    @Test
+    @DisplayName("Scaling the exposure change adjusts the applied accumulation")
+    void testSetExposureChangeScalesAccumulation() throws InterruptedException {
+        Player p = server.addPlayer();
+        PlayerProfile profile = profileOf(p);
+        p.getInventory().setItem(0, radioactiveItem.getItem());
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onExposure(RadiationExposureEvent event) {
+                Assertions.assertEquals(3, event.getExposureChange(), "One HIGH item must default to 3 exposure per tick");
+                event.setExposureChange(1);
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            tick(p, profile);
+
+            Assertions.assertEquals(1, RadiationUtils.getExposure(p), "The scaled accumulation must have been applied");
+        } finally {
+            HandlerList.unregisterAll(scaling);
+        }
+    }
+
+    @Test
+    @DisplayName("Scaling the exposure change adjusts the applied decay")
+    void testSetExposureChangeScalesDecay() throws InterruptedException {
+        Player p = server.addPlayer();
+        PlayerProfile profile = profileOf(p);
+        RadiationUtils.addExposure(p, 5);
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onExposure(RadiationExposureEvent event) {
+                Assertions.assertEquals(-1, event.getExposureChange(), "The decay must default to -1");
+                event.setExposureChange(-3);
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            tick(p, profile);
+
+            Assertions.assertEquals(2, RadiationUtils.getExposure(p), "The scaled decay must have been applied");
+        } finally {
+            HandlerList.unregisterAll(scaling);
         }
     }
 

@@ -29,6 +29,14 @@ import io.github.thebusybiscuit.slimefun4.utils.RadiationUtils;
  * asynchronous thread, so this event is asynchronous in production. The
  * application of radiation symptoms is governed separately by the
  * {@link RadiationDamageEvent}, which is fired after the exposure has settled.
+ * <p>
+ * Addons may also scale the change via {@link #setExposureChange(int)}, e.g. to
+ * halve the accumulation while a hazmat suit is worn or to speed up the decay
+ * with a decontamination shower. The sign of the change must be preserved: an
+ * accumulation stays an accumulation and a decay stays a decay, the adjusted
+ * magnitude is applied to the same clamped range (0 to 100). When an
+ * accumulation is scaled, the first-exposure warning message still depends only
+ * on whether the exposure was zero before the change.
  *
  * @author Zurker
  *
@@ -42,7 +50,7 @@ public class RadiationExposureEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
 
     private final int exposureBefore;
-    private final int exposureChange;
+    private int exposureChange;
 
     private boolean cancelled;
 
@@ -72,9 +80,28 @@ public class RadiationExposureEvent extends PlayerEvent implements Cancellable {
      * {@link Radioactive} items, a negative value means the exposure is decaying.
      *
      * @return The signed exposure change
+     * @see #setExposureChange(int)
      */
     public int getExposureChange() {
         return exposureChange;
+    }
+
+    /**
+     * This overrides the signed exposure delta that is about to be applied,
+     * scaling the accumulation or decay. The change must stay non-zero and keep
+     * its sign: an accumulation (positive change) cannot be turned into a decay
+     * and vice versa. The resulting exposure level is still clamped to the range
+     * enforced by {@link RadiationUtils} (0 to 100).
+     *
+     * @param exposureChange
+     *            The new signed exposure change, non-zero and with the same sign
+     *            as the current change
+     */
+    public void setExposureChange(int exposureChange) {
+        Validate.isTrue(exposureChange != 0, "An exposure change of zero is meaningless");
+        Validate.isTrue(Integer.signum(exposureChange) == Integer.signum(this.exposureChange), "The exposure change must keep its sign");
+
+        this.exposureChange = exposureChange;
     }
 
     /**
