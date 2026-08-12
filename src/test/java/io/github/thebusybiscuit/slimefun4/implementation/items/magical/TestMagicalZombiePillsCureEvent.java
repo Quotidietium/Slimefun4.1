@@ -123,6 +123,49 @@ class TestMagicalZombiePillsCureEvent {
     }
 
     @Test
+    @DisplayName("The conversion time defaults to 1, is modifiable and validated")
+    void testConversionTimeValidation() {
+        Player player = server.addPlayer();
+        ZombieVillager zombieVillager = mockZombieVillager(0, 0);
+        ItemStack item = new ItemStack(org.bukkit.Material.GHAST_TEAR);
+
+        MagicalZombiePillsCureEvent event = new MagicalZombiePillsCureEvent(player, pills, zombieVillager, item);
+
+        Assertions.assertEquals(1, event.getConversionTime(), "The conversion time must default to the historic instant cure");
+
+        event.setConversionTime(2000);
+        Assertions.assertEquals(2000, event.getConversionTime());
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setConversionTime(0));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setConversionTime(-1));
+    }
+
+    @Test
+    @DisplayName("A modified conversion time is applied to the cured zombie villager")
+    void testModifiedConversionTimeApplied() {
+        Player player = server.addPlayer();
+        ZombieVillager zombieVillager = mockZombieVillager(40, 40);
+
+        Listener delaying = new Listener() {
+            @EventHandler
+            public void onCure(MagicalZombiePillsCureEvent event) {
+                event.setConversionTime(2000);
+            }
+        };
+        server.getPluginManager().registerEvents(delaying, plugin);
+
+        try {
+            ItemStack item = cure(player, zombieVillager);
+
+            Assertions.assertEquals(2, item.getAmount(), "One pill must have been consumed");
+            Mockito.verify(zombieVillager).setConversionTime(2000);
+            Mockito.verify(zombieVillager).setConversionPlayer(player);
+        } finally {
+            HandlerList.unregisterAll(delaying);
+        }
+    }
+
+    @Test
     @DisplayName("Curing a zombie villager fires the event, consumes a pill and starts the conversion")
     void testCureFiresAndConverts() {
         Player player = server.addPlayer();

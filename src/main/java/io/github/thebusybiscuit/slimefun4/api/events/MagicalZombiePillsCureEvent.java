@@ -20,6 +20,12 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.magical.MagicalZo
  * <p>
  * Cancelling this event skips the cure entirely: no pill is consumed and the entity is
  * not converted.
+ * <p>
+ * For a {@link org.bukkit.entity.ZombieVillager} target the conversion time can be
+ * adjusted via {@link #setConversionTime(int)} - it defaults to {@code 1} tick, the
+ * historic near-instant cure; a higher value delays the conversion like a vanilla
+ * cure would. The value is ignored for a {@link org.bukkit.entity.PigZombie} target,
+ * which is always converted instantly.
  *
  * @author Zurker
  *
@@ -33,6 +39,7 @@ public class MagicalZombiePillsCureEvent extends PlayerEvent implements Cancella
     private final Entity entity;
     private final ItemStack item;
 
+    private int conversionTime = 1;
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -75,6 +82,31 @@ public class MagicalZombiePillsCureEvent extends PlayerEvent implements Cancella
     @Nonnull
     public ItemStack getItem() {
         return item;
+    }
+
+    /**
+     * This returns the conversion time (in ticks) a cured
+     * {@link org.bukkit.entity.ZombieVillager} will take to turn back into a villager.
+     * Defaults to {@code 1} tick, the historic near-instant cure. Ignored for a
+     * {@link org.bukkit.entity.PigZombie} target.
+     *
+     * @return The conversion time in ticks
+     */
+    public int getConversionTime() {
+        return conversionTime;
+    }
+
+    /**
+     * This sets the conversion time (in ticks) a cured
+     * {@link org.bukkit.entity.ZombieVillager} will take to turn back into a villager.
+     *
+     * @param conversionTime
+     *            The conversion time in ticks, must be at least 1
+     */
+    public void setConversionTime(int conversionTime) {
+        Validate.isTrue(conversionTime >= 1, "The conversion time must be at least 1");
+
+        this.conversionTime = conversionTime;
     }
 
     @Override

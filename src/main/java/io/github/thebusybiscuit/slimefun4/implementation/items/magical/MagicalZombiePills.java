@@ -60,14 +60,18 @@ public class MagicalZombiePills extends SimpleSlimefunItem<EntityInteractHandler
             Player p = e.getPlayer();
 
             if (entity instanceof ZombieVillager zombieVillager) {
-                if (fireCureEvent(p, entity, item)) {
+                MagicalZombiePillsCureEvent event = fireCureEvent(p, entity, item);
+
+                if (event != null && event.isCancelled()) {
                     return;
                 }
 
                 useItem(p, item);
-                healZombieVillager(zombieVillager, p);
+                healZombieVillager(zombieVillager, p, event != null ? event.getConversionTime() : 1);
             } else if (entity instanceof PigZombie pigZombie) {
-                if (fireCureEvent(p, entity, item)) {
+                MagicalZombiePillsCureEvent event = fireCureEvent(p, entity, item);
+
+                if (event != null && event.isCancelled()) {
                     return;
                 }
 
@@ -80,17 +84,18 @@ public class MagicalZombiePills extends SimpleSlimefunItem<EntityInteractHandler
     /**
      * Fires a {@link MagicalZombiePillsCureEvent} if any addon is listening.
      *
-     * @return true if the cure was cancelled, false to proceed
+     * @return The fired event, or null when no addon is listening
      */
-    private boolean fireCureEvent(@Nonnull Player p, @Nonnull Entity entity, @Nonnull ItemStack item) {
+    @javax.annotation.Nullable
+    private MagicalZombiePillsCureEvent fireCureEvent(@Nonnull Player p, @Nonnull Entity entity, @Nonnull ItemStack item) {
         if (MagicalZombiePillsCureEvent.getHandlerList().getRegisteredListeners().length > 0) {
             MagicalZombiePillsCureEvent event = new MagicalZombiePillsCureEvent(p, this, entity, item);
             Bukkit.getPluginManager().callEvent(event);
 
-            return event.isCancelled();
+            return event;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -111,8 +116,8 @@ public class MagicalZombiePills extends SimpleSlimefunItem<EntityInteractHandler
         p.playSound(p.getLocation(), Sound.ENTITY_ZOMBIE_VILLAGER_CONVERTED, 1, 1);
     }
 
-    private void healZombieVillager(@Nonnull ZombieVillager zombieVillager, @Nonnull Player p) {
-        zombieVillager.setConversionTime(1);
+    private void healZombieVillager(@Nonnull ZombieVillager zombieVillager, @Nonnull Player p, int conversionTime) {
+        zombieVillager.setConversionTime(conversionTime);
         zombieVillager.setConversionPlayer(p);
     }
 
