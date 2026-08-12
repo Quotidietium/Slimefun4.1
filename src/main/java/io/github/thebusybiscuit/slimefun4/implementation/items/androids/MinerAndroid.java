@@ -78,7 +78,7 @@ public class MinerAndroid extends ProgrammableAndroid {
             OfflinePlayer owner = getOwner(b);
 
             if (owner != null && Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.BREAK_BLOCK)) {
-                AndroidMineEvent event = new AndroidMineEvent(block, new AndroidInstance(this, b));
+                AndroidMineEvent event = new AndroidMineEvent(block, new AndroidInstance(this, b), drops);
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
@@ -87,7 +87,7 @@ public class MinerAndroid extends ProgrammableAndroid {
 
                 // We only want to break non-Slimefun blocks
                 if (!BlockStorage.hasBlockInfo(block)) {
-                    breakBlock(menu, drops, block);
+                    breakBlock(menu, event.getDrops(), block);
                 }
             }
         }
@@ -102,7 +102,7 @@ public class MinerAndroid extends ProgrammableAndroid {
             OfflinePlayer owner = getOwner(b);
 
             if (owner != null && Slimefun.getProtectionManager().hasPermission(owner, block.getLocation(), Interaction.BREAK_BLOCK)) {
-                AndroidMineEvent event = new AndroidMineEvent(block, new AndroidInstance(this, b));
+                AndroidMineEvent event = new AndroidMineEvent(block, new AndroidInstance(this, b), drops);
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
@@ -111,7 +111,7 @@ public class MinerAndroid extends ProgrammableAndroid {
 
                 // We only want to break non-Slimefun blocks
                 if (!BlockStorage.hasBlockInfo(block)) {
-                    breakBlock(menu, drops, block);
+                    breakBlock(menu, event.getDrops(), block);
                     move(b, face, block);
                 }
             } else {

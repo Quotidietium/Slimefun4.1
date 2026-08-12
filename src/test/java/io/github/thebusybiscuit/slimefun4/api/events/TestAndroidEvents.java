@@ -100,6 +100,68 @@ class TestAndroidEvents {
     }
 
     @Test
+    @DisplayName("AndroidMineEvent exposes android, block and the mutable drops")
+    void testMineEventFieldsAndDrops() {
+        AndroidInstance instance = newInstance();
+        Block block = Mockito.mock(Block.class);
+        ItemStack coal = new ItemStack(Material.COAL, 2);
+
+        // The legacy constructor carries no drops
+        AndroidMineEvent legacy = new AndroidMineEvent(block, instance);
+        Assertions.assertEquals(block, legacy.getBlock());
+        Assertions.assertEquals(instance, legacy.getAndroid());
+        Assertions.assertTrue(legacy.getDrops().isEmpty());
+        Assertions.assertFalse(legacy.isCancelled());
+
+        AndroidMineEvent event = new AndroidMineEvent(block, instance, java.util.List.of(coal));
+        Assertions.assertEquals(1, event.getDrops().size());
+        Assertions.assertEquals(coal, event.getDrops().get(0));
+
+        // The drops are mutable: entries can be removed and added
+        event.getDrops().clear();
+        Assertions.assertTrue(event.getDrops().isEmpty());
+
+        ItemStack diamond = new ItemStack(Material.DIAMOND, 1);
+        event.getDrops().add(diamond);
+        Assertions.assertEquals(1, event.getDrops().size());
+        Assertions.assertEquals(diamond, event.getDrops().get(0));
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new AndroidMineEvent(null, instance, java.util.List.of(coal)));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new AndroidMineEvent(block, null, java.util.List.of(coal)));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new AndroidMineEvent(block, instance, null));
+
+        event.setCancelled(true);
+        Assertions.assertTrue(event.isCancelled());
+    }
+
+    @Test
+    @DisplayName("AndroidMineEvent is dispatchable and listener mutations to the drops are visible")
+    void testMineEventDispatch() {
+        AndroidInstance instance = newInstance();
+        Block block = Mockito.mock(Block.class);
+
+        Listener mutating = new Listener() {
+            @EventHandler
+            public void onMine(AndroidMineEvent event) {
+                event.getDrops().clear();
+                event.getDrops().add(new ItemStack(Material.EMERALD, 5));
+            }
+        };
+        server.getPluginManager().registerEvents(mutating, plugin);
+
+        try {
+            AndroidMineEvent event = new AndroidMineEvent(block, instance, java.util.List.of(new ItemStack(Material.COAL)));
+            server.getPluginManager().callEvent(event);
+
+            Assertions.assertEquals(1, event.getDrops().size());
+            Assertions.assertEquals(Material.EMERALD, event.getDrops().get(0).getType());
+            Assertions.assertEquals(5, event.getDrops().get(0).getAmount());
+        } finally {
+            HandlerList.unregisterAll(mutating);
+        }
+    }
+
+    @Test
     @DisplayName("Both android events are dispatchable and listener mutations are visible")
     void testEventDispatch() {
         AndroidInstance instance = newInstance();
