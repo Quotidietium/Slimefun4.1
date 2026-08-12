@@ -127,6 +127,10 @@ class TestIndustrialMinerMineEvent {
         Assertions.assertEquals(outcome, event.getOutcome());
         Assertions.assertFalse(event.isCancelled());
 
+        ItemStack replacement = new ItemStack(Material.DIAMOND, 2);
+        event.setOutcome(replacement);
+        Assertions.assertEquals(replacement, event.getOutcome());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
@@ -134,6 +138,7 @@ class TestIndustrialMinerMineEvent {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new IndustrialMinerMineEvent(miner, null, ore, outcome));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new IndustrialMinerMineEvent(miner, player, null, outcome));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new IndustrialMinerMineEvent(miner, player, ore, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setOutcome(null));
     }
 
     @Test
@@ -167,6 +172,36 @@ class TestIndustrialMinerMineEvent {
             Assertions.assertTrue(fuelSlot == null || fuelSlot.getAmount() == 0, "The fuel must have been consumed");
         } finally {
             HandlerList.unregisterAll(watcher);
+        }
+    }
+
+    @Test
+    @DisplayName("Replacing the outcome via setOutcome pushes the replacement to the chest")
+    void testSetOutcomeRedirectsYield() {
+        Player player = server.addPlayer();
+        Block ore = world.getBlockAt(150, 62, 150);
+        ore.setType(Material.COAL_ORE);
+        MiningTask task = startMiner(player, 150, 150, ore, new ItemStack(Material.COAL));
+        Block chestBlock = world.getBlockAt(150, 61, 150);
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onMine(IndustrialMinerMineEvent event) {
+                Assertions.assertEquals(Material.COAL_ORE, event.getOutcome().getType(), "The outcome must default to the rolled yield");
+                event.setOutcome(new ItemStack(Material.DIAMOND, 2));
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            mineColumn(task, world.getBlockAt(150, 60, 150));
+
+            Assertions.assertTrue(blockInventory(chestBlock).contains(Material.DIAMOND), "The replacement must have been pushed to the chest");
+            Assertions.assertFalse(blockInventory(chestBlock).contains(Material.COAL_ORE), "The default yield must not have been pushed");
+            ItemStack fuelSlot = blockInventory(chestBlock).getItem(0);
+            Assertions.assertTrue(fuelSlot == null || fuelSlot.getAmount() == 0, "The fuel must still have been consumed");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 

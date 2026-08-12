@@ -237,6 +237,9 @@ class MiningTask implements Runnable {
                         // An addon vetoed this ore; it is skipped like an ore the miner cannot mine.
                         continue;
                     }
+
+                    // An addon may have replaced the mining outcome
+                    outcome = event.getOutcome();
                 }
 
                 if (push(outcome)) {

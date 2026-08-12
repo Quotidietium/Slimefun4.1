@@ -21,6 +21,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.multiblocks.miner
  * one ore: it stays in the ground and the miner scans on, exactly as if it could not
  * mine it.
  * <p>
+ * Addons may also replace the yield via {@link #setOutcome(ItemStack)}, e.g. for a
+ * fortune-style upgrade or a custom ore mapping: the replacement is pushed to the
+ * chest as-is and the ore is still consumed (cancel the event to spare the ore).
+ * <p>
  * The miner keeps running while its owner is offline, so the owner is exposed as an
  * {@link OfflinePlayer} and this event deliberately has no {@code Player} context.
  *
@@ -36,8 +40,8 @@ public class IndustrialMinerMineEvent extends Event implements Cancellable {
     private final IndustrialMiner miner;
     private final OfflinePlayer owner;
     private final Block block;
-    private final ItemStack outcome;
 
+    private ItemStack outcome;
     private boolean cancelled;
 
     public IndustrialMinerMineEvent(@Nonnull IndustrialMiner miner, @Nonnull OfflinePlayer owner, @Nonnull Block block, @Nonnull ItemStack outcome) {
@@ -92,6 +96,20 @@ public class IndustrialMinerMineEvent extends Event implements Cancellable {
     @Nonnull
     public ItemStack getOutcome() {
         return outcome;
+    }
+
+    /**
+     * This replaces the {@link ItemStack} the mined ore will yield. The replacement
+     * is pushed to the machine's chest as-is; the ore is still consumed and the fuel
+     * is still spent (cancel this event to spare the ore entirely).
+     *
+     * @param outcome
+     *            The new mining outcome, must not be null
+     */
+    public void setOutcome(@Nonnull ItemStack outcome) {
+        Validate.notNull(outcome, "The outcome must not be null");
+
+        this.outcome = outcome;
     }
 
     @Override
