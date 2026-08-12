@@ -158,6 +158,7 @@ public class AncientPedestal extends SimpleSlimefunItem<BlockDispenseHandler> im
 
     public void placeItem(@Nonnull Player p, @Nonnull Block b) {
         ItemStack hand = p.getInventory().getItemInMainHand();
+        ItemStack placed = hand;
 
         if (PedestalItemPlaceEvent.getHandlerList().getRegisteredListeners().length > 0) {
             PedestalItemPlaceEvent event = new PedestalItemPlaceEvent(p, this, b, hand);
@@ -166,14 +167,17 @@ public class AncientPedestal extends SimpleSlimefunItem<BlockDispenseHandler> im
             if (event.isCancelled()) {
                 return;
             }
+
+            // An addon may have changed which item is displayed on the pedestal
+            placed = event.getItem();
         }
 
         String displayName = ITEM_PREFIX + System.nanoTime();
-        ItemStack displayItem = CustomItemStack.create(hand, displayName);
+        ItemStack displayItem = CustomItemStack.create(placed, displayName);
         displayItem.setAmount(1);
 
         // Get the display name of the original Item in the Player's hand
-        String nametag = ItemUtils.getItemName(hand);
+        String nametag = ItemUtils.getItemName(placed);
 
         if (p.getGameMode() != GameMode.CREATIVE) {
             ItemUtils.consumeItem(hand, false);

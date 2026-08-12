@@ -19,6 +19,11 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.altar.AncientPede
  * <p>
  * Cancelling this event skips the placement entirely: the item stays in the player's hand and
  * nothing is placed on the pedestal.
+ * <p>
+ * Addons may also change which {@link ItemStack} is displayed on the pedestal via
+ * {@link #setItem(ItemStack)}, e.g. to show a ritual ingredient in an activated form.
+ * The hand item of the {@link Player} is consumed regardless; only the displayed copy
+ * (and its nametag) follows the changed item.
  *
  * @author Zurker
  *
@@ -30,8 +35,8 @@ public class PedestalItemPlaceEvent extends PlayerEvent implements Cancellable {
 
     private final AncientPedestal pedestal;
     private final Block block;
-    private final ItemStack item;
 
+    private ItemStack item;
     private boolean cancelled;
 
     public PedestalItemPlaceEvent(@Nonnull Player player, @Nonnull AncientPedestal pedestal, @Nonnull Block block, @Nonnull ItemStack item) {
@@ -73,6 +78,20 @@ public class PedestalItemPlaceEvent extends PlayerEvent implements Cancellable {
     @Nonnull
     public ItemStack getItem() {
         return item;
+    }
+
+    /**
+     * This sets the {@link ItemStack} that will be displayed on the pedestal. The hand
+     * item of the {@link Player} is still consumed; only the displayed copy and its
+     * nametag follow the given item.
+     *
+     * @param item
+     *            The {@link ItemStack} to display instead
+     */
+    public void setItem(@Nonnull ItemStack item) {
+        Validate.notNull(item, "The item must not be null");
+
+        this.item = item;
     }
 
     @Override
