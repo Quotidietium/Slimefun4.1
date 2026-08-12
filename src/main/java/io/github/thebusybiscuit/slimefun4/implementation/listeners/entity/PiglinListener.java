@@ -125,7 +125,8 @@ public class PiglinListener implements Listener {
                             return;
                         }
 
-                        e.getItemDrop().setItemStack(sfi.getRecipeOutput());
+                        // An addon may have replaced the barter drop itself
+                        e.getItemDrop().setItemStack(event.getDrop());
                         return;
                     }
                 }

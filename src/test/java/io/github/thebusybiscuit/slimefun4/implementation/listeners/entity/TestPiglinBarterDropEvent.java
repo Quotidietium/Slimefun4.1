@@ -134,11 +134,19 @@ class TestPiglinBarterDropEvent {
         Assertions.assertEquals(99, event.getChance());
         Assertions.assertFalse(event.isCancelled());
 
+        // The drop defaults to the winning item's recipe output
+        Assertions.assertTrue(event.getDrop().isSimilar(barterItem.getRecipeOutput()), "The drop must default to the recipe output");
+
+        ItemStack replacement = new ItemStack(Material.DIAMOND, 3);
+        event.setDrop(replacement);
+        Assertions.assertEquals(replacement, event.getDrop());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new PiglinBarterDropEvent(piglin, null, barterItem, 99));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new PiglinBarterDropEvent(piglin, itemDrop, null, 99));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDrop(null));
     }
 
     @Test
@@ -163,6 +171,28 @@ class TestPiglinBarterDropEvent {
             Assertions.assertTrue(isTestBarterDrop(itemDrop.getItemStack()), "The vanilla drop must have been replaced with a barter drop");
         } finally {
             HandlerList.unregisterAll(watcher);
+        }
+    }
+
+    @Test
+    @DisplayName("Replacing the drop via setDrop makes the piglin drop the replacement")
+    void testSetDropRedirectsBarter() {
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onBarterDrop(PiglinBarterDropEvent event) {
+                Assertions.assertTrue(event.getDrop().isSimilar(event.getSlimefunItem().getRecipeOutput()), "The drop must default to the recipe output");
+                event.setDrop(new ItemStack(Material.DIAMOND, 3));
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            ItemEntityMock itemDrop = dropVanillaBarter();
+
+            Assertions.assertEquals(Material.DIAMOND, itemDrop.getItemStack().getType(), "The drop must have been replaced with the custom stack");
+            Assertions.assertEquals(3, itemDrop.getItemStack().getAmount(), "The replacement's amount must be kept");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 

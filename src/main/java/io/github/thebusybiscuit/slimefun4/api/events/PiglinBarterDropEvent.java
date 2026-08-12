@@ -21,6 +21,11 @@ import io.github.thebusybiscuit.slimefun4.core.attributes.PiglinBarterDrop;
  * <p>
  * Cancelling this event skips the replacement: the {@link Piglin} keeps its vanilla drop
  * and no further {@link PiglinBarterDrop} items are tried for this barter.
+ * <p>
+ * The replacement {@link ItemStack} defaults to the winning item's
+ * {@link SlimefunItem#getRecipeOutput()} but can be changed via {@link #setDrop(ItemStack)},
+ * e.g. to barter for a custom item or a random amount. The winning {@link SlimefunItem}
+ * and its chance are unaffected - only the dropped stack changes.
  *
  * @author Zurker
  *
@@ -34,6 +39,7 @@ public class PiglinBarterDropEvent extends EntityEvent implements Cancellable {
     private final SlimefunItem slimefunItem;
     private final int chance;
 
+    private ItemStack drop;
     private boolean cancelled;
 
     public PiglinBarterDropEvent(@Nonnull Piglin piglin, @Nonnull Item itemDrop, @Nonnull SlimefunItem slimefunItem, int chance) {
@@ -45,6 +51,7 @@ public class PiglinBarterDropEvent extends EntityEvent implements Cancellable {
         this.itemDrop = itemDrop;
         this.slimefunItem = slimefunItem;
         this.chance = chance;
+        this.drop = slimefunItem.getRecipeOutput();
     }
 
     /**
@@ -89,6 +96,31 @@ public class PiglinBarterDropEvent extends EntityEvent implements Cancellable {
      */
     public int getChance() {
         return chance;
+    }
+
+    /**
+     * This returns the {@link ItemStack} the drop is about to be replaced with.
+     * It defaults to the winning item's {@link SlimefunItem#getRecipeOutput()}
+     * but can be changed via {@link #setDrop(ItemStack)}.
+     *
+     * @return The replacement drop {@link ItemStack}
+     */
+    @Nonnull
+    public ItemStack getDrop() {
+        return drop;
+    }
+
+    /**
+     * This replaces the {@link ItemStack} that will be dropped. The winning
+     * {@link SlimefunItem} and its chance are unaffected - only the dropped
+     * stack changes.
+     *
+     * @param drop
+     *            The new drop, not {@code null}
+     */
+    public void setDrop(@Nonnull ItemStack drop) {
+        Validate.notNull(drop, "The drop must not be null");
+        this.drop = drop;
     }
 
     @Override
