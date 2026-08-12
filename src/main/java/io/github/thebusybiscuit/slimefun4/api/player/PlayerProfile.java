@@ -34,6 +34,7 @@ import io.github.bakedlibs.dough.common.ChatColors;
 import io.github.bakedlibs.dough.common.CommonPatterns;
 import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncProfileLoadEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.BackpackCreateEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerResearchRankChangeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ResearchLockEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.ResearchProgressEvent;
@@ -388,6 +389,19 @@ public class PlayerProfile {
 
         for (int id : this.data.getBackpacks().keySet()) {
             nextId = Math.max(nextId, id + 1);
+        }
+
+        if (BackpackCreateEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            /*
+             * The event constructor applies the same size validation as
+             * PlayerBackpack.newBackpack, so an invalid requested size still
+             * throws an IllegalArgumentException here instead of below.
+             */
+            BackpackCreateEvent event = new BackpackCreateEvent(this, nextId, size);
+            Bukkit.getPluginManager().callEvent(event);
+
+            // An addon may have adjusted the initial size of this new backpack
+            size = event.getSize();
         }
 
         PlayerBackpack backpack = PlayerBackpack.newBackpack(this.ownerId, nextId, size);
