@@ -78,6 +78,9 @@ public class StrangeNetherGoo extends SimpleSlimefunItem<ItemUseHandler> impleme
                     return;
                 }
 
+                DyeColor taintColor = DyeColor.PURPLE;
+                String taintName = ChatColor.DARK_PURPLE + "Tainted Sheep";
+
                 if (StrangeNetherGooTaintEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     StrangeNetherGooTaintEvent event = new StrangeNetherGooTaintEvent(e.getPlayer(), this, sheep);
                     Bukkit.getPluginManager().callEvent(event);
@@ -85,6 +88,10 @@ public class StrangeNetherGoo extends SimpleSlimefunItem<ItemUseHandler> impleme
                     if (event.isCancelled()) {
                         return;
                     }
+
+                    // An addon may have customized the taint's appearance
+                    taintColor = event.getTaintColor();
+                    taintName = event.getTaintName();
                 }
 
                 if (e.getPlayer().getGameMode() != GameMode.CREATIVE) {
@@ -93,8 +100,8 @@ public class StrangeNetherGoo extends SimpleSlimefunItem<ItemUseHandler> impleme
 
                 // Give Sheep color, name and effect
                 sheep.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 2));
-                sheep.setColor(DyeColor.PURPLE);
-                sheep.setCustomName(ChatColor.DARK_PURPLE + "Tainted Sheep");
+                sheep.setColor(taintColor);
+                sheep.setCustomName(taintName);
                 e.setCancelled(true);
 
             }

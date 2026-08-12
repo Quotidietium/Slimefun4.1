@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.misc;
 
+import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -101,11 +102,21 @@ class TestStrangeNetherGooTaintEvent {
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(goo, event.getGoo());
         Assertions.assertEquals(sheep, event.getSheep());
+        Assertions.assertEquals(DyeColor.PURPLE, event.getTaintColor(), "The taint must default to purple");
+        Assertions.assertEquals(ChatColor.DARK_PURPLE + "Tainted Sheep", event.getTaintName(), "The taint must default to the classic name");
         Assertions.assertFalse(event.isCancelled());
+
+        // The taint appearance can be customized
+        event.setTaintColor(DyeColor.RED);
+        Assertions.assertEquals(DyeColor.RED, event.getTaintColor());
+        event.setTaintName(ChatColor.GREEN + "Cursed Sheep");
+        Assertions.assertEquals(ChatColor.GREEN + "Cursed Sheep", event.getTaintName());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTaintColor(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTaintName(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new StrangeNetherGooTaintEvent(player, null, sheep));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new StrangeNetherGooTaintEvent(player, goo, null));
     }
@@ -168,6 +179,37 @@ class TestStrangeNetherGooTaintEvent {
             Assertions.assertFalse(interactEvent.isCancelled(), "A cancelled taint must not consume the interaction");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("Customizing the taint appearance dyes and renames the sheep accordingly")
+    void testTaintAppearanceCustomized() {
+        Player player = server.addPlayer();
+        Sheep sheep = spawnSheep(player);
+
+        String customName = ChatColor.GREEN + "Cursed Sheep";
+        Listener customizing = new Listener() {
+            @EventHandler
+            public void onTaint(StrangeNetherGooTaintEvent event) {
+                Assertions.assertEquals(DyeColor.PURPLE, event.getTaintColor(), "The taint must default to purple");
+                event.setTaintColor(DyeColor.RED);
+                event.setTaintName(customName);
+            }
+        };
+        server.getPluginManager().registerEvents(customizing, plugin);
+
+        try {
+            PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(player, sheep);
+            ItemStack item = taint(player, sheep, interactEvent);
+
+            Assertions.assertEquals(2, item.getAmount(), "One goo must have been consumed");
+            Assertions.assertEquals(DyeColor.RED, sheep.getColor(), "The sheep must have been dyed with the customized color");
+            Assertions.assertEquals(customName, sheep.getCustomName(), "The sheep must have received the customized name");
+            Assertions.assertTrue(sheep.hasPotionEffect(PotionEffectType.POISON), "The sheep must still have been poisoned");
+            Assertions.assertTrue(interactEvent.isCancelled(), "The interaction must have been consumed");
+        } finally {
+            HandlerList.unregisterAll(customizing);
         }
     }
 
