@@ -19,6 +19,12 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
  * Cancelling this event skips this pumping operation entirely: the fluid stays in the
  * world, the energy is kept, the empty container is not consumed and nothing is
  * produced. The pump retries on its next tick.
+ * <p>
+ * Addons may also replace the produced container via {@link #setFilledContainer(ItemStack)},
+ * e.g. to turn pumped water into a custom fluid container. The replacement is pushed to
+ * the output slots as-is, without being re-checked against the space that was verified
+ * for the original container; the consumed empty container is still the one matched in
+ * the input slot.
  *
  * @author Zurker
  *
@@ -31,8 +37,8 @@ public class FluidPumpCollectEvent extends Event implements Cancellable {
     private final FluidPump pump;
     private final Block block;
     private final Block fluid;
-    private final ItemStack filledContainer;
 
+    private ItemStack filledContainer;
     private boolean cancelled;
 
     public FluidPumpCollectEvent(@Nonnull FluidPump pump, @Nonnull Block block, @Nonnull Block fluid, @Nonnull ItemStack filledContainer) {
@@ -88,6 +94,21 @@ public class FluidPumpCollectEvent extends Event implements Cancellable {
     @Nonnull
     public ItemStack getFilledContainer() {
         return filledContainer;
+    }
+
+    /**
+     * This replaces the filled container the {@link FluidPump} will produce.
+     * The replacement is pushed to the output slots as-is, without being re-checked
+     * against the space that was verified for the original container; the consumed
+     * empty container is still the one matched in the input slot.
+     *
+     * @param filledContainer
+     *            The new filled container, must not be null
+     */
+    public void setFilledContainer(@Nonnull ItemStack filledContainer) {
+        Validate.notNull(filledContainer, "The filled container must not be null");
+
+        this.filledContainer = filledContainer;
     }
 
     @Override

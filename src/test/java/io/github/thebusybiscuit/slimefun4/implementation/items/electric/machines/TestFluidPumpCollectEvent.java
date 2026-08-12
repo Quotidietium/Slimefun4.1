@@ -123,9 +123,15 @@ class TestFluidPumpCollectEvent {
         Assertions.assertEquals(bucket, event.getFilledContainer());
         Assertions.assertFalse(event.isCancelled());
 
+        // The produced container can be replaced
+        ItemStack replacement = new ItemStack(Material.LAVA_BUCKET);
+        event.setFilledContainer(replacement);
+        Assertions.assertEquals(replacement, event.getFilledContainer());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setFilledContainer(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new FluidPumpCollectEvent(null, b, b, bucket));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new FluidPumpCollectEvent(pump, null, b, bucket));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new FluidPumpCollectEvent(pump, b, null, bucket));
@@ -225,6 +231,34 @@ class TestFluidPumpCollectEvent {
             // The bottle path only drains the source on a 30% roll, so the drain is not verified
         } finally {
             HandlerList.unregisterAll(watcher);
+        }
+    }
+
+    @Test
+    @DisplayName("Replacing the filled container redirects the produced output")
+    void testSetFilledContainerRedirectsOutput() {
+        Block b = setupPump(70, 70);
+        menuOf(b).replaceExistingItem(19, new ItemStack(Material.BUCKET));
+
+        ItemStack replacement = new ItemStack(Material.LAVA_BUCKET, 1);
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onCollect(FluidPumpCollectEvent event) {
+                Assertions.assertEquals(Material.WATER_BUCKET, event.getFilledContainer().getType(), "The default container must be the filled bucket");
+                event.setFilledContainer(replacement);
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            pump.tick(b);
+
+            Mockito.verify(fluidBlock).setType(Material.AIR);
+            Assertions.assertEquals(0, menuOf(b).getItemInSlot(19).getAmount(), "The empty bucket must have been consumed");
+            Assertions.assertEquals(Material.LAVA_BUCKET, menuOf(b).getItemInSlot(24).getType(), "The replacement container must have been produced");
+            Assertions.assertNotEquals(Material.WATER_BUCKET, menuOf(b).getItemInSlot(24).getType(), "The original water bucket must not have been produced");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 

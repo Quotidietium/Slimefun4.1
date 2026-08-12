@@ -142,13 +142,15 @@ public class FluidPump extends SimpleSlimefunItem<BlockTicker> implements Invent
                     Block nextFluid = findNextFluid(fluid);
 
                     if (nextFluid != null) {
-                        if (fireCollectEvent(b, nextFluid, bucket)) {
+                        ItemStack filled = fireCollectEvent(b, nextFluid, bucket);
+
+                        if (filled == null) {
                             return;
                         }
 
                         removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
                         menu.consumeItem(slot);
-                        menu.pushItem(bucket, getOutputSlots());
+                        menu.pushItem(filled, getOutputSlots());
                         nextFluid.setType(Material.AIR);
                     }
 
@@ -163,13 +165,15 @@ public class FluidPump extends SimpleSlimefunItem<BlockTicker> implements Invent
                     Block nextFluid = findNextFluid(fluid);
 
                     if (nextFluid != null) {
-                        if (fireCollectEvent(b, nextFluid, bottle)) {
+                        ItemStack filled = fireCollectEvent(b, nextFluid, bottle);
+
+                        if (filled == null) {
                             return;
                         }
 
                         removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
                         menu.consumeItem(slot);
-                        menu.pushItem(bottle, getOutputSlots());
+                        menu.pushItem(filled, getOutputSlots());
 
                         if (ThreadLocalRandom.current().nextInt(100) < 30) {
                             nextFluid.setType(Material.AIR);
@@ -186,16 +190,24 @@ public class FluidPump extends SimpleSlimefunItem<BlockTicker> implements Invent
      * Fires a {@link FluidPumpCollectEvent} for the upcoming pumping operation, gated on
      * registered listeners to keep this per-tick path allocation-free by default.
      *
-     * @return Whether the operation was cancelled by a listener
+     * @return The filled container to push to the output slots (an addon may have replaced
+     *         it via {@link FluidPumpCollectEvent#setFilledContainer(ItemStack)}), or
+     *         {@code null} when the operation was cancelled by a listener
      */
-    private boolean fireCollectEvent(@Nonnull Block b, @Nonnull Block fluid, @Nonnull ItemStack filledContainer) {
+    @Nullable
+    private ItemStack fireCollectEvent(@Nonnull Block b, @Nonnull Block fluid, @Nonnull ItemStack filledContainer) {
         if (FluidPumpCollectEvent.getHandlerList().getRegisteredListeners().length > 0) {
             FluidPumpCollectEvent event = new FluidPumpCollectEvent(this, b, fluid, filledContainer);
             Bukkit.getPluginManager().callEvent(event);
-            return event.isCancelled();
+
+            if (event.isCancelled()) {
+                return null;
+            }
+
+            return event.getFilledContainer();
         }
 
-        return false;
+        return filledContainer;
     }
 
     @Nullable
