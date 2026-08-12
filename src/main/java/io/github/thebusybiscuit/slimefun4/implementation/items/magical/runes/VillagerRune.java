@@ -64,10 +64,10 @@ public class VillagerRune extends SimpleSlimefunItem<EntityInteractHandler> {
                     ItemUtils.consumeItem(item, false);
                 }
 
-                // Reset Villager
+                // Reset Villager - an addon may have picked the resulting profession
                 villager.setVillagerExperience(0);
                 villager.setVillagerLevel(1);
-                villager.setProfession(Profession.NONE);
+                villager.setProfession(event.getTargetProfession());
                 e.setCancelled(true);
 
                 double offset = ThreadLocalRandom.current().nextDouble(0.5);

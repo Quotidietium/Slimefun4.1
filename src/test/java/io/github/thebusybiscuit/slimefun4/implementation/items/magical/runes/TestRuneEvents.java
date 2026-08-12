@@ -374,11 +374,17 @@ class TestRuneEvents {
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(villager, event.getVillager());
         Assertions.assertEquals(stack, event.getRune());
+        Assertions.assertEquals(Villager.Profession.NONE, event.getTargetProfession(), "The reset must default to clearing the profession");
         Assertions.assertFalse(event.isCancelled());
+
+        // The resulting profession can be replaced
+        event.setTargetProfession(Villager.Profession.MASON);
+        Assertions.assertEquals(Villager.Profession.MASON, event.getTargetProfession());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTargetProfession(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new VillagerRuneResetEvent(player, null, stack));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new VillagerRuneResetEvent(player, villager, null));
     }
@@ -414,6 +420,37 @@ class TestRuneEvents {
             Mockito.verify(interactEvent).setCancelled(true);
         } finally {
             HandlerList.unregisterAll(listener);
+        }
+    }
+
+    @Test
+    @DisplayName("Replacing the target profession rerolls the villager instead of clearing it")
+    void testVillagerRuneProfessionRedirected() {
+        PlayerMock player = server.addPlayer();
+        player.setGameMode(GameMode.SURVIVAL);
+        Villager villager = newVillager(Villager.Profession.FARMER);
+        PlayerInteractEntityEvent interactEvent = newInteractEvent(player, villager);
+        ItemStack heldRune = villagerRune.getItem().clone();
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onReset(VillagerRuneResetEvent event) {
+                Assertions.assertEquals(Villager.Profession.NONE, event.getTargetProfession(), "The reset must default to clearing the profession");
+                event.setTargetProfession(Villager.Profession.MASON);
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            villagerRune.getItemHandler().onInteract(interactEvent, heldRune, false);
+
+            Mockito.verify(villager).setProfession(Villager.Profession.MASON);
+            Mockito.verify(villager, Mockito.never()).setProfession(Villager.Profession.NONE);
+            Mockito.verify(villager).setVillagerExperience(0);
+            Mockito.verify(villager).setVillagerLevel(1);
+            Mockito.verify(interactEvent).setCancelled(true);
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 

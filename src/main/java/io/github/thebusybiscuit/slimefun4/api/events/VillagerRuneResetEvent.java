@@ -5,6 +5,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang.Validate;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
+import org.bukkit.entity.Villager.Profession;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerEvent;
@@ -19,6 +20,11 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.magical.runes.Vil
  * <p>
  * Cancelling this event aborts the reset: the {@link Villager} keeps its profession
  * and the rune is not consumed.
+ * <p>
+ * Addons may also pick the profession the {@link Villager} ends up with via
+ * {@link #setTargetProfession(Profession)}, e.g. to reroll into a random profession
+ * instead of always clearing it. The level and experience are still reset to 1 and 0
+ * regardless; the chosen profession is applied as-is.
  *
  * @author Zurker
  *
@@ -31,6 +37,7 @@ public class VillagerRuneResetEvent extends PlayerEvent implements Cancellable {
     private final Villager villager;
     private final ItemStack rune;
 
+    private Profession targetProfession = Profession.NONE;
     private boolean cancelled;
 
     public VillagerRuneResetEvent(@Nonnull Player player, @Nonnull Villager villager, @Nonnull ItemStack rune) {
@@ -61,6 +68,32 @@ public class VillagerRuneResetEvent extends PlayerEvent implements Cancellable {
     @Nonnull
     public ItemStack getRune() {
         return rune;
+    }
+
+    /**
+     * This returns the {@link Profession} the {@link Villager} will have after the
+     * reset. It defaults to {@link Profession#NONE}: the profession is cleared.
+     *
+     * @return The target {@link Profession}
+     * @see #setTargetProfession(Profession)
+     */
+    @Nonnull
+    public Profession getTargetProfession() {
+        return targetProfession;
+    }
+
+    /**
+     * This sets the {@link Profession} the {@link Villager} will have after the reset,
+     * replacing the default {@link Profession#NONE}. The level and experience are still
+     * reset to 1 and 0 regardless.
+     *
+     * @param profession
+     *            The target {@link Profession}, must not be null
+     */
+    public void setTargetProfession(@Nonnull Profession profession) {
+        Validate.notNull(profession, "The target profession must not be null");
+
+        this.targetProfession = profession;
     }
 
     @Override
