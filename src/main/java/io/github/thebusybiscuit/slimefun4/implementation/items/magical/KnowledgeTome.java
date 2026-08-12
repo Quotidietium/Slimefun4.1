@@ -102,9 +102,13 @@ public class KnowledgeTome extends SimpleSlimefunItem<ItemUseHandler> {
                         // An addon vetoed the sharing; no researches are copied and the tome is kept.
                         return;
                     }
+
+                    // An addon may have redirected the research source
+                    uuid = event.getOwner();
                 }
 
-                PlayerProfile.get(p, profile -> PlayerProfile.fromUUID(uuid, owner -> {
+                final UUID sourceUuid = uuid;
+                PlayerProfile.get(p, profile -> PlayerProfile.fromUUID(sourceUuid, owner -> {
                     for (Research research : owner.getResearches()) {
                         research.unlock(p, true);
                     }

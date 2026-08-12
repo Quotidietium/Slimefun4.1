@@ -21,6 +21,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.magical.Knowledge
  * <p>
  * Cancelling this event vetoes the sharing entirely: no researches are copied and the tome
  * is not consumed.
+ * <p>
+ * Addons may also redirect the share source via {@link #setOwner(UUID)}, e.g. to make a
+ * special tome that always shares a template account's researches instead of the bound
+ * owner's. The bound owner written in the tome's lore is never modified.
  *
  * @author Zurker
  *
@@ -32,7 +36,8 @@ public class KnowledgeTomeShareEvent extends PlayerEvent implements Cancellable 
 
     private final KnowledgeTome tome;
     private final ItemStack tomeItem;
-    private final UUID owner;
+
+    private UUID owner;
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -76,6 +81,20 @@ public class KnowledgeTomeShareEvent extends PlayerEvent implements Cancellable 
     @Nonnull
     public UUID getOwner() {
         return owner;
+    }
+
+    /**
+     * This sets the {@link UUID} whose researches will be copied to the {@link Player},
+     * overriding the owner the tome is bound to. The tome's lore is never modified;
+     * the redirect applies only to this single share.
+     *
+     * @param owner
+     *            The {@link UUID} of the new research source, must not be null
+     */
+    public void setOwner(@Nonnull UUID owner) {
+        Validate.notNull(owner, "The owner UUID must not be null");
+
+        this.owner = owner;
     }
 
     @Override

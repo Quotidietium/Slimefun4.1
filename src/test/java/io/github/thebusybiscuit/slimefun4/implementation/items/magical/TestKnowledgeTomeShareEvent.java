@@ -2,9 +2,14 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -30,7 +35,9 @@ import io.github.thebusybiscuit.slimefun4.api.events.KnowledgeTomeShareEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
+import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
+import io.github.thebusybiscuit.slimefun4.api.researches.Research;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
 
@@ -120,12 +127,17 @@ class TestKnowledgeTomeShareEvent {
         Assertions.assertEquals(owner, event.getOwner());
         Assertions.assertFalse(event.isCancelled());
 
+        UUID redirect = UUID.randomUUID();
+        event.setOwner(redirect);
+        Assertions.assertEquals(redirect, event.getOwner());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeTomeShareEvent(player, null, tomeItem, owner));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeTomeShareEvent(player, tome, null, owner));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new KnowledgeTomeShareEvent(player, tome, tomeItem, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setOwner(null));
     }
 
     @Test
@@ -154,6 +166,72 @@ class TestKnowledgeTomeShareEvent {
             Assertions.assertTrue(seen[0], "KnowledgeTomeShareEvent was not fired");
         } finally {
             HandlerList.unregisterAll(watcher);
+        }
+    }
+
+    /**
+     * Loads (or returns the cached) {@link PlayerProfile} without asserting on the cache
+     * state - the tome's share chain may already have requested the receiver's profile.
+     */
+    private PlayerProfile profileOf(OfflinePlayer player) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<PlayerProfile> ref = new AtomicReference<>();
+        PlayerProfile.get(player, profile -> {
+            ref.set(profile);
+            latch.countDown();
+        });
+        Assertions.assertTrue(latch.await(5, TimeUnit.SECONDS), "The profile must have been provided");
+        return ref.get();
+    }
+
+    @Test
+    @DisplayName("Redirecting the share source via setOwner copies the redirected owner's researches")
+    void testSetOwnerRedirectsSource() throws InterruptedException {
+        Slimefun.getRegistry().setResearchingEnabled(true);
+
+        Player boundOwner = server.addPlayer();
+        Player template = server.addPlayer();
+        Player receiver = server.addPlayer();
+
+        Research boundResearch = new Research(new NamespacedKey(plugin, "knowledge_tome_redirect_bound"), 9821, "Bound Research", 0);
+        boundResearch.register();
+        Research templateResearch = new Research(new NamespacedKey(plugin, "knowledge_tome_redirect_template"), 9822, "Template Research", 0);
+        templateResearch.register();
+
+        TestUtilities.awaitProfile(boundOwner).setResearched(boundResearch, true);
+        TestUtilities.awaitProfile(template).setResearched(templateResearch, true);
+
+        ItemStack bound = boundTome(boundOwner.getUniqueId());
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onShare(KnowledgeTomeShareEvent event) {
+                Assertions.assertEquals(boundOwner.getUniqueId(), event.getOwner(), "The source must default to the bound owner");
+                event.setOwner(template.getUniqueId());
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            use(receiver, bound);
+
+            /*
+             * The copy chain hops asynchronous profile loads and a scheduled sync task
+             * (PlayerResearchTask schedules unlockResearch), so poll the receiver's profile
+             * while draining the scheduler instead of awaiting a single signal.
+             */
+            PlayerProfile receiverProfile = profileOf(receiver);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+
+            while (System.nanoTime() < deadline && !receiverProfile.hasUnlocked(templateResearch)) {
+                server.getScheduler().performOneTick();
+                Thread.sleep(10);
+            }
+
+            Assertions.assertTrue(receiverProfile.hasUnlocked(templateResearch), "The redirected source's research must have been copied");
+            Assertions.assertFalse(receiverProfile.hasUnlocked(boundResearch), "The bound owner's research must not have been copied");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 
