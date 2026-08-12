@@ -72,8 +72,8 @@ public class SoulboundListener implements Listener {
         for (int slot = 0; slot < p.getInventory().getSize(); slot++) {
             ItemStack item = p.getInventory().getItem(slot);
 
-            // Store soulbound items for later retrieval
-            if (SlimefunUtils.isSoulbound(item, p.getWorld())) {
+            // Store soulbound items for later retrieval, unless an addon excluded them
+            if (SlimefunUtils.isSoulbound(item, p.getWorld()) && !keepEvent.isExcluded(item)) {
                 items.put(slot, item);
             }
         }
@@ -85,7 +85,7 @@ public class SoulboundListener implements Listener {
          */
         ItemStack cursor = p.getItemOnCursor();
 
-        if (SlimefunUtils.isSoulbound(cursor, p.getWorld())) {
+        if (SlimefunUtils.isSoulbound(cursor, p.getWorld()) && !keepEvent.isExcluded(cursor)) {
             items.put(CURSOR_SLOT, cursor.clone());
         }
 
@@ -98,8 +98,8 @@ public class SoulboundListener implements Listener {
             existingItems.putAll(items);
         }
 
-        // Remove soulbound items from our drops
-        e.getDrops().removeIf(itemStack -> SlimefunUtils.isSoulbound(itemStack, p.getWorld()));
+        // Remove soulbound items from our drops, unless an addon let them drop normally
+        e.getDrops().removeIf(itemStack -> SlimefunUtils.isSoulbound(itemStack, p.getWorld()) && !keepEvent.isExcluded(itemStack));
     }
 
     @EventHandler

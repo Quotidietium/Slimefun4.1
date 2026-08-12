@@ -127,6 +127,67 @@ class TestSoulboundEvents {
     }
 
     @Test
+    @DisplayName("An excluded soulbound item drops normally and is not returned on respawn")
+    void testExcludedItemDropsNormally() {
+        PlayerMock player = server.addPlayer();
+        ItemStack sword = CustomItemStack.create(Material.DIAMOND_SWORD, "&4Soulbound Sword");
+        SlimefunUtils.setSoulbound(sword, true);
+        ItemStack shovel = CustomItemStack.create(Material.DIAMOND_SHOVEL, "&4Soulbound Shovel");
+        SlimefunUtils.setSoulbound(shovel, true);
+        player.getInventory().setItem(6, sword);
+        player.getInventory().setItem(7, shovel);
+
+        List<ItemStack> drops = new ArrayList<>();
+        drops.add(sword.clone());
+        drops.add(shovel.clone());
+
+        Listener excluding = new Listener() {
+            @EventHandler
+            public void onKeep(SoulboundItemsKeepEvent event) {
+                if (event.getPlayer().equals(player)) {
+                    event.excludeWhen(item -> item.getType() == Material.DIAMOND_SWORD);
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(excluding, plugin);
+
+        try {
+            listener.onDamage(newDeathEvent(player, drops));
+
+            Assertions.assertEquals(1, drops.size(), "The excluded sword must have stayed in the death drops");
+            Assertions.assertEquals(Material.DIAMOND_SWORD, drops.get(0).getType());
+
+            // MockBukkit does not clear the inventory on death like a real server would
+            player.getInventory().clear();
+
+            listener.onRespawn(newRespawnEvent(player));
+
+            Assertions.assertNull(player.getInventory().getItem(6), "The excluded sword must not have been returned");
+            Assertions.assertNotNull(player.getInventory().getItem(7), "The shovel must have been kept as usual");
+            Assertions.assertEquals(Material.DIAMOND_SHOVEL, player.getInventory().getItem(7).getType());
+        } finally {
+            HandlerList.unregisterAll(excluding);
+        }
+    }
+
+    @Test
+    @DisplayName("SoulboundItemsKeepEvent validates its exclusion predicates")
+    void testExcludeWhenValidation() {
+        PlayerMock player = server.addPlayer();
+        SoulboundItemsKeepEvent event = new SoulboundItemsKeepEvent(player, newDeathEvent(player, new ArrayList<>()));
+
+        Assertions.assertFalse(event.isExcluded(null), "A null item is never excluded");
+        Assertions.assertFalse(event.isExcluded(new ItemStack(Material.DIAMOND_SWORD)), "Without a predicate nothing is excluded");
+
+        event.excludeWhen(item -> item.getType() == Material.DIAMOND_SWORD);
+
+        Assertions.assertTrue(event.isExcluded(new ItemStack(Material.DIAMOND_SWORD)));
+        Assertions.assertFalse(event.isExcluded(new ItemStack(Material.DIAMOND_SHOVEL)));
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.excludeWhen(null));
+    }
+
+    @Test
     @DisplayName("SoulboundItemsReturnEvent fires on respawn with the returned items")
     void testReturnEventOnRespawn() {
         PlayerMock player = server.addPlayer();
