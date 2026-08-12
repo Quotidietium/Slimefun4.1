@@ -108,7 +108,7 @@ public class RadiationTask extends AbstractArmorTask {
                 }
 
                 for (RadiationSymptom symptom : symptoms) {
-                    if (symptom.shouldApply(exposureLevelAfter)) {
+                    if (symptom.shouldApply(event.getExposure())) {
                         symptom.apply(p);
                     }
                 }
