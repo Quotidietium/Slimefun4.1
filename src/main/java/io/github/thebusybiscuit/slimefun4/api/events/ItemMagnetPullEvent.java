@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Location;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -18,6 +19,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.magical.InfusedMa
  * <p>
  * Cancelling this event skips this {@link Item}: it is left where it is and not teleported.
  * The magnet keeps pulling the remaining items within its radius during this tick.
+ * <p>
+ * Addons may also redirect the pull via {@link #setDestination(Location)}, e.g. to route
+ * valuables straight into a secure vault instead of the player's feet. The destination
+ * defaults to the {@link Player}'s location; the pickup sound still plays.
  *
  * @author Zurker
  *
@@ -30,6 +35,7 @@ public class ItemMagnetPullEvent extends PlayerEvent implements Cancellable {
     private final InfusedMagnet magnet;
     private final Item item;
 
+    private Location destination;
     private boolean cancelled;
 
     public ItemMagnetPullEvent(@Nonnull Player player, @Nonnull InfusedMagnet magnet, @Nonnull Item item) {
@@ -39,6 +45,7 @@ public class ItemMagnetPullEvent extends PlayerEvent implements Cancellable {
 
         this.magnet = magnet;
         this.item = item;
+        this.destination = player.getLocation();
     }
 
     /**
@@ -59,6 +66,31 @@ public class ItemMagnetPullEvent extends PlayerEvent implements Cancellable {
     @Nonnull
     public Item getItem() {
         return item;
+    }
+
+    /**
+     * This returns the {@link Location} the {@link Item} will be teleported to. It
+     * defaults to the {@link Player}'s location.
+     *
+     * @return The pull destination
+     * @see #setDestination(Location)
+     */
+    @Nonnull
+    public Location getDestination() {
+        return destination;
+    }
+
+    /**
+     * This redirects the pull to a different {@link Location}: the {@link Item} is
+     * teleported there instead of to the {@link Player}'s feet.
+     *
+     * @param destination
+     *            The pull destination, must not be null
+     */
+    public void setDestination(@Nonnull Location destination) {
+        Validate.notNull(destination, "The destination must not be null");
+
+        this.destination = destination;
     }
 
     @Override

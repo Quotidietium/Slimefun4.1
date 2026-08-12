@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
@@ -75,11 +76,19 @@ public class InfusedMagnetTask extends AbstractPlayerTask {
 
         for (Entity entity : p.getNearbyEntities(radius, radius, radius)) {
             if (entity instanceof Item item && !SlimefunUtils.hasNoPickupFlag(item) && item.getPickupDelay() <= 0 && p.getLocation().distanceSquared(item.getLocation()) > 0.3) {
-                if (listenersPresent && isPullCancelled(item)) {
-                    continue;
+                Location destination;
+
+                if (listenersPresent) {
+                    destination = pullDestination(item);
+
+                    if (destination == null) {
+                        continue;
+                    }
+                } else {
+                    destination = p.getLocation();
                 }
 
-                item.teleport(p.getLocation());
+                item.teleport(destination);
                 playSound = true;
             }
         }
@@ -91,13 +100,15 @@ public class InfusedMagnetTask extends AbstractPlayerTask {
     }
 
     /**
-     * Fires an {@link ItemMagnetPullEvent} for the given item and returns whether the pull
-     * was cancelled. Only called when at least one listener is registered.
+     * Fires an {@link ItemMagnetPullEvent} for the given item and returns the destination
+     * the item will be teleported to, or {@code null} when a listener cancelled the pull.
+     * Only called when at least one listener is registered.
      */
-    private boolean isPullCancelled(@Nonnull Item item) {
+    @Nullable
+    private Location pullDestination(@Nonnull Item item) {
         ItemMagnetPullEvent event = new ItemMagnetPullEvent(p, magnet, item);
         Bukkit.getPluginManager().callEvent(event);
-        return event.isCancelled();
+        return event.isCancelled() ? null : event.getDestination();
     }
 
     @Override

@@ -100,11 +100,18 @@ class TestItemMagnetPullEvent {
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(magnet, event.getMagnet());
         Assertions.assertEquals(item, event.getItem());
+        Assertions.assertEquals(player.getLocation(), event.getDestination(), "The pull must default to the player's location");
         Assertions.assertFalse(event.isCancelled());
+
+        // The pull can be redirected
+        Location vault = new Location(player.getWorld(), 100, 65, 100);
+        event.setDestination(vault);
+        Assertions.assertEquals(vault, event.getDestination());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDestination(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ItemMagnetPullEvent(player, null, item));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ItemMagnetPullEvent(player, magnet, null));
     }
@@ -171,6 +178,36 @@ class TestItemMagnetPullEvent {
             Assertions.assertEquals(player.getLocation(), gold.getLocation(), "The gold must still have been pulled");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("Redirecting the destination teleports the item there instead of to the player")
+    void testSetDestinationRedirectsPull() {
+        Player player = server.addPlayer();
+
+        Item diamond = dropItem(player, 3, 0, Material.DIAMOND);
+        Item gold = dropItem(player, 0, 3, Material.GOLD_INGOT);
+        Location vault = new Location(player.getWorld(), player.getLocation().getX() + 2, player.getLocation().getY(), player.getLocation().getZ() + 2);
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onPull(ItemMagnetPullEvent event) {
+                if (event.getItem() == diamond) {
+                    Assertions.assertEquals(player.getLocation(), event.getDestination(), "The destination must default to the player");
+                    event.setDestination(vault);
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            runMagnet(player);
+
+            Assertions.assertEquals(vault, diamond.getLocation(), "The diamond must have been teleported to the redirected destination");
+            Assertions.assertEquals(player.getLocation(), gold.getLocation(), "The gold must still have been pulled to the player");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 
