@@ -20,6 +20,11 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.gadgets.
  * <p>
  * Cancelling this event skips the display entirely: no message is sent, allowing an addon
  * to present the readings through its own channel or to suppress the measurement.
+ * <p>
+ * Addons may also adjust the displayed readings via {@link #setStored(int)} and
+ * {@link #setCapacity(int)}, e.g. to disguise the charge of a secret facility or to
+ * present the values in a different scale. The adjustment affects only the readout sent
+ * to the {@link Player}; the actually stored charge is never modified.
  *
  * @author Zurker
  *
@@ -33,8 +38,8 @@ public class MultimeterReadEvent extends PlayerEvent implements Cancellable {
     private final Multimeter multimeter;
     private final Location location;
     private final EnergyNetComponent component;
-    private final int stored;
-    private final int capacity;
+    private int stored;
+    private int capacity;
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -87,18 +92,48 @@ public class MultimeterReadEvent extends PlayerEvent implements Cancellable {
      * This returns the charge currently stored at the measured {@link Location}.
      *
      * @return The stored charge
+     * @see #setStored(int)
      */
     public int getStored() {
         return stored;
     }
 
     /**
+     * This overrides the stored charge shown in the readout. The adjustment is purely
+     * cosmetic: the charge actually stored at the measured {@link Location} is never
+     * modified.
+     *
+     * @param stored
+     *            The stored charge to display, must not be negative
+     */
+    public void setStored(int stored) {
+        Validate.isTrue(stored >= 0, "The stored charge must not be negative");
+
+        this.stored = stored;
+    }
+
+    /**
      * This returns the capacity of the measured {@link EnergyNetComponent}.
      *
      * @return The capacity
+     * @see #setCapacity(int)
      */
     public int getCapacity() {
         return capacity;
+    }
+
+    /**
+     * This overrides the capacity shown in the readout. The adjustment is purely
+     * cosmetic: the capacity of the measured {@link EnergyNetComponent} is never
+     * modified.
+     *
+     * @param capacity
+     *            The capacity to display, must be positive
+     */
+    public void setCapacity(int capacity) {
+        Validate.isTrue(capacity > 0, "The capacity must be positive");
+
+        this.capacity = capacity;
     }
 
     @Override

@@ -139,9 +139,22 @@ class TestMultimeterReadEvent {
         Assertions.assertEquals(250, event.getCapacity());
         Assertions.assertFalse(event.isCancelled());
 
+        // The displayed readings can be adjusted
+        event.setStored(0);
+        Assertions.assertEquals(0, event.getStored());
+        event.setStored(999);
+        Assertions.assertEquals(999, event.getStored());
+        event.setCapacity(1);
+        Assertions.assertEquals(1, event.getCapacity());
+        event.setCapacity(500);
+        Assertions.assertEquals(500, event.getCapacity());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setStored(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setCapacity(0));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setCapacity(-5));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new MultimeterReadEvent(player, null, location, component, 120, 250));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new MultimeterReadEvent(player, multimeter, null, component, 120, 250));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new MultimeterReadEvent(player, multimeter, location, null, 120, 250));
@@ -270,6 +283,49 @@ class TestMultimeterReadEvent {
         Assertions.assertEquals("", player.nextMessage(), "The readout starts with an empty line");
         Assertions.assertEquals("", player.nextMessage(), "The readout ends with an empty line");
         Assertions.assertNull(player.nextMessage(), "The display block must not send further chat lines");
+    }
+
+    @Test
+    @DisplayName("Adjusting the readings propagates through the dispatch and keeps the display")
+    void testAdjustedReadingsPropagate() {
+        PlayerMock player = server.addPlayer();
+        Block b = placeComponent(60, 60, component, 120);
+
+        // Registered first, so it runs before the observer within the same priority
+        Listener adjusting = new Listener() {
+            @EventHandler
+            public void onRead(MultimeterReadEvent event) {
+                event.setStored(7);
+                event.setCapacity(3);
+            }
+        };
+
+        boolean[] seenAdjusted = { false };
+        Listener observer = new Listener() {
+            @EventHandler
+            public void onRead(MultimeterReadEvent event) {
+                seenAdjusted[0] = true;
+                Assertions.assertEquals(7, event.getStored(), "The adjusted stored charge must propagate through the dispatch");
+                Assertions.assertEquals(3, event.getCapacity(), "The adjusted capacity must propagate through the dispatch");
+            }
+        };
+        server.getPluginManager().registerEvents(adjusting, plugin);
+        server.getPluginManager().registerEvents(observer, plugin);
+
+        try {
+            measure(player, b);
+
+            Assertions.assertTrue(seenAdjusted[0], "MultimeterReadEvent was not fired");
+            // The localized readout line is gated by MinecraftVersion.UNIT_TEST (see
+            // testMeasureWithoutListenersSendsReadout), so only the framing lines are observable:
+            // the display must still happen with the adjusted readings.
+            Assertions.assertEquals("", player.nextMessage(), "The readout starts with an empty line");
+            Assertions.assertEquals("", player.nextMessage(), "The readout ends with an empty line");
+            Assertions.assertNull(player.nextMessage(), "The display block must not send further chat lines");
+        } finally {
+            HandlerList.unregisterAll(adjusting);
+            HandlerList.unregisterAll(observer);
+        }
     }
 
     /**

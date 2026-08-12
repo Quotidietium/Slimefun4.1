@@ -61,6 +61,10 @@ public class Multimeter extends SimpleSlimefunItem<ItemUseHandler> {
                             // An addon handled or vetoed the readout; send nothing.
                             return;
                         }
+
+                        // An addon may have adjusted the displayed readings
+                        stored = event.getStored();
+                        capacity = event.getCapacity();
                     }
 
                     String storedText = NumberUtils.getCompactDouble(stored) + " J";
