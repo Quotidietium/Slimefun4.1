@@ -58,7 +58,8 @@ public class MobDropListener implements Listener {
                         Bukkit.getPluginManager().callEvent(dropEvent);
 
                         if (!dropEvent.isCancelled()) {
-                            e.getDrops().add(drop.clone());
+                            // An addon may have replaced the custom drop
+                            e.getDrops().add(dropEvent.getDrop().clone());
                         }
                     }
                 }

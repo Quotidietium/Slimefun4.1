@@ -19,6 +19,12 @@ import io.github.thebusybiscuit.slimefun4.core.attributes.RandomMobDrop;
  * check and any {@link RandomMobDrop} chance roll have already passed.
  * <p>
  * Cancelling this event prevents this particular drop from being added.
+ * <p>
+ * Addons may also replace the drop via {@link #setDrop(ItemStack)}, e.g. to upgrade a
+ * drop while a lucky charm is active. The replacement is cloned and added to the
+ * {@link EntityDeathEvent}'s drops as-is; the permission check and the
+ * {@link RandomMobDrop} chance roll already passed for the original drop and are not
+ * re-applied to the replacement.
  *
  * @author Zurker
  *
@@ -31,7 +37,7 @@ public class SlimefunMobDropEvent extends Event implements Cancellable {
 
     private final Player killer;
     private final LivingEntity entity;
-    private final ItemStack drop;
+    private ItemStack drop;
     private final EntityDeathEvent underlyingEvent;
 
     private boolean cancelled;
@@ -72,10 +78,26 @@ public class SlimefunMobDropEvent extends Event implements Cancellable {
      * This returns the custom {@link ItemStack} that is about to be dropped.
      *
      * @return The custom drop {@link ItemStack}
+     * @see #setDrop(ItemStack)
      */
     @Nonnull
     public ItemStack getDrop() {
         return drop;
+    }
+
+    /**
+     * This replaces the custom {@link ItemStack} that is about to be dropped. The
+     * replacement is cloned and added to the {@link EntityDeathEvent}'s drops as-is,
+     * without re-checking the killer's permission or rerolling the
+     * {@link RandomMobDrop} chance.
+     *
+     * @param drop
+     *            The new drop {@link ItemStack}, must not be null
+     */
+    public void setDrop(@Nonnull ItemStack drop) {
+        Validate.notNull(drop, "The drop must not be null");
+
+        this.drop = drop;
     }
 
     /**

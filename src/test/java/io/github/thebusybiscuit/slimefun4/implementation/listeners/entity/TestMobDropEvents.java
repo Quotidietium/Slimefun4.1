@@ -175,6 +175,38 @@ class TestMobDropEvents {
     }
 
     @Test
+    @DisplayName("Replacing the drop via setDrop adds the replacement to the drops")
+    void testSetDropReplacesCustomDrop() {
+        Player player = server.addPlayer();
+        ItemStack customDrop = new ItemStack(Material.NETHER_STAR, 1);
+
+        Set<ItemStack> drops = Slimefun.getRegistry().getMobDrops().computeIfAbsent(EntityType.ZOMBIE, type -> new HashSet<>());
+        drops.add(customDrop);
+
+        ItemStack replacement = new ItemStack(Material.DIAMOND, 3);
+        Listener replacing = new Listener() {
+            @EventHandler
+            public void onDrop(SlimefunMobDropEvent event) {
+                Assertions.assertEquals(customDrop, event.getDrop(), "The original custom drop must be exposed");
+                event.setDrop(replacement);
+            }
+        };
+        server.getPluginManager().registerEvents(replacing, plugin);
+
+        try {
+            EntityDeathEvent deathEvent = newDeathEvent(player, new ArrayList<>());
+            listener.onEntityKill(deathEvent);
+
+            Assertions.assertEquals(1, deathEvent.getDrops().size(), "Exactly one drop must have been added");
+            Assertions.assertEquals(replacement, deathEvent.getDrops().get(0), "The replacement must have been added");
+            Assertions.assertNotEquals(Material.NETHER_STAR, deathEvent.getDrops().get(0).getType(), "The original drop must not have been added");
+        } finally {
+            HandlerList.unregisterAll(replacing);
+            Slimefun.getRegistry().getMobDrops().remove(EntityType.ZOMBIE);
+        }
+    }
+
+    @Test
     @DisplayName("Both events reject null arguments")
     void testNullValidation() {
         Player player = server.addPlayer();
@@ -182,6 +214,11 @@ class TestMobDropEvents {
         ItemStack drop = new ItemStack(Material.DIAMOND);
         EntityDeathEvent deathEvent = newDeathEvent(player, new ArrayList<>());
         SlimefunItem sfItem = Mockito.mock(SlimefunItem.class);
+
+        SlimefunMobDropEvent mobDropEvent = new SlimefunMobDropEvent(player, entity, drop, deathEvent);
+        mobDropEvent.setDrop(new ItemStack(Material.EMERALD));
+        Assertions.assertEquals(Material.EMERALD, mobDropEvent.getDrop().getType(), "The replaced drop must be returned");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> mobDropEvent.setDrop(null));
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SlimefunMobDropEvent(null, entity, drop, deathEvent));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SlimefunMobDropEvent(player, null, drop, deathEvent));
