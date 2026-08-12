@@ -23,6 +23,7 @@ import org.bukkit.block.Block;
 import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.thebusybiscuit.slimefun4.api.ErrorReport;
 import io.github.thebusybiscuit.slimefun4.api.events.EnergyGenerateEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.EnergyConsumeEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.EnergyNetTickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.network.Network;
@@ -246,12 +247,19 @@ public class EnergyNet extends Network implements HologramOwner {
                         demand = NumberUtils.flowSafeAddition(demand, availableSpace);
 
                         if (remainingEnergy > 0) {
-                            if (remainingEnergy > availableSpace) {
-                                component.setCharge(loc, data, capacity);
-                                remainingEnergy -= availableSpace;
-                            } else {
-                                component.setCharge(loc, data, charge + remainingEnergy);
-                                remainingEnergy = 0;
+                            int transfer = Math.min(remainingEnergy, availableSpace);
+
+                            // On-demand consumer hook: scale or suppress this transfer. Zero-cost
+                            // when no listener is registered.
+                            if (EnergyConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                                EnergyConsumeEvent consumeEvent = new EnergyConsumeEvent(this, component, loc, transfer, transfer);
+                                Bukkit.getPluginManager().callEvent(consumeEvent);
+                                transfer = consumeEvent.isCancelled() ? 0 : consumeEvent.getEnergy();
+                            }
+
+                            if (transfer > 0) {
+                                component.setCharge(loc, data, charge + transfer);
+                                remainingEnergy -= transfer;
                             }
                         }
                     }

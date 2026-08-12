@@ -16,6 +16,7 @@ import org.mockito.Mockito;
 import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
 
+import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetProvider;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNet;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -115,6 +116,76 @@ class TestEnergyEvents {
             Assertions.assertEquals(80, listener.seenSupply);
         } finally {
             org.bukkit.event.HandlerList.unregisterAll(listener);
+        }
+    }
+
+    @Test
+    @DisplayName("EnergyConsumeEvent exposes and allows modifying the transferred energy")
+    void testConsumeEventFieldsAndMutation() {
+        EnergyNet network = Mockito.mock(EnergyNet.class);
+        EnergyNetComponent component = Mockito.mock(EnergyNetComponent.class);
+        Mockito.when(component.getCapacity()).thenReturn(100);
+        Location location = new Location(Mockito.mock(World.class), 1, 2, 3);
+
+        EnergyConsumeEvent event = new EnergyConsumeEvent(network, component, location, 40, 40);
+
+        Assertions.assertEquals(network, event.getNetwork());
+        Assertions.assertEquals(component, event.getComponent());
+        Assertions.assertEquals(location, event.getLocation());
+        Assertions.assertEquals(40, event.getEnergy());
+        Assertions.assertEquals(40, event.getMaxTransfer());
+        Assertions.assertFalse(event.isCancelled());
+
+        event.setEnergy(0);
+        Assertions.assertEquals(0, event.getEnergy());
+
+        event.setEnergy(25);
+        Assertions.assertEquals(25, event.getEnergy());
+
+        // Energy above the maximum transfer or below zero is rejected
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setEnergy(41));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setEnergy(-1));
+
+        event.setCancelled(true);
+        Assertions.assertTrue(event.isCancelled());
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new EnergyConsumeEvent(null, component, location, 40, 40));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new EnergyConsumeEvent(network, null, location, 40, 40));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new EnergyConsumeEvent(network, component, null, 40, 40));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new EnergyConsumeEvent(network, component, location, -1, 40));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new EnergyConsumeEvent(network, component, location, 40, 30));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new EnergyConsumeEvent(network, component, location, 40, 101));
+    }
+
+    @Test
+    @DisplayName("EnergyConsumeEvent is dispatchable to listeners")
+    void testConsumeEventDispatch() {
+        EnergyNet network = Mockito.mock(EnergyNet.class);
+        EnergyNetComponent component = Mockito.mock(EnergyNetComponent.class);
+        Mockito.when(component.getCapacity()).thenReturn(100);
+        Location location = new Location(Mockito.mock(World.class), 1, 2, 3);
+
+        CapturingConsumeListener listener = new CapturingConsumeListener();
+        server.getPluginManager().registerEvents(listener, plugin);
+
+        try {
+            server.getPluginManager().callEvent(new EnergyConsumeEvent(network, component, location, 60, 60));
+
+            Assertions.assertTrue(listener.fired);
+            Assertions.assertEquals(60, listener.seenEnergy);
+        } finally {
+            org.bukkit.event.HandlerList.unregisterAll(listener);
+        }
+    }
+
+    private static class CapturingConsumeListener implements Listener {
+        boolean fired;
+        int seenEnergy;
+
+        @EventHandler
+        public void onConsume(EnergyConsumeEvent event) {
+            fired = true;
+            seenEnergy = event.getEnergy();
         }
     }
 
