@@ -39,10 +39,10 @@ import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
  * {@link PlayerRightClickEvent}.
  * <p>
  * MockBukkit's block data registry has no {@link Ageable} for nether wart, so the wart is a
- * Mockito hybrid block with a mocked {@link Ageable} block data. The growth ends in
- * {@code playEffect(STEP_SOUND, Material)}, which MockBukkit rejects with an
- * {@link IllegalArgumentException} before the bonemeal is consumed - reaching that tail proves
- * the growth ran, and the consumption stays unobservable here.
+ * Mockito hybrid block with a mocked {@link Ageable} block data. The growth tail plays its
+ * effect with {@code BlockData} (the primary data type of {@code STEP_SOUND}), which
+ * MockBukkit accepts, so the whole tail - growth, effect and bonemeal consumption - is
+ * observable end to end.
  *
  * @author Zurker
  */
@@ -78,28 +78,16 @@ class TestInfernalBonemealGrowEvent {
     }
 
     /**
-     * Right-clicks a Mockito nether wart with the given age via the real handler.
-     *
-     * @return true if the growth tail (the playEffect MockBukkit rejects) was reached
+     * Right-clicks a Mockito nether wart with three bonemeal via the real handler and
+     * returns the used {@link ItemStack} for consumption assertions.
      */
-    private boolean grow(Player player, Block wart, Ageable ageable) {
+    private ItemStack grow(Player player, Block wart) {
         ItemStack item = bonemeal.getItem().clone();
         item.setAmount(3);
 
         PlayerInteractEvent interactEvent = new PlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, item, wart, BlockFace.UP);
-        PlayerRightClickEvent event = new PlayerRightClickEvent(interactEvent);
-
-        try {
-            bonemeal.getItemHandler().onRightClick(event);
-            return false;
-        } catch (IllegalArgumentException ex) {
-            if (ex.getMessage() != null && ex.getMessage().contains("Wrong kind of data")) {
-                // MockBukkit rejects playEffect(STEP_SOUND, Material) - see class javadoc
-                return true;
-            }
-
-            throw ex;
-        }
+        bonemeal.getItemHandler().onRightClick(new PlayerRightClickEvent(interactEvent));
+        return item;
     }
 
     private Block mockNetherWart(int x, int z, Ageable ageable) {
@@ -119,23 +107,32 @@ class TestInfernalBonemealGrowEvent {
     }
 
     @Test
-    @DisplayName("InfernalBonemealGrowEvent exposes its fields and validates constructor arguments")
+    @DisplayName("InfernalBonemealGrowEvent exposes its fields and validates constructor and setter arguments")
     void testEventFieldsAndValidation() {
         Player player = server.addPlayer();
-        Block wart = world.getBlockAt(0, 4, 0);
+        Block wart = mockNetherWart(0, 0, mockAgeable(1, 3));
 
         InfernalBonemealGrowEvent event = new InfernalBonemealGrowEvent(player, bonemeal, wart);
 
         Assertions.assertEquals(player, event.getPlayer());
         Assertions.assertEquals(bonemeal, event.getBonemeal());
         Assertions.assertEquals(wart, event.getBlock());
+        Assertions.assertEquals(3, event.getMaximumAge(), "The maximum age must come from the block data");
+        Assertions.assertEquals(3, event.getTargetAge(), "The growth must default to full maturity");
         Assertions.assertFalse(event.isCancelled());
+
+        // The growth can be throttled to any age within the maximum
+        event.setTargetAge(1);
+        Assertions.assertEquals(1, event.getTargetAge());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTargetAge(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTargetAge(4), "The target age must not exceed the maximum");
         Assertions.assertThrows(IllegalArgumentException.class, () -> new InfernalBonemealGrowEvent(player, null, wart));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new InfernalBonemealGrowEvent(player, bonemeal, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new InfernalBonemealGrowEvent(player, bonemeal, wart, -1));
     }
 
     @Test
@@ -152,28 +149,55 @@ class TestInfernalBonemealGrowEvent {
                 seen[0] = true;
                 Assertions.assertEquals(bonemeal, event.getBonemeal());
                 Assertions.assertEquals(wart, event.getBlock());
+                Assertions.assertEquals(3, event.getTargetAge(), "The growth must default to full maturity");
             }
         };
         server.getPluginManager().registerEvents(watcher, plugin);
 
         try {
-            boolean effectReached = grow(player, wart, ageable);
+            ItemStack item = grow(player, wart);
 
             Assertions.assertTrue(seen[0], "InfernalBonemealGrowEvent was not fired");
             Mockito.verify(ageable).setAge(3);
             Mockito.verify(wart).setBlockData(ageable);
-            Assertions.assertTrue(effectReached, "The growth tail must have been reached");
+            Assertions.assertEquals(2, item.getAmount(), "One bonemeal must have been consumed");
         } finally {
             HandlerList.unregisterAll(watcher);
         }
     }
 
     @Test
-    @DisplayName("Cancelling InfernalBonemealGrowEvent keeps the wart age untouched")
-    void testEventCancellationSkipsGrowth() {
+    @DisplayName("setTargetAge throttles the growth to the given age")
+    void testSetTargetAgeThrottlesGrowth() {
         Player player = server.addPlayer();
         Ageable ageable = mockAgeable(1, 3);
         Block wart = mockNetherWart(20, 20, ageable);
+
+        Listener throttling = new Listener() {
+            @EventHandler
+            public void onGrow(InfernalBonemealGrowEvent event) {
+                event.setTargetAge(2);
+            }
+        };
+        server.getPluginManager().registerEvents(throttling, plugin);
+
+        try {
+            ItemStack item = grow(player, wart);
+
+            Mockito.verify(ageable).setAge(2);
+            Mockito.verify(ageable, Mockito.never()).setAge(3);
+            Assertions.assertEquals(2, item.getAmount(), "One bonemeal must have been consumed");
+        } finally {
+            HandlerList.unregisterAll(throttling);
+        }
+    }
+
+    @Test
+    @DisplayName("Cancelling InfernalBonemealGrowEvent keeps the wart age and the bonemeal untouched")
+    void testEventCancellationSkipsGrowth() {
+        Player player = server.addPlayer();
+        Ageable ageable = mockAgeable(1, 3);
+        Block wart = mockNetherWart(30, 30, ageable);
 
         Listener cancelling = new Listener() {
             @EventHandler
@@ -184,11 +208,11 @@ class TestInfernalBonemealGrowEvent {
         server.getPluginManager().registerEvents(cancelling, plugin);
 
         try {
-            boolean effectReached = grow(player, wart, ageable);
+            ItemStack item = grow(player, wart);
 
             Mockito.verify(ageable, Mockito.never()).setAge(Mockito.anyInt());
             Mockito.verify(wart, Mockito.never()).setBlockData(Mockito.any());
-            Assertions.assertFalse(effectReached, "A cancelled growth must not reach the growth tail");
+            Assertions.assertEquals(3, item.getAmount(), "A cancelled growth must keep the bonemeal");
         } finally {
             HandlerList.unregisterAll(cancelling);
         }
@@ -199,7 +223,7 @@ class TestInfernalBonemealGrowEvent {
     void testFullyGrownWartDoesNothing() {
         Player player = server.addPlayer();
         Ageable ageable = mockAgeable(3, 3);
-        Block wart = mockNetherWart(30, 30, ageable);
+        Block wart = mockNetherWart(40, 40, ageable);
 
         boolean[] seen = { false };
         Listener watcher = new Listener() {
@@ -211,11 +235,11 @@ class TestInfernalBonemealGrowEvent {
         server.getPluginManager().registerEvents(watcher, plugin);
 
         try {
-            boolean effectReached = grow(player, wart, ageable);
+            ItemStack item = grow(player, wart);
 
             Assertions.assertFalse(seen[0], "The event must not fire for a fully grown wart");
             Mockito.verify(ageable, Mockito.never()).setAge(Mockito.anyInt());
-            Assertions.assertFalse(effectReached, "No growth must happen for a fully grown wart");
+            Assertions.assertEquals(3, item.getAmount(), "Nothing must have been consumed");
         } finally {
             HandlerList.unregisterAll(watcher);
         }
@@ -226,12 +250,12 @@ class TestInfernalBonemealGrowEvent {
     void testGrowWithoutListenersStillGrows() {
         Player player = server.addPlayer();
         Ageable ageable = mockAgeable(1, 3);
-        Block wart = mockNetherWart(40, 40, ageable);
+        Block wart = mockNetherWart(50, 50, ageable);
 
-        boolean effectReached = grow(player, wart, ageable);
+        ItemStack item = grow(player, wart);
 
         Mockito.verify(ageable).setAge(3);
         Mockito.verify(wart).setBlockData(ageable);
-        Assertions.assertTrue(effectReached, "The growth tail must have been reached");
+        Assertions.assertEquals(2, item.getAmount(), "One bonemeal must have been consumed");
     }
 }

@@ -2,6 +2,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.magical;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Bukkit;
@@ -10,6 +11,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.inventory.ItemStack;
 
@@ -48,21 +50,13 @@ public class InfernalBonemeal extends SimpleSlimefunItem<ItemUseHandler> {
                     Ageable ageable = (Ageable) b.getBlockData();
 
                     if (ageable.getAge() < ageable.getMaximumAge()) {
-                        boolean grow = true;
+                        Integer targetAge = growTargetAge(e.getPlayer(), b, ageable);
 
-                        if (InfernalBonemealGrowEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                            InfernalBonemealGrowEvent event = new InfernalBonemealGrowEvent(e.getPlayer(), this, b);
-                            Bukkit.getPluginManager().callEvent(event);
-
-                            if (event.isCancelled()) {
-                                grow = false;
-                            }
-                        }
-
-                        if (grow) {
-                            ageable.setAge(ageable.getMaximumAge());
+                        if (targetAge != null) {
+                            ageable.setAge(targetAge);
                             b.setBlockData(ageable);
-                            b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, Material.REDSTONE_BLOCK);
+                            // BlockData is the primary data type of this effect
+                            b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, Material.REDSTONE_BLOCK.createBlockData());
 
                             if (e.getPlayer().getGameMode() != GameMode.CREATIVE) {
                                 ItemUtils.consumeItem(e.getItem(), false);
@@ -72,6 +66,30 @@ public class InfernalBonemeal extends SimpleSlimefunItem<ItemUseHandler> {
                 }
             }
         };
+    }
+
+    /**
+     * Fires an {@link InfernalBonemealGrowEvent} if any listener is registered and
+     * returns the age the Nether Wart will be grown to, or {@code null} when a listener
+     * cancelled the growth. Without listeners this costs nothing and the old behavior
+     * is preserved.
+     */
+    @Nullable
+    @ParametersAreNonnullByDefault
+    private Integer growTargetAge(Player p, Block b, Ageable ageable) {
+        if (InfernalBonemealGrowEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            InfernalBonemealGrowEvent event = new InfernalBonemealGrowEvent(p, this, b, ageable.getMaximumAge());
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
+                return null;
+            }
+
+            // An addon may have adjusted how far the wart grows
+            return event.getTargetAge();
+        }
+
+        return ageable.getMaximumAge();
     }
 
 }
