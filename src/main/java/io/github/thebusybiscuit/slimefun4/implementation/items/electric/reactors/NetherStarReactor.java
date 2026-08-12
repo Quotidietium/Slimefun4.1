@@ -66,6 +66,7 @@ public abstract class NetherStarReactor extends Reactor {
                 return Slimefun.getProtectionManager().hasPermission(owner, n.getLocation(), interaction);
             })) {
                 LivingEntity living = (LivingEntity) entity;
+                PotionEffect witherEffect = new PotionEffect(PotionEffectType.WITHER, 60, 1);
 
                 if (NetherStarReactorWitherEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     NetherStarReactorWitherEvent event = new NetherStarReactorWitherEvent(this, l, living);
@@ -75,9 +76,12 @@ public abstract class NetherStarReactor extends Reactor {
                         // An addon vetoed the withering of this entity.
                         continue;
                     }
+
+                    // An addon may have replaced the applied effect
+                    witherEffect = event.getEffect();
                 }
 
-                living.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
+                living.addPotionEffect(witherEffect);
             }
         });
     }

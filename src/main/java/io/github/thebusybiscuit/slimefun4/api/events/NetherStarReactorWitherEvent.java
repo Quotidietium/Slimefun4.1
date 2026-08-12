@@ -9,6 +9,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.reactors.NetherStarReactor;
 
@@ -20,6 +22,11 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.reactors
  * <p>
  * Cancelling this event skips the withering of that entity only; other entities in range
  * are affected as usual.
+ * <p>
+ * Addons may also replace the applied effect via {@link #setEffect(PotionEffect)}, e.g.
+ * to weaken the withering near a protected settlement or to apply a different effect
+ * altogether. The replacement is applied as-is; cancelling remains the way to spare an
+ * entity entirely.
  *
  * @author Zurker
  *
@@ -34,6 +41,8 @@ public class NetherStarReactorWitherEvent extends Event implements Cancellable {
     private final NetherStarReactor reactor;
     private final Location location;
     private final LivingEntity entity;
+
+    private PotionEffect effect = new PotionEffect(PotionEffectType.WITHER, 60, 1);
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -75,6 +84,32 @@ public class NetherStarReactorWitherEvent extends Event implements Cancellable {
     @Nonnull
     public LivingEntity getEntity() {
         return entity;
+    }
+
+    /**
+     * This returns the {@link PotionEffect} the entity is about to receive. It defaults
+     * to the reactor's classic withering ({@link PotionEffectType#WITHER}, 60 ticks,
+     * amplifier 1).
+     *
+     * @return The effect about to be applied
+     * @see #setEffect(PotionEffect)
+     */
+    @Nonnull
+    public PotionEffect getEffect() {
+        return effect;
+    }
+
+    /**
+     * This replaces the {@link PotionEffect} the entity will receive, changing its type,
+     * duration or amplifier. The replacement is applied as-is.
+     *
+     * @param effect
+     *            The effect to apply, must not be null
+     */
+    public void setEffect(@Nonnull PotionEffect effect) {
+        Validate.notNull(effect, "The effect must not be null");
+
+        this.effect = effect;
     }
 
     @Override

@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -123,9 +124,21 @@ class TestNetherStarReactorWitherEvent {
         Assertions.assertEquals(cow, event.getEntity());
         Assertions.assertFalse(event.isCancelled());
 
+        // The effect defaults to the classic withering (60 ticks, amplifier 1)
+        PotionEffect defaultEffect = event.getEffect();
+        Assertions.assertEquals(PotionEffectType.WITHER, defaultEffect.getType());
+        Assertions.assertEquals(60, defaultEffect.getDuration());
+        Assertions.assertEquals(1, defaultEffect.getAmplifier());
+
+        // And can be replaced wholesale
+        PotionEffect custom = new PotionEffect(PotionEffectType.POISON, 100, 2);
+        event.setEffect(custom);
+        Assertions.assertEquals(custom, event.getEffect());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setEffect(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new NetherStarReactorWitherEvent(null, l, cow));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new NetherStarReactorWitherEvent(reactor, null, cow));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new NetherStarReactorWitherEvent(reactor, l, null));
@@ -178,6 +191,35 @@ class TestNetherStarReactorWitherEvent {
             Assertions.assertFalse(cow.hasPotionEffect(PotionEffectType.WITHER), "A cancelled withering must not apply the effect");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("Replacing the effect via setEffect applies the replacement instead of the withering")
+    void testSetEffectAppliesReplacement() {
+        Block b = placeReactor(60, 60);
+        Cow cow = spawnCow(61, 60);
+
+        Listener replacing = new Listener() {
+            @EventHandler
+            public void onWither(NetherStarReactorWitherEvent event) {
+                Assertions.assertEquals(PotionEffectType.WITHER, event.getEffect().getType(), "The effect must default to withering");
+                event.setEffect(new PotionEffect(PotionEffectType.POISON, 100, 2));
+            }
+        };
+        server.getPluginManager().registerEvents(replacing, plugin);
+
+        try {
+            extraTick(b);
+
+            Assertions.assertFalse(cow.hasPotionEffect(PotionEffectType.WITHER), "The classic withering must not have been applied");
+
+            PotionEffect applied = cow.getPotionEffect(PotionEffectType.POISON);
+            Assertions.assertNotNull(applied, "The replacement effect must have been applied");
+            Assertions.assertEquals(100, applied.getDuration(), "The replacement duration must have been applied");
+            Assertions.assertEquals(2, applied.getAmplifier(), "The replacement amplifier must have been applied");
+        } finally {
+            HandlerList.unregisterAll(replacing);
         }
     }
 
