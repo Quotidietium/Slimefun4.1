@@ -19,6 +19,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.altar.AncientPede
  * <p>
  * Cancelling this event skips the retrieval entirely: the item stays on the pedestal and nothing
  * is returned to the {@link Player}.
+ * <p>
+ * Addons may also change which {@link ItemStack} is returned via {@link #setItem(ItemStack)},
+ * e.g. to hand back a depleted form of the ritual ingredient. The display item is removed
+ * from the pedestal regardless; only the returned stack follows the changed item.
  *
  * @author Zurker
  *
@@ -31,8 +35,8 @@ public class PedestalItemTakeEvent extends PlayerEvent implements Cancellable {
 
     private final AncientPedestal pedestal;
     private final Block block;
-    private final ItemStack item;
 
+    private ItemStack item;
     private boolean cancelled;
 
     public PedestalItemTakeEvent(@Nonnull Player player, @Nonnull AncientPedestal pedestal, @Nonnull Block block, @Nonnull ItemStack item) {
@@ -74,6 +78,20 @@ public class PedestalItemTakeEvent extends PlayerEvent implements Cancellable {
     @Nonnull
     public ItemStack getItem() {
         return item;
+    }
+
+    /**
+     * This sets the {@link ItemStack} that will be returned to the {@link Player}. The
+     * display item is removed from the pedestal regardless; only the returned stack
+     * (and anything dropped when the inventory is full) follows the given item.
+     *
+     * @param item
+     *            The {@link ItemStack} to return instead
+     */
+    public void setItem(@Nonnull ItemStack item) {
+        Validate.notNull(item, "The item must not be null");
+
+        this.item = item;
     }
 
     @Override

@@ -165,6 +165,9 @@ public class AncientAltarListener implements Listener {
                     // An addon vetoed the retrieval; the item stays on the pedestal.
                     return;
                 }
+
+                // An addon may have changed which item is returned to the player
+                returnedItem = event.getItem();
             }
 
             UUID uuid = entity.getUniqueId();

@@ -133,9 +133,15 @@ class TestPedestalItemTakeEvent {
         Assertions.assertEquals(item, event.getItem());
         Assertions.assertFalse(event.isCancelled());
 
+        // The returned item can be changed
+        ItemStack other = new ItemStack(Material.EMERALD);
+        event.setItem(other);
+        Assertions.assertEquals(other, event.getItem());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setItem(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new PedestalItemTakeEvent(player, null, b, item));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new PedestalItemTakeEvent(player, pedestal, null, item));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new PedestalItemTakeEvent(player, pedestal, b, null));
@@ -194,6 +200,36 @@ class TestPedestalItemTakeEvent {
             Assertions.assertTrue(entity.isValid(), "A cancelled take must keep the display entity");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("setItem changes the returned item while the display entity is removed")
+    void testSetItemChangesReturnedItem() {
+        Player player = server.addPlayer();
+        Block b = placePedestal(60, 60);
+        Item entity = placeDisplayItem(b, new ItemStack(Material.DIAMOND));
+
+        boolean[] seen = { false };
+        Listener changing = new Listener() {
+            @EventHandler
+            public void onTake(PedestalItemTakeEvent event) {
+                seen[0] = true;
+                Assertions.assertEquals(Material.DIAMOND, event.getItem().getType(), "The returned item must default to the placed item");
+                event.setItem(new ItemStack(Material.EMERALD, 2));
+            }
+        };
+        server.getPluginManager().registerEvents(changing, plugin);
+
+        try {
+            use(player, b);
+
+            Assertions.assertTrue(seen[0], "PedestalItemTakeEvent was not fired");
+            Assertions.assertTrue(player.getInventory().contains(Material.EMERALD, 2), "The changed item must have been returned to the player");
+            Assertions.assertFalse(player.getInventory().contains(Material.DIAMOND), "The original item must not have been returned");
+            Assertions.assertFalse(entity.isValid(), "The display entity must have been removed");
+        } finally {
+            HandlerList.unregisterAll(changing);
         }
     }
 
