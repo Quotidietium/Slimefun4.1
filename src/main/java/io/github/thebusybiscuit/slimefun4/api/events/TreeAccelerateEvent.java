@@ -20,6 +20,11 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
  * Cancelling this event skips this sapling: no energy or fertilizer is consumed, the
  * sapling is left alone and the accelerator continues scanning the other saplings
  * within its radius during this tick.
+ * <p>
+ * Addons may also adjust the growth boost via {@link #setGrowthBoost(int)}, e.g. to
+ * scale the acceleration with an upgrade module. On 1.17+ this is the number of
+ * bonemeal applications simulated; on legacy versions it is the number of growth
+ * stages added (clamped to the sapling's maximum stage).
  *
  * @author Zurker
  *
@@ -35,6 +40,7 @@ public class TreeAccelerateEvent extends Event implements Cancellable {
     private final Block sapling;
     private final ItemStack fertilizer;
 
+    private int growthBoost = 1;
     private boolean cancelled;
 
     public TreeAccelerateEvent(@Nonnull TreeGrowthAccelerator accelerator, @Nonnull Block block, @Nonnull Block sapling, @Nonnull ItemStack fertilizer) {
@@ -87,6 +93,30 @@ public class TreeAccelerateEvent extends Event implements Cancellable {
     @Nonnull
     public ItemStack getFertilizer() {
         return fertilizer;
+    }
+
+    /**
+     * This returns the growth boost applied to the sapling. It defaults to {@code 1},
+     * the {@link TreeGrowthAccelerator}'s regular boost.
+     *
+     * @return The growth boost
+     * @see #setGrowthBoost(int)
+     */
+    public int getGrowthBoost() {
+        return growthBoost;
+    }
+
+    /**
+     * This sets the growth boost applied to the sapling. A boost of {@code 0} leaves
+     * the sapling untouched (the energy and fertilizer are still consumed).
+     *
+     * @param growthBoost
+     *            The growth boost, must not be negative
+     */
+    public void setGrowthBoost(int growthBoost) {
+        Validate.isTrue(growthBoost >= 0, "The growth boost must not be negative");
+
+        this.growthBoost = growthBoost;
     }
 
     @Override

@@ -38,6 +38,7 @@ import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 public class TreeGrowthAccelerator extends AbstractGrowthAccelerator {
 
     private static final int ENERGY_CONSUMPTION = 24;
+    private static final int GROWTH_BOOST = 1;
     private static final int RADIUS = 9;
 
     // We wanna strip the Slimefun Item id here
@@ -90,13 +91,18 @@ public class TreeGrowthAccelerator extends AbstractGrowthAccelerator {
     private boolean applyBoneMeal(Block machine, Block sapling, BlockMenu inv) {
         for (int slot : getInputSlots()) {
             if (isFertilizer(inv.getItemInSlot(slot))) {
-                if (isAccelerationBlocked(machine, sapling, inv.getItemInSlot(slot))) {
+                Integer boost = growthBoost(machine, sapling, inv.getItemInSlot(slot));
+
+                if (boost == null) {
+                    // An addon vetoed the acceleration of this sapling.
                     return false;
                 }
 
                 removeCharge(machine.getLocation(), ENERGY_CONSUMPTION);
 
-                sapling.applyBoneMeal(BlockFace.UP);
+                for (int i = 0; i < boost; i++) {
+                    sapling.applyBoneMeal(BlockFace.UP);
+                }
 
                 inv.consumeItem(slot);
                 sapling.getWorld().spawnParticle(VersionedParticle.HAPPY_VILLAGER, sapling.getLocation().add(0.5D, 0.5D, 0.5D), 4, 0.1F, 0.1F, 0.1F);
@@ -111,13 +117,16 @@ public class TreeGrowthAccelerator extends AbstractGrowthAccelerator {
     private boolean updateSaplingData(Block machine, Block block, BlockMenu inv, Sapling sapling) {
         for (int slot : getInputSlots()) {
             if (isFertilizer(inv.getItemInSlot(slot))) {
-                if (isAccelerationBlocked(machine, block, inv.getItemInSlot(slot))) {
+                Integer boost = growthBoost(machine, block, inv.getItemInSlot(slot));
+
+                if (boost == null) {
+                    // An addon vetoed the acceleration of this sapling.
                     return false;
                 }
 
                 removeCharge(machine.getLocation(), ENERGY_CONSUMPTION);
 
-                sapling.setStage(sapling.getStage() + 1);
+                sapling.setStage(Math.min(sapling.getStage() + boost, sapling.getMaximumStage()));
                 block.setBlockData(sapling, false);
 
                 inv.consumeItem(slot);
@@ -131,18 +140,26 @@ public class TreeGrowthAccelerator extends AbstractGrowthAccelerator {
 
     /**
      * Fires a {@link TreeAccelerateEvent} if any listener is registered and returns
-     * whether the acceleration of this sapling was cancelled. Without listeners this
-     * costs nothing and the old behavior is preserved.
+     * the growth boost to apply to this sapling, or {@code null} when a listener
+     * cancelled the acceleration. Without listeners this costs nothing and the old
+     * behavior is preserved.
      */
+    @Nullable
     @ParametersAreNonnullByDefault
-    private boolean isAccelerationBlocked(Block machine, Block sapling, ItemStack fertilizer) {
+    private Integer growthBoost(Block machine, Block sapling, ItemStack fertilizer) {
         if (TreeAccelerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
             TreeAccelerateEvent event = new TreeAccelerateEvent(this, machine, sapling, fertilizer);
             Bukkit.getPluginManager().callEvent(event);
-            return event.isCancelled();
+
+            if (event.isCancelled()) {
+                return null;
+            }
+
+            // An addon may have adjusted the growth boost
+            return event.getGrowthBoost();
         }
 
-        return false;
+        return GROWTH_BOOST;
     }
 
     protected boolean isFertilizer(@Nullable ItemStack item) {

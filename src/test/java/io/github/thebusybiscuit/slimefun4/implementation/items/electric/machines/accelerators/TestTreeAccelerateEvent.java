@@ -152,11 +152,19 @@ class TestTreeAccelerateEvent {
         Assertions.assertEquals(b, event.getBlock());
         Assertions.assertEquals(sapling, event.getSapling());
         Assertions.assertEquals(fertilizer, event.getFertilizer());
+        Assertions.assertEquals(1, event.getGrowthBoost(), "The growth boost must default to a single bonemeal application");
         Assertions.assertFalse(event.isCancelled());
+
+        // The boost can be scaled or zeroed
+        event.setGrowthBoost(3);
+        Assertions.assertEquals(3, event.getGrowthBoost());
+        event.setGrowthBoost(0);
+        Assertions.assertEquals(0, event.getGrowthBoost());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setGrowthBoost(-1));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TreeAccelerateEvent(null, b, sapling, fertilizer));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TreeAccelerateEvent(accelerator, null, sapling, fertilizer));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TreeAccelerateEvent(accelerator, b, null, fertilizer));
@@ -231,6 +239,59 @@ class TestTreeAccelerateEvent {
 
         Assertions.assertEquals(1024 - ENERGY_CONSUMPTION, accelerator.getCharge(machine.getLocation()), "The energy must have been consumed");
         Mockito.verify(sapling).applyBoneMeal(BlockFace.UP);
+    }
+
+    @Test
+    @DisplayName("Scaling the growth boost applies bonemeal multiple times for one consumption")
+    void testScaledGrowthBoost() {
+        Block sapling = mockSapling(70, 70);
+        Block machine = setupAccelerator(70, 70, sapling);
+        BlockMenu menu = BlockStorage.getInventory(machine.getLocation());
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onAccelerate(TreeAccelerateEvent event) {
+                Assertions.assertEquals(1, event.getGrowthBoost(), "The boost must default to one application");
+                event.setGrowthBoost(3);
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            tick(machine);
+
+            Mockito.verify(sapling, Mockito.times(3)).applyBoneMeal(BlockFace.UP);
+            Assertions.assertEquals(1024 - ENERGY_CONSUMPTION, accelerator.getCharge(machine.getLocation()), "The energy must have been consumed once");
+            Assertions.assertEquals(0, menu.getItemInSlot(10).getAmount(), "The fertilizer must have been consumed once");
+        } finally {
+            HandlerList.unregisterAll(scaling);
+        }
+    }
+
+    @Test
+    @DisplayName("A zero growth boost still consumes the resources but applies no bonemeal")
+    void testZeroGrowthBoost() {
+        Block sapling = mockSapling(80, 80);
+        Block machine = setupAccelerator(80, 80, sapling);
+        BlockMenu menu = BlockStorage.getInventory(machine.getLocation());
+
+        Listener zeroing = new Listener() {
+            @EventHandler
+            public void onAccelerate(TreeAccelerateEvent event) {
+                event.setGrowthBoost(0);
+            }
+        };
+        server.getPluginManager().registerEvents(zeroing, plugin);
+
+        try {
+            tick(machine);
+
+            Mockito.verify(sapling, Mockito.never()).applyBoneMeal(Mockito.any());
+            Assertions.assertEquals(1024 - ENERGY_CONSUMPTION, accelerator.getCharge(machine.getLocation()), "The energy must still have been consumed");
+            Assertions.assertEquals(0, menu.getItemInSlot(10).getAmount(), "The fertilizer must still have been consumed");
+        } finally {
+            HandlerList.unregisterAll(zeroing);
+        }
     }
 
     @Test
