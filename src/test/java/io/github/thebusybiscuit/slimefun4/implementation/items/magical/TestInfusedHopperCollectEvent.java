@@ -127,12 +127,22 @@ class TestInfusedHopperCollectEvent {
         Assertions.assertEquals(item, event.getItem());
         Assertions.assertFalse(event.isCancelled());
 
+        // The collection defaults to the point above the hopper
+        Assertions.assertEquals(new Location(world, 1.5, 61.2, 1.5), event.getDestination(), "The collection must default to the point above the hopper");
+
+        // And can be redirected
+        Location vault = new Location(world, 50, 60, 50);
+        event.setDestination(vault);
+        Assertions.assertEquals(vault, event.getDestination());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDestination(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new InfusedHopperCollectEvent(null, b, item));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new InfusedHopperCollectEvent(infusedHopper, null, item));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new InfusedHopperCollectEvent(infusedHopper, b, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new InfusedHopperCollectEvent(infusedHopper, b, item, null));
     }
 
     @Test
@@ -198,6 +208,36 @@ class TestInfusedHopperCollectEvent {
         tick(b);
 
         Assertions.assertEquals(target, item.getLocation(), "The item must have been teleported onto the hopper");
+    }
+
+    @Test
+    @DisplayName("Redirecting the destination teleports the item there instead of onto the hopper")
+    void testSetDestinationRedirectsCollection() {
+        Block b = placeHopper(600, 600);
+        Location target = target(b);
+        Item diamond = dropItem(new Location(world, 602, 60, 600), Material.DIAMOND);
+        Item gold = dropItem(new Location(world, 600, 60, 602), Material.GOLD_INGOT);
+        Location vault = new Location(world, 650, 60, 650);
+
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onCollect(InfusedHopperCollectEvent event) {
+                if (event.getItem() == diamond) {
+                    Assertions.assertEquals(target, event.getDestination(), "The destination must default to the point above the hopper");
+                    event.setDestination(vault);
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            tick(b);
+
+            Assertions.assertEquals(vault, diamond.getLocation(), "The diamond must have been teleported to the redirected destination");
+            Assertions.assertEquals(target, gold.getLocation(), "The gold must still have been collected onto the hopper");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
+        }
     }
 
     @Test

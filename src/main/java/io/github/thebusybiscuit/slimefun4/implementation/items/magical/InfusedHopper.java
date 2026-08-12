@@ -91,18 +91,23 @@ public class InfusedHopper extends SimpleSlimefunItem<BlockTicker> {
 
                 // Check for any nearby Items that can be picked up
                 for (Entity item : b.getWorld().getNearbyEntities(l, range, range, range, n -> isValidItem(l, n, owner))) {
+                    Location destination = l;
+
                     if (InfusedHopperCollectEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                        InfusedHopperCollectEvent event = new InfusedHopperCollectEvent(InfusedHopper.this, b, (Item) item);
+                        InfusedHopperCollectEvent event = new InfusedHopperCollectEvent(InfusedHopper.this, b, (Item) item, l);
                         Bukkit.getPluginManager().callEvent(event);
 
                         if (event.isCancelled()) {
                             // An addon vetoed the collection; the item stays where it is.
                             continue;
                         }
+
+                        // An addon may have redirected the collection
+                        destination = event.getDestination();
                     }
 
                     item.setVelocity(new Vector(0, 0.1, 0));
-                    item.teleport(l);
+                    item.teleport(destination);
                     playSound = true;
                 }
 
