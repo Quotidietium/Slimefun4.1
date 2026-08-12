@@ -13,9 +13,16 @@ import io.github.thebusybiscuit.slimefun4.api.researches.Research;
 
 /**
  * This {@link Event} is called whenever a {@link Player} unlocks a {@link Research}.
- * 
+ * <p>
+ * On the non-instant unlock path (the survival guide animation), the research takes
+ * {@link #DEFAULT_RESEARCH_TIME_TICKS} ticks to complete by default. Add-ons may adjust
+ * that duration via {@link #setResearchTimeTicks(long)} - e.g. to let VIP players research
+ * faster or to make high-cost researches take longer. The progress messages are spread
+ * proportionally across the adjusted duration. On the instant unlock path the value is
+ * ignored.
+ *
  * @author TheBusyBiscuit
- * 
+ *
  * @see Research
  *
  */
@@ -23,8 +30,14 @@ public class ResearchUnlockEvent extends Event implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
 
+    /**
+     * The default number of ticks a non-instant research takes to complete (5 seconds).
+     */
+    public static final long DEFAULT_RESEARCH_TIME_TICKS = 100L;
+
     private final Player player;
     private final Research research;
+    private long researchTimeTicks = DEFAULT_RESEARCH_TIME_TICKS;
     private boolean cancelled;
 
     public ResearchUnlockEvent(@Nonnull Player p, @Nonnull Research research) {
@@ -45,6 +58,31 @@ public class ResearchUnlockEvent extends Event implements Cancellable {
     @Nonnull
     public Research getResearch() {
         return research;
+    }
+
+    /**
+     * This returns the number of ticks the non-instant research animation will take
+     * before the {@link Research} is unlocked. Defaults to
+     * {@link #DEFAULT_RESEARCH_TIME_TICKS}. Ignored on the instant unlock path.
+     *
+     * @return The research duration in ticks
+     */
+    public long getResearchTimeTicks() {
+        return researchTimeTicks;
+    }
+
+    /**
+     * This sets the number of ticks the non-instant research animation will take before
+     * the {@link Research} is unlocked. A value of {@code 0} skips the animation entirely
+     * and unlocks on the next tick.
+     *
+     * @param researchTimeTicks
+     *            The research duration in ticks, must not be negative
+     */
+    public void setResearchTimeTicks(long researchTimeTicks) {
+        Validate.isTrue(researchTimeTicks >= 0, "The research time must not be negative");
+
+        this.researchTimeTicks = researchTimeTicks;
     }
 
     @Override

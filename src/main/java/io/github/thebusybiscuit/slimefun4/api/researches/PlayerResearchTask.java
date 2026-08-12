@@ -77,20 +77,29 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
                 if (isInstant) {
                     Slimefun.runSync(() -> unlockResearch(p, profile));
                 } else if (Slimefun.getRegistry().getCurrentlyResearchingPlayers().add(p.getUniqueId())) {
+                    long duration = event.getResearchTimeTicks();
+
                     Slimefun.getLocalization().sendMessage(p, "messages.research.start", true, msg -> msg.replace(PLACEHOLDER, research.getName(p)));
-                    sendUpdateMessage(p);
+                    sendUpdateMessage(p, duration);
 
                     Slimefun.runSync(() -> {
                         unlockResearch(p, profile);
                         Slimefun.getRegistry().getCurrentlyResearchingPlayers().remove(p.getUniqueId());
-                    }, (RESEARCH_PROGRESS.length + 1) * 20L);
+                    }, duration);
                 }
             }
         }
     }
 
-    private void sendUpdateMessage(@Nonnull Player p) {
-        for (int i = 1; i < RESEARCH_PROGRESS.length + 1; i++) {
+    /**
+     * Sends the progress messages, spread proportionally across the research duration.
+     * With the default duration of {@value ResearchUnlockEvent#DEFAULT_RESEARCH_TIME_TICKS}
+     * ticks this reproduces the historic schedule of one message every 20 ticks.
+     */
+    private void sendUpdateMessage(@Nonnull Player p, long duration) {
+        int steps = RESEARCH_PROGRESS.length + 1;
+
+        for (int i = 1; i < steps; i++) {
             int index = i;
 
             Slimefun.runSync(() -> {
@@ -100,7 +109,7 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
                     String progress = RESEARCH_PROGRESS[index - 1] + "%";
                     return msg.replace(PLACEHOLDER, research.getName(p)).replace("%progress%", progress);
                 });
-            }, i * 20L);
+            }, duration * i / steps);
         }
     }
 

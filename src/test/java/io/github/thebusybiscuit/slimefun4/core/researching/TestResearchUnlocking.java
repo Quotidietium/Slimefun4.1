@@ -75,4 +75,47 @@ class TestResearchUnlocking {
         Assertions.assertTrue(profile.get().hasUnlocked(research));
     }
 
+    @org.junit.jupiter.api.Test
+    @DisplayName("The research time defaults to 100 ticks, is modifiable and validated")
+    void testResearchTimeTicks() {
+        Player player = server.addPlayer();
+        Research research = new Research(new NamespacedKey(plugin, "timed"), 1843, "Timed", 10);
+
+        ResearchUnlockEvent event = new ResearchUnlockEvent(player, research);
+
+        Assertions.assertEquals(ResearchUnlockEvent.DEFAULT_RESEARCH_TIME_TICKS, event.getResearchTimeTicks());
+        Assertions.assertEquals(100L, ResearchUnlockEvent.DEFAULT_RESEARCH_TIME_TICKS);
+
+        event.setResearchTimeTicks(0);
+        Assertions.assertEquals(0, event.getResearchTimeTicks());
+
+        event.setResearchTimeTicks(400);
+        Assertions.assertEquals(400, event.getResearchTimeTicks());
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setResearchTimeTicks(-1));
+    }
+
+    @ParameterizedTest
+    @DisplayName("Unlocking still completes when a listener adjusts the research time")
+    @ValueSource(longs = { 0, 20, ResearchUnlockEvent.DEFAULT_RESEARCH_TIME_TICKS })
+    void testUnlockWithAdjustedResearchTime(long ticks) throws InterruptedException {
+        Slimefun.getRegistry().setResearchingEnabled(true);
+        Player player = server.addPlayer();
+        Research research = new Research(new NamespacedKey(plugin, "adjusted_" + ticks), 1844, "Adjusted", 500);
+
+        server.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
+            @org.bukkit.event.EventHandler
+            public void onUnlock(ResearchUnlockEvent event) {
+                event.setResearchTimeTicks(ticks);
+            }
+        }, plugin);
+
+        Player p = awaitUnlock(player, research, false);
+        Optional<PlayerProfile> profile = PlayerProfile.find(p);
+
+        Assertions.assertEquals(player, p);
+        Assertions.assertTrue(profile.isPresent());
+        Assertions.assertTrue(profile.get().hasUnlocked(research));
+    }
+
 }
