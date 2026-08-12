@@ -18,6 +18,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.elevator.Elevator
  * <p>
  * Cancelling this event prevents the teleportation; the floor selector stays
  * open and the {@link Player} may pick another floor.
+ * <p>
+ * Addons may also redirect the travel via {@link #setFloor(ElevatorFloor)}, e.g. to
+ * send the {@link Player} to a floor they did not pick: both the teleport
+ * destination and the arrival title are taken from the replacement floor.
  *
  * @author Zurker
  *
@@ -28,7 +32,7 @@ public class ElevatorTeleportEvent extends PlayerEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
 
-    private final ElevatorFloor floor;
+    private ElevatorFloor floor;
 
     private boolean cancelled;
 
@@ -48,6 +52,20 @@ public class ElevatorTeleportEvent extends PlayerEvent implements Cancellable {
     @Nonnull
     public ElevatorFloor getFloor() {
         return floor;
+    }
+
+    /**
+     * This sets the {@link ElevatorFloor} the {@link Player} will travel to,
+     * overriding the floor they picked. Both the teleport destination and the
+     * arrival title are taken from the replacement floor.
+     *
+     * @param floor
+     *            The new destination {@link ElevatorFloor}, must not be null
+     */
+    public void setFloor(@Nonnull ElevatorFloor floor) {
+        Validate.notNull(floor, "The floor must not be null");
+
+        this.floor = floor;
     }
 
     @Override

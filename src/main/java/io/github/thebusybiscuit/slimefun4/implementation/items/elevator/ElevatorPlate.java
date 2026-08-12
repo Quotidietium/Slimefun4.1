@@ -197,6 +197,9 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
             return;
         }
 
+        // An addon may have redirected the travel to another floor
+        ElevatorFloor targetFloor = event.getFloor();
+
         Slimefun.runSync(() -> {
             users.add(player.getUniqueId());
 
@@ -212,12 +215,12 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
                 yaw = -180 + (yaw - 180);
             }
 
-            Location loc = floor.getLocation();
+            Location loc = targetFloor.getLocation();
             Location destination = new Location(player.getWorld(), loc.getX() + 0.5, loc.getY() + 0.4, loc.getZ() + 0.5, yaw, player.getEyeLocation().getPitch());
 
             PaperLib.teleportAsync(player, destination).thenAccept(teleported -> {
                 if (teleported.booleanValue()) {
-                    player.sendTitle(ChatColor.WHITE + ChatColors.color(floor.getName()), null, 20, 60, 20);
+                    player.sendTitle(ChatColor.WHITE + ChatColors.color(targetFloor.getName()), null, 20, 60, 20);
                 } else {
                     /*
                      * The teleport failed, so the Player never lands on a plate

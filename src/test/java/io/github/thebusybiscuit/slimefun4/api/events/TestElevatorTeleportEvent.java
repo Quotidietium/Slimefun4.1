@@ -75,10 +75,15 @@ class TestElevatorTeleportEvent {
         Assertions.assertEquals(floor, event.getFloor());
         Assertions.assertFalse(event.isCancelled());
 
+        ElevatorFloor redirect = new ElevatorFloor("&eSecret Lab", 7, world.getBlockAt(9, 120, 9));
+        event.setFloor(redirect);
+        Assertions.assertEquals(redirect, event.getFloor());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ElevatorTeleportEvent(player, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setFloor(null));
     }
 
     @Test
