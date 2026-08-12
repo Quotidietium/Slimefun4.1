@@ -198,6 +198,8 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
             MachineFuel fuel = findRecipe(inv, found);
 
             if (fuel != null) {
+                int ticks = fuel.getTicks();
+
                 if (GeneratorFuelBurnEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     int slot = found.keySet().iterator().next();
                     GeneratorFuelBurnEvent event = new GeneratorFuelBurnEvent(AGenerator.this, l, fuel, slot);
@@ -207,13 +209,16 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
                         // An addon vetoed this burn; the fuel stays and the generator idles for this tick.
                         return 0;
                     }
+
+                    // An addon may have adjusted the duration of this single operation
+                    ticks = event.getTicks();
                 }
 
                 for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
                     inv.consumeItem(entry.getKey(), entry.getValue());
                 }
 
-                processor.startOperation(l, new FuelOperation(fuel));
+                processor.startOperation(l, new FuelOperation(fuel.getInput(), fuel.getOutput(), ticks));
             }
 
             return 0;

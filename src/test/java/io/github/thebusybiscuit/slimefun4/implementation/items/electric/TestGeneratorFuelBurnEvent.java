@@ -23,6 +23,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.implementation.operations.FuelOperation;
 import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
@@ -217,6 +218,84 @@ class TestGeneratorFuelBurnEvent {
 
         assertFuelConsumed(menu);
         Assertions.assertTrue(hasOperation(b), "The fuel operation must have been started");
+    }
+
+    @Test
+    @DisplayName("The operation duration defaults to the fuel ticks and is modifiable and validated")
+    void testTicksDefaultAndValidation() {
+        Location l = new Location(world, 2, 60, 2);
+        MachineFuel fuel = new MachineFuel(8, new ItemStack(Material.COAL));
+
+        GeneratorFuelBurnEvent event = new GeneratorFuelBurnEvent(generator, l, fuel, FUEL_SLOT);
+
+        Assertions.assertEquals(fuel.getTicks(), event.getTicks(), "The duration must default to the fuel's ticks");
+
+        event.setTicks(40);
+        Assertions.assertEquals(40, event.getTicks());
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTicks(0));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTicks(-1));
+    }
+
+    @Test
+    @DisplayName("A modified duration is applied to the started operation without touching the fuel definition")
+    void testModifiedTicksAppliedToOperationOnly() {
+        Block b = world.getBlockAt(60, 60, 60);
+        BlockMenu menu = placeGenerator(60, 60);
+        menu.replaceExistingItem(FUEL_SLOT, new ItemStack(Material.COAL));
+
+        MachineFuel fuel = generator.getFuelTypes().iterator().next();
+        int originalTicks = fuel.getTicks();
+
+        Listener slowing = new Listener() {
+            @EventHandler
+            public void onBurn(GeneratorFuelBurnEvent event) {
+                event.setTicks(3);
+            }
+        };
+        server.getPluginManager().registerEvents(slowing, plugin);
+
+        try {
+            runBurnTick(b);
+
+            assertFuelConsumed(menu);
+
+            FuelOperation operation = generator.getMachineProcessor().getOperation(b.getLocation());
+            Assertions.assertNotNull(operation, "The fuel operation must have been started");
+            Assertions.assertEquals(3, operation.getTotalTicks(), "The operation must run with the modified duration");
+            Assertions.assertEquals(originalTicks, fuel.getTicks(), "The shared fuel definition must keep its original duration");
+        } finally {
+            HandlerList.unregisterAll(slowing);
+        }
+    }
+
+    @Test
+    @DisplayName("An unchanged duration starts the operation with the fuel's own ticks")
+    void testUnchangedTicksKeepsFuelDuration() {
+        Block b = world.getBlockAt(70, 60, 70);
+        BlockMenu menu = placeGenerator(70, 70);
+        menu.replaceExistingItem(FUEL_SLOT, new ItemStack(Material.COAL));
+
+        MachineFuel fuel = generator.getFuelTypes().iterator().next();
+
+        Listener watcher = new Listener() {
+            @EventHandler
+            public void onBurn(GeneratorFuelBurnEvent event) {
+                // Only observe, do not touch the duration
+                Assertions.assertEquals(fuel.getTicks(), event.getTicks());
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            runBurnTick(b);
+
+            FuelOperation operation = generator.getMachineProcessor().getOperation(b.getLocation());
+            Assertions.assertNotNull(operation, "The fuel operation must have been started");
+            Assertions.assertEquals(fuel.getTicks(), operation.getTotalTicks(), "An untouched duration must reproduce the fuel's ticks");
+        } finally {
+            HandlerList.unregisterAll(watcher);
+        }
     }
 
     @Test

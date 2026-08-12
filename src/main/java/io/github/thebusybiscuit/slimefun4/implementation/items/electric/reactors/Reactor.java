@@ -483,6 +483,8 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         }
 
         if (fuel != null) {
+            int ticks = fuel.getTicks();
+
             if (ReactorFuelBurnEvent.getHandlerList().getRegisteredListeners().length > 0) {
                 int slot = found.keySet().iterator().next();
                 ReactorFuelBurnEvent event = new ReactorFuelBurnEvent(this, l, fuel, slot);
@@ -492,13 +494,16 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
                     // An addon vetoed the burn; the fuel stays and the reactor idles this tick.
                     return;
                 }
+
+                // An addon may have adjusted the duration of this single operation
+                ticks = event.getTicks();
             }
 
             for (Map.Entry<Integer, Integer> entry : found.entrySet()) {
                 inv.consumeItem(entry.getKey(), entry.getValue());
             }
 
-            processor.startOperation(l, new FuelOperation(fuel));
+            processor.startOperation(l, new FuelOperation(fuel.getInput(), fuel.getOutput(), ticks));
         }
     }
 

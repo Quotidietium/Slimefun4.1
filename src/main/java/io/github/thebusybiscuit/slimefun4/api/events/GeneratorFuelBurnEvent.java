@@ -19,6 +19,10 @@ import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineFuel;
  * <p>
  * Cancelling this event vetoes the burn: the fuel stays in the generator, no operation
  * is started and the generator idles for this tick (it will try again on the next one).
+ * <p>
+ * The duration of the fuel operation that is about to start can be adjusted via
+ * {@link #setTicks(int)}. The adjustment applies only to this single operation: the
+ * shared {@link MachineFuel} definition is never modified.
  *
  * @author Zurker
  *
@@ -35,6 +39,7 @@ public class GeneratorFuelBurnEvent extends Event implements Cancellable {
     private final MachineFuel fuel;
     private final int slot;
 
+    private int ticks;
     private boolean cancelled;
 
     public GeneratorFuelBurnEvent(@Nonnull AGenerator generator, @Nonnull Location location, @Nonnull MachineFuel fuel, int slot) {
@@ -47,6 +52,7 @@ public class GeneratorFuelBurnEvent extends Event implements Cancellable {
         this.location = location;
         this.fuel = fuel;
         this.slot = slot;
+        this.ticks = fuel.getTicks();
     }
 
     /**
@@ -86,6 +92,30 @@ public class GeneratorFuelBurnEvent extends Event implements Cancellable {
      */
     public int getSlot() {
         return slot;
+    }
+
+    /**
+     * This returns the duration (in ticks) of the fuel operation that is about to
+     * start. It defaults to the {@link MachineFuel}'s own duration.
+     *
+     * @return The duration of the fuel operation in ticks
+     */
+    public int getTicks() {
+        return ticks;
+    }
+
+    /**
+     * This sets the duration (in ticks) of the fuel operation that is about to
+     * start. Only this single operation is affected: the generator's shared
+     * {@link MachineFuel} definition keeps its original duration.
+     *
+     * @param ticks
+     *            The duration of the fuel operation in ticks, must be at least 1
+     */
+    public void setTicks(int ticks) {
+        Validate.isTrue(ticks >= 1, "The fuel operation duration must be at least 1 tick, received: " + ticks);
+
+        this.ticks = ticks;
     }
 
     @Override
