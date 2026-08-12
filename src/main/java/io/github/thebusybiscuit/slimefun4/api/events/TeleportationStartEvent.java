@@ -26,6 +26,10 @@ import io.github.thebusybiscuit.slimefun4.api.gps.Waypoint;
  * <p>
  * The destination can be redirected via {@link #setDestination(Location)} before the
  * teleportation begins, allowing addons to redirect or adjust the target location.
+ * <p>
+ * The teleportation time is normally derived from the network complexity and the
+ * distance. Addons may override it via {@link #setTeleportationTime(int)} - e.g. for
+ * fixed-time or instant teleports - independently of the complexity/distance formula.
  *
  * @author Zurker
  *
@@ -42,6 +46,7 @@ public class TeleportationStartEvent extends Event implements Cancellable {
     private Location destination;
     private final boolean resistance;
 
+    private int teleportationTime = -1;
     private boolean cancelled;
 
     public TeleportationStartEvent(@Nonnull UUID uuid, int complexity, @Nonnull Location source, @Nonnull Location destination, boolean resistance) {
@@ -124,6 +129,32 @@ public class TeleportationStartEvent extends Event implements Cancellable {
      */
     public boolean hasResistance() {
         return resistance;
+    }
+
+    /**
+     * This returns the teleportation time override, measured in 500ms intervals
+     * (a value of {@code 2} means one second, {@code 100} means fifty seconds).
+     * A value of {@code -1} means no override: the time is derived from the network
+     * complexity and the distance, see
+     * {@link TeleportationManager#getTeleportationTime(int, Location, Location)}.
+     *
+     * @return The teleportation time override, or {@code -1} for the computed default
+     */
+    public int getTeleportationTime() {
+        return teleportationTime;
+    }
+
+    /**
+     * This overrides the teleportation time, measured in 500ms intervals
+     * (a value of {@code 2} means one second, {@code 100} means fifty seconds).
+     * A value of {@code 1} teleports on the next progress update, effectively instantly.
+     *
+     * @param teleportationTime
+     *            The teleportation time in 500ms intervals, must be at least 1
+     */
+    public void setTeleportationTime(int teleportationTime) {
+        Validate.isTrue(teleportationTime >= 1, "The teleportation time must be at least 1");
+        this.teleportationTime = teleportationTime;
     }
 
     @Override

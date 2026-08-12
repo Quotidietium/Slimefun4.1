@@ -84,6 +84,27 @@ class TestGpsApiEvents {
     }
 
     @Test
+    @DisplayName("TeleportationStartEvent defaults to the computed time and validates overrides")
+    void testTeleportationTimeOverride() {
+        Player player = server.addPlayer();
+        Location source = player.getLocation();
+        Location destination = player.getLocation().add(100, 0, 100);
+
+        TeleportationStartEvent event = new TeleportationStartEvent(player.getUniqueId(), 500, source, destination, false);
+
+        Assertions.assertEquals(-1, event.getTeleportationTime(), "The time must default to the computed value");
+
+        event.setTeleportationTime(2);
+        Assertions.assertEquals(2, event.getTeleportationTime());
+
+        event.setTeleportationTime(1);
+        Assertions.assertEquals(1, event.getTeleportationTime(), "A time of 1 is the effectively-instant minimum");
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTeleportationTime(0));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setTeleportationTime(-5));
+    }
+
+    @Test
     @DisplayName("TeleportationCompleteEvent exposes uuid, destination and resistance and is not cancellable")
     void testTeleportationCompleteEventFields() {
         Player player = server.addPlayer();

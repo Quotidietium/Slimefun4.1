@@ -170,7 +170,7 @@ public final class TeleportationManager {
 
         teleporterUsers.add(uuid);
 
-        int time = getTeleportationTime(complexity, source, startEvent.getDestination());
+        int time = startEvent.getTeleportationTime() > 0 ? startEvent.getTeleportationTime() : getTeleportationTime(complexity, source, startEvent.getDestination());
         int speed = Math.max(1, 100 / time);
         updateProgress(uuid, speed, 0, source, startEvent.getDestination(), resistance);
     }
