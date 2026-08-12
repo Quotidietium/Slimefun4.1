@@ -66,13 +66,18 @@ public class GrapplingHook extends SimpleSlimefunItem<ItemUseHandler> {
                     return;
                 }
 
+                Vector direction = p.getEyeLocation().getDirection().multiply(2.0);
+
                 if (GrapplingHookFireEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                    GrapplingHookFireEvent fireEvent = new GrapplingHookFireEvent(p, GrapplingHook.this);
+                    GrapplingHookFireEvent fireEvent = new GrapplingHookFireEvent(p, GrapplingHook.this, direction);
                     Bukkit.getPluginManager().callEvent(fireEvent);
 
                     if (fireEvent.isCancelled()) {
                         return;
                     }
+
+                    // An addon may have redirected the hook's launch
+                    direction = fireEvent.getDirection();
                 }
 
                 ItemStack item = e.getItem();
@@ -82,7 +87,6 @@ public class GrapplingHook extends SimpleSlimefunItem<ItemUseHandler> {
                     ItemUtils.consumeItem(item, false);
                 }
 
-                Vector direction = p.getEyeLocation().getDirection().multiply(2.0);
                 Arrow arrow = p.getWorld().spawn(p.getEyeLocation().add(direction.getX(), direction.getY(), direction.getZ()), Arrow.class);
                 arrow.setShooter(p);
                 arrow.setVelocity(direction);

@@ -1,6 +1,11 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.tools;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -8,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,9 +37,9 @@ import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
  * exercised by driving the real {@link GrapplingHook} {@link io.github.thebusybiscuit.slimefun4.core.handlers.ItemUseHandler}
  * with a constructed {@link PlayerRightClickEvent} (right-click into the air).
  * <p>
- * The fire path spawns an arrow and a bat and registers the hook; the entity-leash tail is not
- * fully supported by MockBukkit, so a RuntimeException from that tail is ignored here - the event
- * was fired and the lead consumed beforehand.
+ * The fire path spawns an arrow and a bat and registers the hook; {@code Arrow#setShooter} is
+ * not implemented by MockBukkit, so a RuntimeException from that tail is ignored here - the
+ * arrow is already spawned (at its direction-derived location) and the lead consumed beforehand.
  *
  * @author Zurker
  */
@@ -76,7 +82,7 @@ class TestGrapplingHookFireEvent {
         try {
             grapplingHook.getItemHandler().onRightClick(event);
         } catch (RuntimeException ignored) {
-            // entity-leash tail not fully supported by MockBukkit - see class javadoc
+            // Arrow#setShooter tail not fully supported by MockBukkit - see class javadoc
         }
     }
 
@@ -91,10 +97,24 @@ class TestGrapplingHookFireEvent {
         Assertions.assertEquals(grapplingHook, event.getGrapplingHook());
         Assertions.assertFalse(event.isCancelled());
 
+        // The default direction is the player's eye direction scaled by the launch speed
+        Vector expected = player.getEyeLocation().getDirection().multiply(2.0);
+        Assertions.assertEquals(expected, event.getDirection());
+
+        // The delegating constructor accepts an explicit direction
+        Vector custom = new Vector(0, 4, 0);
+        GrapplingHookFireEvent explicit = new GrapplingHookFireEvent(player, grapplingHook, custom);
+        Assertions.assertEquals(custom, explicit.getDirection());
+
+        event.setDirection(custom);
+        Assertions.assertEquals(custom, event.getDirection());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new GrapplingHookFireEvent(player, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new GrapplingHookFireEvent(player, grapplingHook, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDirection(null));
     }
 
     @Test
@@ -122,6 +142,42 @@ class TestGrapplingHookFireEvent {
             Assertions.assertTrue(player.getInventory().getItemInMainHand().getAmount() < 3, "The lead must have been consumed");
         } finally {
             HandlerList.unregisterAll(watcher);
+        }
+    }
+
+    @Test
+    @DisplayName("Overriding the direction via setDirection changes where the hook arrow spawns")
+    void testSetDirectionRedirectsArrow() {
+        Player player = server.addPlayer();
+        ItemStack lead = grapplingHook.getItem().clone();
+        lead.setAmount(3);
+        player.getInventory().setItemInMainHand(lead);
+
+        Vector custom = new Vector(0, 4, 0);
+        Listener redirecting = new Listener() {
+            @EventHandler
+            public void onFire(GrapplingHookFireEvent event) {
+                Assertions.assertEquals(player.getEyeLocation().getDirection().multiply(2.0), event.getDirection(), "The direction must default to the eye direction");
+                event.setDirection(custom);
+            }
+        };
+        server.getPluginManager().registerEvents(redirecting, plugin);
+
+        try {
+            Set<Arrow> before = new HashSet<>(player.getWorld().getEntitiesByClass(Arrow.class));
+            fire(player);
+
+            Set<Arrow> spawned = new HashSet<>(player.getWorld().getEntitiesByClass(Arrow.class));
+            spawned.removeAll(before);
+
+            Assertions.assertEquals(1, spawned.size(), "Exactly one hook arrow must have been spawned");
+
+            // MockBukkit aborts the fire path at Arrow#setShooter, before the velocity is applied -
+            // but the spawn location is derived from the direction beforehand and proves the override
+            Location expectedSpawn = player.getEyeLocation().add(custom);
+            Assertions.assertEquals(expectedSpawn, spawned.iterator().next().getLocation(), "The arrow must spawn offset along the overridden direction");
+        } finally {
+            HandlerList.unregisterAll(redirecting);
         }
     }
 
