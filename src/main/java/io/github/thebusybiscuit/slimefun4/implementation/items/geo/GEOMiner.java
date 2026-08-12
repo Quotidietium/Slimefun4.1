@@ -341,6 +341,8 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                         return;
                     }
 
+                    int consumedSupplies = 1;
+
                     if (GEOMiningStartEvent.getHandlerList().getRegisteredListeners().length > 0) {
                         GEOMiningStartEvent event = new GEOMiningStartEvent(this, b.getLocation(), resource, supplies);
                         Bukkit.getPluginManager().callEvent(event);
@@ -349,10 +351,12 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                             // An addon vetoed this extraction; the supplies stay and the miner idles for this tick.
                             return;
                         }
+
+                        consumedSupplies = event.getConsumedSupplies();
                     }
 
-                    processor.startOperation(b, new GEOMiningOperation(resource, PROCESSING_TIME));
-                    Slimefun.getGPSNetwork().getResourceManager().setSupplies(resource, b.getWorld(), b.getX() >> 4, b.getZ() >> 4, supplies - 1);
+                    processor.startOperation(b, new GEOMiningOperation(resource, PROCESSING_TIME, consumedSupplies));
+                    Slimefun.getGPSNetwork().getResourceManager().setSupplies(resource, b.getWorld(), b.getX() >> 4, b.getZ() >> 4, supplies - consumedSupplies);
                     updateHologram(b, "&7Mining: &r" + resource.getName());
                     return;
                 }

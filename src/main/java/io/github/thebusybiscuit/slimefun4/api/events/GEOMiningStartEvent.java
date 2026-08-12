@@ -22,6 +22,12 @@ import io.github.thebusybiscuit.slimefun4.implementation.operations.GEOMiningOpe
  * supplies stay untouched and the miner idles for this tick (it will retry on
  * the next one).
  * <p>
+ * By default one extraction consumes exactly one unit of the chunk's supplies.
+ * Addons may adjust that via {@link #setConsumedSupplies(int)} - e.g. {@code 0}
+ * for a free "lucky" extraction or a higher value for a rich-vein bonus pull.
+ * The amount is capped at the available {@link #getSupplies() supplies}; if the
+ * miner is broken mid-operation, the consumed units are returned to the chunk.
+ * <p>
  * The event does not fire when the chunk was never scanned, when no supplies
  * remain or when the output slots cannot hold the result: the miner already
  * idles in those cases and no supplies would be consumed. Note that breaking
@@ -47,6 +53,7 @@ public class GEOMiningStartEvent extends Event implements Cancellable {
     private final GEOResource resource;
     private final int supplies;
 
+    private int consumedSupplies = 1;
     private boolean cancelled;
 
     public GEOMiningStartEvent(@Nonnull GEOMiner miner, @Nonnull Location location, @Nonnull GEOResource resource, int supplies) {
@@ -100,6 +107,31 @@ public class GEOMiningStartEvent extends Event implements Cancellable {
      */
     public int getSupplies() {
         return supplies;
+    }
+
+    /**
+     * This returns how many units of the chunk's supplies this extraction will consume.
+     * Defaults to {@code 1}. If the miner is broken mid-operation, this many units are
+     * returned to the chunk.
+     *
+     * @return The supplies this extraction consumes
+     */
+    public int getConsumedSupplies() {
+        return consumedSupplies;
+    }
+
+    /**
+     * This sets how many units of the chunk's supplies this extraction will consume.
+     * A value of {@code 0} makes the extraction free of charge.
+     *
+     * @param consumedSupplies
+     *            The supplies to consume, between {@code 0} and {@link #getSupplies()}
+     */
+    public void setConsumedSupplies(int consumedSupplies) {
+        Validate.isTrue(consumedSupplies >= 0, "The consumed supplies must not be negative");
+        Validate.isTrue(consumedSupplies <= supplies, "The consumed supplies must not exceed the available supplies");
+
+        this.consumedSupplies = consumedSupplies;
     }
 
     @Override

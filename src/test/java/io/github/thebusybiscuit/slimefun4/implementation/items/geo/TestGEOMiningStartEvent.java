@@ -191,6 +191,78 @@ class TestGEOMiningStartEvent {
     }
 
     @Test
+    @DisplayName("The consumed supplies default to 1, are modifiable and validated against the supplies")
+    void testConsumedSuppliesValidation() {
+        Block b = world.getBlockAt(1, 60, 1);
+
+        GEOMiningStartEvent event = new GEOMiningStartEvent(miner, b.getLocation(), resource, 5);
+
+        Assertions.assertEquals(1, event.getConsumedSupplies(), "The consumed supplies must default to 1");
+
+        event.setConsumedSupplies(0);
+        Assertions.assertEquals(0, event.getConsumedSupplies());
+
+        event.setConsumedSupplies(5);
+        Assertions.assertEquals(5, event.getConsumedSupplies(), "Consuming every remaining unit must be allowed");
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setConsumedSupplies(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setConsumedSupplies(6), "Consuming more than available must be rejected");
+    }
+
+    @Test
+    @DisplayName("A raised consumed-supplies value consumes that many units and is tracked by the operation")
+    void testRaisedConsumedSupplies() {
+        Block b = world.getBlockAt(70, 60, 70);
+        placeMiner(70, 70);
+        prepareChunk(b, 5);
+
+        Listener raising = new Listener() {
+            @EventHandler
+            public void onMiningStart(GEOMiningStartEvent event) {
+                event.setConsumedSupplies(3);
+            }
+        };
+        server.getPluginManager().registerEvents(raising, plugin);
+
+        try {
+            tick(b);
+
+            Assertions.assertTrue(hasOperation(b), "The mining operation must have been started");
+            Assertions.assertEquals(2, suppliesOf(b), "Three supply units must have been consumed");
+
+            io.github.thebusybiscuit.slimefun4.implementation.operations.GEOMiningOperation operation = (io.github.thebusybiscuit.slimefun4.implementation.operations.GEOMiningOperation) miner.getMachineProcessor().getOperation(b.getLocation());
+            Assertions.assertEquals(3, operation.getConsumedSupplies(), "The operation must track the consumed supplies for a potential cancellation refund");
+        } finally {
+            HandlerList.unregisterAll(raising);
+        }
+    }
+
+    @Test
+    @DisplayName("A consumed-supplies value of zero starts the operation for free")
+    void testFreeExtractionKeepsSupplies() {
+        Block b = world.getBlockAt(80, 60, 80);
+        placeMiner(80, 80);
+        prepareChunk(b, 5);
+
+        Listener freeing = new Listener() {
+            @EventHandler
+            public void onMiningStart(GEOMiningStartEvent event) {
+                event.setConsumedSupplies(0);
+            }
+        };
+        server.getPluginManager().registerEvents(freeing, plugin);
+
+        try {
+            tick(b);
+
+            Assertions.assertTrue(hasOperation(b), "The mining operation must have been started");
+            Assertions.assertEquals(5, suppliesOf(b), "A free extraction must keep the supplies untouched");
+        } finally {
+            HandlerList.unregisterAll(freeing);
+        }
+    }
+
+    @Test
     @DisplayName("A starting tick fires the event, starts the operation and consumes one supply unit")
     void testMiningStartFiresEventAndStartsOperation() {
         Block b = world.getBlockAt(10, 60, 10);
