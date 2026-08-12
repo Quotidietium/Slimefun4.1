@@ -124,6 +124,10 @@ class TestSmeltersPickaxeSmeltEvent {
         Assertions.assertEquals(output, event.getOutput());
         Assertions.assertFalse(event.isCancelled());
 
+        ItemStack replacement = new ItemStack(Material.GOLD_INGOT);
+        event.setOutput(replacement);
+        Assertions.assertEquals(replacement, event.getOutput());
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
@@ -131,6 +135,32 @@ class TestSmeltersPickaxeSmeltEvent {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SmeltersPickaxeSmeltEvent(player, pickaxe, null, drop, output));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SmeltersPickaxeSmeltEvent(player, pickaxe, block, null, output));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new SmeltersPickaxeSmeltEvent(player, pickaxe, block, drop, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setOutput(null));
+    }
+
+    @Test
+    @DisplayName("Replacing the output via setOutput turns the drop into the replacement's type")
+    void testSetOutputRedirectsSmelt() {
+        Player player = server.addPlayer();
+        ItemStack drop = new ItemStack(Material.RAW_IRON);
+
+        Listener replacing = new Listener() {
+            @EventHandler
+            public void onSmelt(SmeltersPickaxeSmeltEvent event) {
+                Assertions.assertEquals(Material.IRON_INGOT, event.getOutput().getType(), "The output must default to the furnace result");
+                event.setOutput(new ItemStack(Material.GOLD_INGOT));
+            }
+        };
+        server.getPluginManager().registerEvents(replacing, plugin);
+
+        try {
+            mine(player, 40, 40, drop);
+
+            Assertions.assertEquals(Material.GOLD_INGOT, drop.getType(), "The drop must have been smelted into the replacement's type");
+            Assertions.assertEquals(FORTUNE, drop.getAmount(), "The fortune-based amount adjustment must still apply");
+        } finally {
+            HandlerList.unregisterAll(replacing);
+        }
     }
 
     @Test

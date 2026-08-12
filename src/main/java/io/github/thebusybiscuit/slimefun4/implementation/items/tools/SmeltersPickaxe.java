@@ -64,19 +64,23 @@ public class SmeltersPickaxe extends SimpleSlimefunItem<ToolUseHandler> implemen
 
         if (furnaceOutput.isPresent()) {
             boolean applySmelt = true;
+            ItemStack output = furnaceOutput.get();
 
             if (SmeltersPickaxeSmeltEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                SmeltersPickaxeSmeltEvent event = new SmeltersPickaxeSmeltEvent(p, this, b, drop, furnaceOutput.get());
+                SmeltersPickaxeSmeltEvent event = new SmeltersPickaxeSmeltEvent(p, this, b, drop, output);
                 Bukkit.getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
                     applySmelt = false;
+                } else {
+                    // An addon may have replaced the smelted result
+                    output = event.getOutput();
                 }
             }
 
             if (applySmelt) {
                 b.getWorld().playEffect(b.getLocation(), Effect.MOBSPAWNER_FLAMES, 1);
-                drop.setType(furnaceOutput.get().getType());
+                drop.setType(output.getType());
             }
         }
 

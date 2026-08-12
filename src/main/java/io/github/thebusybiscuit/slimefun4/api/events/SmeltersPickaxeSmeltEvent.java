@@ -21,6 +21,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.tools.SmeltersPic
  * Cancelling this event skips the smelting transformation for this drop; the drop keeps
  * its raw form (the fortune-based amount adjustment still applies, as it does for drops
  * without a furnace recipe).
+ * <p>
+ * The smelted result can be replaced via {@link #setOutput(ItemStack)}, e.g. to turn a
+ * specific ore's drops into a custom item. Only the replacement's type is adopted - the
+ * drop keeps its own meta and its fortune-based amount.
  *
  * @author Zurker
  *
@@ -33,8 +37,8 @@ public class SmeltersPickaxeSmeltEvent extends PlayerEvent implements Cancellabl
     private final SmeltersPickaxe pickaxe;
     private final Block block;
     private final ItemStack drop;
-    private final ItemStack output;
 
+    private ItemStack output;
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -91,6 +95,19 @@ public class SmeltersPickaxeSmeltEvent extends PlayerEvent implements Cancellabl
     @Nonnull
     public ItemStack getOutput() {
         return output;
+    }
+
+    /**
+     * This replaces the smelted output. Only the replacement's type is adopted: the
+     * drop takes on the new type but keeps its own meta and its fortune-based amount.
+     *
+     * @param output
+     *            The replacement output, must not be null
+     */
+    public void setOutput(@Nonnull ItemStack output) {
+        Validate.notNull(output, "The smelted output must not be null");
+
+        this.output = output;
     }
 
     @Override
