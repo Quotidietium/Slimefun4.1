@@ -189,10 +189,13 @@ public class BlockPlacer extends SlimefunItem {
         Bukkit.getPluginManager().callEvent(e);
 
         if (!e.isCancelled()) {
+            // An addon may have replaced the placed item; the Slimefun identity stays the original one
+            ItemStack placed = e.getItemStack();
+
             boolean hasItemHandler = sfItem.callItemHandler(BlockPlaceHandler.class, handler -> {
                 if (handler.isBlockPlacerAllowed()) {
-                    schedulePlacement(block, dispenser.getInventory(), item, () -> {
-                        block.setType(item.getType());
+                    schedulePlacement(block, dispenser.getInventory(), item, placed, () -> {
+                        block.setType(placed.getType());
                         BlockStorage.store(block, sfItem.getId());
 
                         handler.onBlockPlacerPlace(e);
@@ -201,8 +204,8 @@ public class BlockPlacer extends SlimefunItem {
             });
 
             if (!hasItemHandler) {
-                schedulePlacement(block, dispenser.getInventory(), item, () -> {
-                    block.setType(item.getType());
+                schedulePlacement(block, dispenser.getInventory(), item, placed, () -> {
+                    block.setType(placed.getType());
                     BlockStorage.store(block, sfItem.getId());
                 });
             }
@@ -215,11 +218,14 @@ public class BlockPlacer extends SlimefunItem {
         Bukkit.getPluginManager().callEvent(e);
 
         if (!e.isCancelled()) {
-            schedulePlacement(facedBlock, dispenser.getInventory(), item, () -> {
-                facedBlock.setType(item.getType());
+            // An addon may have replaced the placed item
+            ItemStack placed = e.getItemStack();
 
-                if (item.hasItemMeta()) {
-                    ItemMeta meta = item.getItemMeta();
+            schedulePlacement(facedBlock, dispenser.getInventory(), item, placed, () -> {
+                facedBlock.setType(placed.getType());
+
+                if (placed.hasItemMeta()) {
+                    ItemMeta meta = placed.getItemMeta();
 
                     if (meta.hasDisplayName()) {
                         BlockStateSnapshotResult blockState = PaperLib.getBlockState(facedBlock, false);
@@ -240,17 +246,19 @@ public class BlockPlacer extends SlimefunItem {
     }
 
     @ParametersAreNonnullByDefault
-    private void schedulePlacement(Block b, Inventory inv, ItemStack item, Runnable runnable) {
+    private void schedulePlacement(Block b, Inventory inv, ItemStack consumed, ItemStack placed, Runnable runnable) {
         // We need to delay this due to Dispenser-Inventory synchronization issues in Spigot.
         Slimefun.runSync(() -> {
             // Make sure the Block has not been occupied yet
             if (b.isEmpty()) {
-                // Only remove 1 item.
-                ItemStack removedItem = item.clone();
+                // Only remove 1 item, and always the one that was actually dispensed.
+                ItemStack removedItem = consumed.clone();
                 removedItem.setAmount(1);
 
-                // Play particles
-                b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, item.getType());
+                // Play particles (BlockData is the primary data type of this effect)
+                Material particleType = placed.getType();
+                Object particleData = particleType.isBlock() ? particleType.createBlockData() : particleType;
+                b.getWorld().playEffect(b.getLocation(), Effect.STEP_SOUND, particleData);
 
                 // Make sure the item was actually removed (fixes #2817)
 

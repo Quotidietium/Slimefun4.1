@@ -16,9 +16,13 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.blocks.BlockPlace
 
 /**
  * This {@link Event} is fired whenever a {@link BlockPlacer} wants to place a {@link Block}.
- * 
+ * <p>
+ * Cancelling this event skips the placement entirely: the dispensed item stays in the
+ * {@link BlockPlacer}'s inventory. Addons may also replace the placed item via
+ * {@link #setItemStack(ItemStack)}.
+ *
  * @author TheBusyBiscuit
- * 
+ *
  */
 public class BlockPlacerPlaceEvent extends BlockEvent implements Cancellable {
 
@@ -70,7 +74,14 @@ public class BlockPlacerPlaceEvent extends BlockEvent implements Cancellable {
 
     /**
      * This sets the placed {@link ItemStack}.
-     * 
+     * <p>
+     * The replacement is placed as-is: its material is set on the faced {@link Block} and,
+     * for nameable blocks, a custom display name is applied. It should be a block item.
+     * The originally dispensed item is still the one consumed from the {@link BlockPlacer}'s
+     * inventory. When a {@link SlimefunItem} is being placed, the placed {@link Block} keeps
+     * the original Slimefun identity (its stored id and {@link io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler}),
+     * the replacement only affects the placed material.
+     *
      * @param item
      *            The {@link ItemStack} to be placed
      */
