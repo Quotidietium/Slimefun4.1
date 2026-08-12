@@ -21,6 +21,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
  * Cancelling this event skips this animal: no energy or food is consumed, the animal's
  * age is left alone and the accelerator continues scanning the other animals within
  * its radius during this tick.
+ * <p>
+ * Addons may also adjust the age boost via {@link #setAgeBoost(int)}, e.g. to scale
+ * the growth with an upgrade module. An overshoot past adulthood is still clamped to
+ * exactly adult, exactly like the default boost would.
  *
  * @author Zurker
  *
@@ -37,6 +41,7 @@ public class AnimalAccelerateEvent extends Event implements Cancellable {
     private final Ageable animal;
     private final ItemStack food;
 
+    private int ageBoost = 2000;
     private boolean cancelled;
 
     public AnimalAccelerateEvent(@Nonnull AnimalGrowthAccelerator accelerator, @Nonnull Block block, @Nonnull Ageable animal, @Nonnull ItemStack food) {
@@ -89,6 +94,29 @@ public class AnimalAccelerateEvent extends Event implements Cancellable {
     @Nonnull
     public ItemStack getFood() {
         return food;
+    }
+
+    /**
+     * This returns how many ticks of age will be added to the animal. It defaults to
+     * {@code 2000}, the {@link AnimalGrowthAccelerator}'s regular boost.
+     *
+     * @return The age boost in ticks
+     * @see #setAgeBoost(int)
+     */
+    public int getAgeBoost() {
+        return ageBoost;
+    }
+
+    /**
+     * This sets how many ticks of age will be added to the animal. A boost of
+     * {@code 0} leaves the age untouched (the energy and food are still consumed);
+     * a negative boost makes the animal younger again.
+     *
+     * @param ageBoost
+     *            The age boost in ticks
+     */
+    public void setAgeBoost(int ageBoost) {
+        this.ageBoost = ageBoost;
     }
 
     @Override

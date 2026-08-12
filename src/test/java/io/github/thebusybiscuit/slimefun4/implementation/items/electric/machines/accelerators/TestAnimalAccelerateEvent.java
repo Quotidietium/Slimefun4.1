@@ -139,7 +139,16 @@ class TestAnimalAccelerateEvent {
         Assertions.assertEquals(b, event.getBlock());
         Assertions.assertEquals(cow, event.getAnimal());
         Assertions.assertEquals(food, event.getFood());
+        Assertions.assertEquals(2000, event.getAgeBoost(), "The age boost must default to the accelerator's regular boost");
         Assertions.assertFalse(event.isCancelled());
+
+        // The boost can be scaled, zeroed or even reversed
+        event.setAgeBoost(4000);
+        Assertions.assertEquals(4000, event.getAgeBoost());
+        event.setAgeBoost(0);
+        Assertions.assertEquals(0, event.getAgeBoost());
+        event.setAgeBoost(-500);
+        Assertions.assertEquals(-500, event.getAgeBoost());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
@@ -234,6 +243,59 @@ class TestAnimalAccelerateEvent {
 
             Assertions.assertEquals(0, cow.getAge(), "The age must have been clamped to adulthood");
         } finally {
+            removeCow(cow);
+        }
+    }
+
+    @Test
+    @DisplayName("Scaling the age boost grows the animal by the adjusted amount")
+    void testScaledAgeBoost() {
+        Block b = setupAccelerator(70, 70);
+        CowMock cow = spawnCow(70, 70, -10000);
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onAccelerate(AnimalAccelerateEvent event) {
+                Assertions.assertEquals(2000, event.getAgeBoost(), "The boost must default to 2000 ticks");
+                event.setAgeBoost(4000);
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            tick(b);
+
+            Assertions.assertEquals(-6000, cow.getAge(), "The cow must have grown by the scaled 4000 ticks");
+            Assertions.assertEquals(1024 - ENERGY_CONSUMPTION, accelerator.getCharge(b.getLocation()), "The energy must have been consumed");
+            Assertions.assertEquals(0, BlockStorage.getInventory(b).getItemInSlot(10).getAmount(), "The organic food must have been consumed");
+        } finally {
+            HandlerList.unregisterAll(scaling);
+            removeCow(cow);
+        }
+    }
+
+    @Test
+    @DisplayName("A zero age boost still consumes the resources but leaves the age untouched")
+    void testZeroAgeBoost() {
+        Block b = setupAccelerator(80, 80);
+        CowMock cow = spawnCow(80, 80, -10000);
+
+        Listener zeroing = new Listener() {
+            @EventHandler
+            public void onAccelerate(AnimalAccelerateEvent event) {
+                event.setAgeBoost(0);
+            }
+        };
+        server.getPluginManager().registerEvents(zeroing, plugin);
+
+        try {
+            tick(b);
+
+            Assertions.assertEquals(-10000, cow.getAge(), "A zero boost must leave the animal's age untouched");
+            Assertions.assertEquals(1024 - ENERGY_CONSUMPTION, accelerator.getCharge(b.getLocation()), "The energy must still have been consumed");
+            Assertions.assertEquals(0, BlockStorage.getInventory(b).getItemInSlot(10).getAmount(), "The organic food must still have been consumed");
+        } finally {
+            HandlerList.unregisterAll(zeroing);
             removeCow(cow);
         }
     }

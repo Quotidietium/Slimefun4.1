@@ -1,5 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.accelerators;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.Bukkit;
@@ -27,6 +28,7 @@ import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
 
     private static final int ENERGY_CONSUMPTION = 14;
+    private static final int AGE_BOOST = 2000;
     private static final double RADIUS = 3.0;
 
     // We wanna strip the Slimefun Item id here
@@ -56,14 +58,17 @@ public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
                         return;
                     }
 
-                    if (isAccelerationBlocked(b, (Ageable) n, inv.getItemInSlot(slot))) {
+                    Integer boost = ageBoost(b, (Ageable) n, inv.getItemInSlot(slot));
+
+                    if (boost == null) {
+                        // An addon vetoed the acceleration of this animal; try the next slot.
                         break;
                     }
 
                     Ageable ageable = (Ageable) n;
                     removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
                     inv.consumeItem(slot);
-                    ageable.setAge(ageable.getAge() + 2000);
+                    ageable.setAge(ageable.getAge() + boost);
 
                     if (ageable.getAge() > 0) {
                         ageable.setAge(0);
@@ -78,18 +83,26 @@ public class AnimalGrowthAccelerator extends AbstractGrowthAccelerator {
 
     /**
      * Fires an {@link AnimalAccelerateEvent} if any listener is registered and returns
-     * whether the acceleration of this animal was cancelled. Without listeners this
-     * costs nothing and the old behavior is preserved.
+     * the age boost to apply to this animal, or {@code null} when a listener cancelled
+     * the acceleration. Without listeners this costs nothing and the old behavior is
+     * preserved.
      */
+    @Nullable
     @ParametersAreNonnullByDefault
-    private boolean isAccelerationBlocked(Block machine, Ageable animal, ItemStack food) {
+    private Integer ageBoost(Block machine, Ageable animal, ItemStack food) {
         if (AnimalAccelerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
             AnimalAccelerateEvent event = new AnimalAccelerateEvent(this, machine, animal, food);
             Bukkit.getPluginManager().callEvent(event);
-            return event.isCancelled();
+
+            if (event.isCancelled()) {
+                return null;
+            }
+
+            // An addon may have adjusted the age boost
+            return event.getAgeBoost();
         }
 
-        return false;
+        return AGE_BOOST;
     }
 
     private boolean isReadyToGrow(Entity n, OfflinePlayer owner) {
