@@ -22,6 +22,12 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.armor.SlimefunArm
  * <p>
  * Cancelling this event keeps the vanilla behavior: the {@link Player} takes the damage
  * normally and the helmet is left untouched.
+ * <p>
+ * Addons may also adjust the durability cost of the protection via
+ * {@link #setHelmetDamage(int)}. By default the helmet takes one durability hit per
+ * impact; setting it to zero makes the protection free and values above one apply the
+ * given number of separate wear operations (each with its own Unbreaking roll and
+ * {@link SlimefunItemWearEvent}).
  *
  * @author Zurker
  *
@@ -35,6 +41,7 @@ public class ElytraImpactEvent extends PlayerEvent implements Cancellable {
     private final SlimefunArmorPiece helmet;
     private final EntityDamageEvent damageEvent;
 
+    private int helmetDamage = 1;
     private boolean cancelled;
 
     public ElytraImpactEvent(@Nonnull Player player, @Nonnull SlimefunArmorPiece helmet, @Nonnull EntityDamageEvent damageEvent) {
@@ -86,6 +93,33 @@ public class ElytraImpactEvent extends PlayerEvent implements Cancellable {
      */
     public double getDamage() {
         return damageEvent.getDamage();
+    }
+
+    /**
+     * This returns the number of durability hits the helmet is about to take for this
+     * impact. It defaults to one.
+     *
+     * @return The durability cost of the protection
+     * @see #setHelmetDamage(int)
+     */
+    public int getHelmetDamage() {
+        return helmetDamage;
+    }
+
+    /**
+     * This sets the number of durability hits the helmet takes for this impact.
+     * Setting it to zero makes the protection free; values above one apply the given
+     * number of separate wear operations, each with its own Unbreaking roll and
+     * {@link SlimefunItemWearEvent}. Note that some helmets skip the wear in creative
+     * mode regardless of this value.
+     *
+     * @param helmetDamage
+     *            The durability cost of the protection, must not be negative
+     */
+    public void setHelmetDamage(int helmetDamage) {
+        Validate.isTrue(helmetDamage >= 0, "The helmet damage must not be negative");
+
+        this.helmetDamage = helmetDamage;
     }
 
     @Override

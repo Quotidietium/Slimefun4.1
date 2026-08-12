@@ -92,7 +92,12 @@ public class ElytraImpactListener implements Listener {
                     e.setCancelled(true);
 
                     if (item instanceof DamageableItem damageableItem) {
-                        damageableItem.damageItem(p, p.getInventory().getHelmet());
+                        // An addon may have made this impact cheaper or more expensive
+                        int helmetDamage = event.getHelmetDamage();
+
+                        for (int i = 0; i < helmetDamage; i++) {
+                            damageableItem.damageItem(p, p.getInventory().getHelmet());
+                        }
                     }
                 }
             }

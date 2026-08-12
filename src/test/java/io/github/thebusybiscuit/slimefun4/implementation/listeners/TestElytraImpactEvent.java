@@ -8,6 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -100,11 +101,19 @@ class TestElytraImpactEvent {
         Assertions.assertEquals(damageEvent, event.getDamageEvent());
         Assertions.assertEquals(DamageCause.FALL, event.getDamageCause());
         Assertions.assertEquals(4.0, event.getDamage());
+        Assertions.assertEquals(1, event.getHelmetDamage(), "The protection must default to one durability hit");
         Assertions.assertFalse(event.isCancelled());
+
+        // The durability cost can be adjusted, zero makes the protection free
+        event.setHelmetDamage(0);
+        Assertions.assertEquals(0, event.getHelmetDamage());
+        event.setHelmetDamage(5);
+        Assertions.assertEquals(5, event.getHelmetDamage());
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setHelmetDamage(-1));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ElytraImpactEvent(player, null, damageEvent));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ElytraImpactEvent(player, cap, null));
     }
@@ -175,6 +184,78 @@ class TestElytraImpactEvent {
         server.getPluginManager().callEvent(damageEvent);
 
         Assertions.assertTrue(damageEvent.isCancelled(), "The protection must have cancelled the damage");
+    }
+
+    /**
+     * Returns the durability damage of the helmet the given {@link Player} is wearing.
+     */
+    private int wornHelmetDamage(Player player) {
+        return ((Damageable) player.getInventory().getHelmet().getItemMeta()).getDamage();
+    }
+
+    @Test
+    @DisplayName("A protected impact costs one helmet durability by default")
+    void testDefaultImpactCostsOneDurability() throws InterruptedException {
+        Player player = setupProtectedPlayer();
+
+        EntityDamageEvent damageEvent = new EntityDamageEvent(player, DamageCause.FALL, 4.0);
+        server.getPluginManager().callEvent(damageEvent);
+
+        Assertions.assertTrue(damageEvent.isCancelled(), "The protection must have cancelled the damage");
+        Assertions.assertEquals(1, wornHelmetDamage(player), "The helmet must have taken one durability hit");
+    }
+
+    @Test
+    @DisplayName("Scaling the helmet damage charges the adjusted durability cost")
+    void testSetHelmetDamageScalesWear() throws InterruptedException {
+        Player player = setupProtectedPlayer();
+
+        Listener scaling = new Listener() {
+            @EventHandler
+            public void onImpact(ElytraImpactEvent event) {
+                if (event.getPlayer().equals(player)) {
+                    Assertions.assertEquals(1, event.getHelmetDamage(), "The durability cost must default to one");
+                    event.setHelmetDamage(3);
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(scaling, plugin);
+
+        try {
+            EntityDamageEvent damageEvent = new EntityDamageEvent(player, DamageCause.FALL, 4.0);
+            server.getPluginManager().callEvent(damageEvent);
+
+            Assertions.assertTrue(damageEvent.isCancelled(), "The protection must have cancelled the damage");
+            Assertions.assertEquals(3, wornHelmetDamage(player), "The helmet must have taken the scaled durability hits");
+        } finally {
+            HandlerList.unregisterAll(scaling);
+        }
+    }
+
+    @Test
+    @DisplayName("Zeroing the helmet damage protects for free")
+    void testSetHelmetDamageZeroMakesProtectionFree() throws InterruptedException {
+        Player player = setupProtectedPlayer();
+
+        Listener freeing = new Listener() {
+            @EventHandler
+            public void onImpact(ElytraImpactEvent event) {
+                if (event.getPlayer().equals(player)) {
+                    event.setHelmetDamage(0);
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(freeing, plugin);
+
+        try {
+            EntityDamageEvent damageEvent = new EntityDamageEvent(player, DamageCause.FALL, 4.0);
+            server.getPluginManager().callEvent(damageEvent);
+
+            Assertions.assertTrue(damageEvent.isCancelled(), "The protection must have cancelled the damage");
+            Assertions.assertEquals(0, wornHelmetDamage(player), "The helmet must have stayed untouched");
+        } finally {
+            HandlerList.unregisterAll(freeing);
+        }
     }
 
     @Test
