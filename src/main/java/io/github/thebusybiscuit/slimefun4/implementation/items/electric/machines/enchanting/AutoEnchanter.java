@@ -14,6 +14,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoEnchanterProcessEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoEnchantmentSelectEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AutoEnchantEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
@@ -114,6 +115,20 @@ public class AutoEnchanter extends AbstractEnchantmentMachine {
          */
         if (!overrideExistingEnchantsLvl.getValue()) {
             enchantments.entrySet().removeIf(e -> target.getEnchantmentLevel(e.getKey()) >= e.getValue());
+        }
+
+        /*
+         * Let addons adjust the selected enchantments (e.g. blacklist a specific one)
+         * before the amount check and the processing time are evaluated on the final
+         * selection. Cancellation vetoes the enchant; an emptied selection idles below.
+         */
+        if (AsyncAutoEnchantmentSelectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AsyncAutoEnchantmentSelectEvent selectEvent = new AsyncAutoEnchantmentSelectEvent(target, enchantedBook, menu, enchantments);
+            Bukkit.getPluginManager().callEvent(selectEvent);
+
+            if (selectEvent.isCancelled()) {
+                return null;
+            }
         }
 
         /*

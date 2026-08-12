@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.Repairable;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoDisenchanterProcessEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoEnchantmentSelectEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AutoDisenchantEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
@@ -109,6 +110,21 @@ public class AutoDisenchanter extends AbstractEnchantmentMachine {
                 enchantments.put(entry.getKey(), entry.getValue());
             } else if (!menu.toInventory().getViewers().isEmpty()) {
                 showEnchantmentLevelWarning(menu);
+                return null;
+            }
+        }
+
+        /*
+         * Let addons adjust the selected enchantments (e.g. keep a specific one on the
+         * item) before the amount check and the processing time are evaluated on the
+         * final selection. Cancellation vetoes the disenchant; an emptied selection
+         * idles below.
+         */
+        if (AsyncAutoEnchantmentSelectEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            AsyncAutoEnchantmentSelectEvent event = new AsyncAutoEnchantmentSelectEvent(item, book, menu, enchantments);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (event.isCancelled()) {
                 return null;
             }
         }
