@@ -10,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -105,10 +106,18 @@ class TestStomperBootsPushEvent {
         Assertions.assertEquals(boots, event.getBoots());
         Assertions.assertEquals(cow, event.getEntity());
         Assertions.assertEquals(5.0, event.getDamage());
+        Assertions.assertNull(event.getPushVelocity(), "The computed shockwave must be represented by a null push velocity");
         Assertions.assertFalse(event.isCancelled());
 
         event.setDamage(2.5);
         Assertions.assertEquals(2.5, event.getDamage());
+
+        // The push can be overridden and reset to the computed shockwave
+        Vector custom = new Vector(0, 2, 0);
+        event.setPushVelocity(custom);
+        Assertions.assertEquals(custom, event.getPushVelocity());
+        event.setPushVelocity(null);
+        Assertions.assertNull(event.getPushVelocity(), "Setting the push velocity back to null must restore the computed shockwave");
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
@@ -201,6 +210,32 @@ class TestStomperBootsPushEvent {
     }
 
     @Test
+    @DisplayName("Overriding the push velocity via setPushVelocity redirects the push")
+    void testPushVelocityOverride() {
+        Player player = server.addPlayer();
+
+        Vector custom = new Vector(0, 2, 0);
+        Listener overriding = new Listener() {
+            @EventHandler
+            public void onPush(StomperBootsPushEvent event) {
+                Assertions.assertNull(event.getPushVelocity(), "The computed shockwave must be the default");
+                event.setPushVelocity(custom);
+            }
+        };
+        server.getPluginManager().registerEvents(overriding, plugin);
+
+        try {
+            Cow cow = spawnCow(player);
+
+            stomp(player);
+
+            Assertions.assertEquals(custom, cow.getVelocity(), "The cow must have been pushed with the overridden velocity");
+        } finally {
+            HandlerList.unregisterAll(overriding);
+        }
+    }
+
+    @Test
     @DisplayName("Stomping without listeners still pushes and damages, preserving the old behavior")
     void testStompWithoutListenersStillPushes() {
         Player player = server.addPlayer();
@@ -210,7 +245,9 @@ class TestStomperBootsPushEvent {
 
         stomp(player);
 
-        Assertions.assertTrue(cow.getVelocity().length() > 0, "The cow must have been pushed");
+        // The cow spawned one block away on the x axis, so the computed shockwave is
+        // exactly (1.4, 0, 0) - the old hardcoded behavior.
+        Assertions.assertEquals(new Vector(1.4, 0, 0), cow.getVelocity(), "The cow must have been pushed with the computed shockwave");
         Assertions.assertEquals(healthBefore - FALL_DAMAGE / 2, cow.getHealth(), 0.001, "The cow must have taken half the fall damage");
     }
 }

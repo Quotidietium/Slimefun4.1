@@ -71,6 +71,7 @@ public class StomperBoots extends SlimefunItem {
         for (Entity entity : player.getNearbyEntities(4, 4, 4)) {
             if (entity instanceof LivingEntity livingEntity && canPush(player, livingEntity)) {
                 double damage = fallDamageEvent.getDamage() / 2;
+                Vector pushVelocity = null;
 
                 if (StomperBootsPushEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     StomperBootsPushEvent pushEvent = new StomperBootsPushEvent(player, this, livingEntity, damage);
@@ -81,9 +82,12 @@ public class StomperBoots extends SlimefunItem {
                     }
 
                     damage = pushEvent.getDamage();
+
+                    // An addon may have overridden the push itself
+                    pushVelocity = pushEvent.getPushVelocity();
                 }
 
-                Vector velocity = getShockwave(player.getLocation(), entity.getLocation());
+                Vector velocity = pushVelocity != null ? pushVelocity : getShockwave(player.getLocation(), entity.getLocation());
                 entity.setVelocity(velocity);
 
                 // Check if it's not a Player or if PvP is enabled
