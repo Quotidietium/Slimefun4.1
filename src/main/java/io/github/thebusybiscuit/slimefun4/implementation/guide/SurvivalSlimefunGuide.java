@@ -30,6 +30,7 @@ import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.bakedlibs.dough.recipes.MinecraftRecipe;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.api.events.SlimefunGuideSearchEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.SlimefunGuideSearchFilterEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.groups.FlexItemGroup;
@@ -365,13 +366,32 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
         addBackButton(menu, 1, p, profile);
 
         int index = 9;
+        boolean filterEventListeners = SlimefunGuideSearchFilterEvent.getHandlerList().getRegisteredListeners().length > 0;
+
         // Find items and add them
         for (SlimefunItem slimefunItem : Slimefun.getRegistry().getEnabledSlimefunItems()) {
             if (index == 44) {
                 break;
             }
 
-            if (!slimefunItem.isHidden() && isItemGroupAccessible(p, slimefunItem) && isSearchFilterApplicable(slimefunItem, searchTerm)) {
+            if (!slimefunItem.isHidden() && isItemGroupAccessible(p, slimefunItem)) {
+                boolean matching = isSearchFilterApplicable(slimefunItem, searchTerm);
+
+                if (filterEventListeners) {
+                    /*
+                     * Let addons override the built-in name matching for this item,
+                     * e.g. to match custom keywords or to hide items from the results.
+                     * Without listeners the matching stays exactly as before.
+                     */
+                    SlimefunGuideSearchFilterEvent event = new SlimefunGuideSearchFilterEvent(p, slimefunItem, searchTerm, matching);
+                    Bukkit.getPluginManager().callEvent(event);
+                    matching = event.isMatching();
+                }
+
+                if (!matching) {
+                    continue;
+                }
+
                 ItemStack itemstack = CustomItemStack.create(Slimefun.getLocalization().getLocalizedItem(p, slimefunItem), meta -> {
                     ItemGroup itemGroup = slimefunItem.getItemGroup();
                     meta.setLore(Arrays.asList("", ChatColor.DARK_GRAY + "\u21E8 " + ChatColor.WHITE + itemGroup.getDisplayName(p)));
