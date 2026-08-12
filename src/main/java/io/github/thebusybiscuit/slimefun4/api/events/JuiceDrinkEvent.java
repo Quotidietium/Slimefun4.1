@@ -26,6 +26,9 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.food.Juice;
  * <p>
  * For juices without a saturation or absorption effect, {@link #getEffect()} returns
  * {@code null}; addons may still supply one via {@link #setEffect(PotionEffect)}.
+ * <p>
+ * By default the empty glass bottle is removed after drinking. Addons may keep the bottle
+ * (e.g. for reusable or refillable drinks) via {@link #setRemoveBottle(boolean)}.
  *
  * @author Zurker
  *
@@ -40,6 +43,7 @@ public class JuiceDrinkEvent extends PlayerEvent implements Cancellable {
     private final ItemStack item;
 
     private PotionEffect effect;
+    private boolean removeBottle = true;
     private boolean cancelled;
 
     @ParametersAreNonnullByDefault
@@ -93,6 +97,27 @@ public class JuiceDrinkEvent extends PlayerEvent implements Cancellable {
      */
     public void setEffect(@Nullable PotionEffect effect) {
         this.effect = effect;
+    }
+
+    /**
+     * This returns whether the empty glass bottle will be removed after drinking.
+     * Defaults to {@code true}, preserving the vanilla-style behavior.
+     *
+     * @return Whether the glass bottle is removed
+     */
+    public boolean isRemoveBottle() {
+        return removeBottle;
+    }
+
+    /**
+     * This sets whether the empty glass bottle will be removed after drinking.
+     * Pass {@code false} to keep the bottle in the {@link Player}'s inventory.
+     *
+     * @param removeBottle
+     *            Whether to remove the glass bottle
+     */
+    public void setRemoveBottle(boolean removeBottle) {
+        this.removeBottle = removeBottle;
     }
 
     @Override

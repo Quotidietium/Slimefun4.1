@@ -75,6 +75,8 @@ public class Juice extends SimpleSlimefunItem<ItemConsumptionHandler> implements
                 }
             }
 
+            boolean removeBottle = true;
+
             if (JuiceDrinkEvent.getHandlerList().getRegisteredListeners().length > 0) {
                 JuiceDrinkEvent event = new JuiceDrinkEvent(p, this, item, effect);
                 Bukkit.getPluginManager().callEvent(event);
@@ -84,13 +86,16 @@ public class Juice extends SimpleSlimefunItem<ItemConsumptionHandler> implements
                 }
 
                 effect = event.getEffect();
+                removeBottle = event.isRemoveBottle();
             }
 
             if (effect != null) {
                 p.addPotionEffect(effect);
             }
 
-            removeGlassBottle(p, item);
+            if (removeBottle) {
+                removeGlassBottle(p, item);
+            }
         };
     }
 

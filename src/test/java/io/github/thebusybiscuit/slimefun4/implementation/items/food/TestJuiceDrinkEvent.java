@@ -104,6 +104,34 @@ class TestJuiceDrinkEvent {
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new JuiceDrinkEvent(player, null, item, effect));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new JuiceDrinkEvent(player, juice, null, effect));
+
+        Assertions.assertTrue(event.isRemoveBottle(), "The bottle removal must default to true");
+        event.setRemoveBottle(false);
+        Assertions.assertFalse(event.isRemoveBottle());
+    }
+
+    @Test
+    @DisplayName("Keeping the bottle via setRemoveBottle still applies the effect")
+    void testKeepBottleStillAppliesEffect() {
+        Player player = server.addPlayer();
+
+        Listener keeping = new Listener() {
+            @EventHandler
+            public void onDrink(JuiceDrinkEvent event) {
+                event.setRemoveBottle(false);
+            }
+        };
+        server.getPluginManager().registerEvents(keeping, plugin);
+
+        try {
+            drink(player);
+
+            PotionEffect applied = player.getPotionEffect(PotionEffectType.SATURATION);
+            Assertions.assertNotNull(applied, "Saturation must still have been applied");
+            Assertions.assertEquals(1, player.getInventory().getItemInMainHand().getAmount(), "The bottle must have been kept");
+        } finally {
+            HandlerList.unregisterAll(keeping);
+        }
     }
 
     @Test
