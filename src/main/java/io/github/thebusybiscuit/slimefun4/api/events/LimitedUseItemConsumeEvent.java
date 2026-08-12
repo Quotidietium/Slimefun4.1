@@ -24,6 +24,10 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.LimitedUseItem;
  * When {@link #willBreak()} is true, this is the last charge: without a veto the
  * item breaks right after this event. The event is fired synchronously, since item
  * uses happen on the main thread.
+ * <p>
+ * Addons may also adjust how expensive this use is via {@link #setUsesLeftAfter(int)},
+ * e.g. to make a heavy use consume several charges or to break the item early. A use
+ * must always cost at least one charge: cancel the event for a free use.
  *
  * @author Zurker
  *
@@ -38,6 +42,7 @@ public class LimitedUseItemConsumeEvent extends PlayerEvent implements Cancellab
     private final ItemStack itemStack;
     private final int usesLeftBefore;
 
+    private int usesLeftAfter;
     private boolean cancelled;
 
     public LimitedUseItemConsumeEvent(@Nonnull Player player, @Nonnull LimitedUseItem item, @Nonnull ItemStack itemStack, int usesLeftBefore) {
@@ -49,6 +54,7 @@ public class LimitedUseItemConsumeEvent extends PlayerEvent implements Cancellab
         this.item = item;
         this.itemStack = itemStack;
         this.usesLeftBefore = usesLeftBefore;
+        this.usesLeftAfter = usesLeftBefore - 1;
     }
 
     /**
@@ -82,13 +88,40 @@ public class LimitedUseItemConsumeEvent extends PlayerEvent implements Cancellab
     }
 
     /**
-     * This returns whether this is the last charge: without a veto the item breaks
-     * right after this event.
+     * This returns whether this use breaks the item: without a veto the item breaks
+     * right after this event. This reflects {@link #setUsesLeftAfter(int)}: setting the
+     * remaining charges to zero breaks the item.
      *
      * @return Whether the item is about to break
      */
     public boolean willBreak() {
-        return usesLeftBefore == 1;
+        return usesLeftAfter == 0;
+    }
+
+    /**
+     * This returns the number of charges left after this use. It defaults to
+     * {@link #getUsesLeftBefore()} minus one; zero means the item breaks.
+     *
+     * @return The charges left after this use
+     */
+    public int getUsesLeftAfter() {
+        return usesLeftAfter;
+    }
+
+    /**
+     * This sets the number of charges left after this use, overriding how expensive
+     * this use is. Setting it to zero breaks the item. A use must always cost at least
+     * one charge, so the value must stay below {@link #getUsesLeftBefore()}: cancel the
+     * event for a free use.
+     *
+     * @param usesLeftAfter
+     *            The charges left after this use, between 0 (inclusive) and
+     *            {@link #getUsesLeftBefore()} (exclusive)
+     */
+    public void setUsesLeftAfter(int usesLeftAfter) {
+        Validate.isTrue(usesLeftAfter >= 0 && usesLeftAfter < usesLeftBefore, "The uses left after must be at least 0 and below the uses left before");
+
+        this.usesLeftAfter = usesLeftAfter;
     }
 
     @Override

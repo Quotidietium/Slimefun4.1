@@ -124,6 +124,8 @@ public abstract class LimitedUseItem extends SimpleSlimefunItem<ItemUseHandler> 
                 usesLeft = Math.min(Math.max(usesLeft, 1), maxUses);
             }
 
+            int usesLeftAfter = usesLeft - 1;
+
             if (LimitedUseItemConsumeEvent.getHandlerList().getRegisteredListeners().length > 0) {
                 LimitedUseItemConsumeEvent event = new LimitedUseItemConsumeEvent(p, this, item, usesLeft);
                 Bukkit.getPluginManager().callEvent(event);
@@ -132,17 +134,19 @@ public abstract class LimitedUseItem extends SimpleSlimefunItem<ItemUseHandler> 
                     // An addon vetoed this use: no charge is consumed and the item does not break.
                     return;
                 }
+
+                // An addon may have made this use cheaper or more expensive
+                usesLeftAfter = event.getUsesLeftAfter();
             }
 
-            if (usesLeft == 1) {
+            if (usesLeftAfter == 0) {
                 SoundEffect.LIMITED_USE_ITEM_BREAK_SOUND.playFor(p);
                 item.setAmount(0);
                 item.setType(Material.AIR);
             } else {
-                usesLeft--;
-                pdc.set(key, PersistentDataType.INTEGER, usesLeft);
+                pdc.set(key, PersistentDataType.INTEGER, usesLeftAfter);
 
-                updateItemLore(item, meta, usesLeft);
+                updateItemLore(item, meta, usesLeftAfter);
             }
         }
     }

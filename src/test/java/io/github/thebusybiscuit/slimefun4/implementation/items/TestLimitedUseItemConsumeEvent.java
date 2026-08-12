@@ -117,10 +117,21 @@ class TestLimitedUseItemConsumeEvent {
         Assertions.assertEquals(item, event.getItem());
         Assertions.assertEquals(stack, event.getItemStack());
         Assertions.assertEquals(2, event.getUsesLeftBefore());
+        Assertions.assertEquals(1, event.getUsesLeftAfter(), "The uses left after must default to one less than before");
         Assertions.assertFalse(event.willBreak(), "Two charges left must not be breaking");
         Assertions.assertFalse(event.isCancelled());
 
         Assertions.assertTrue(new LimitedUseItemConsumeEvent(player, item, stack, 1).willBreak(), "One charge left must be breaking");
+
+        // Zeroing the remaining charges breaks the item
+        event.setUsesLeftAfter(0);
+        Assertions.assertEquals(0, event.getUsesLeftAfter());
+        Assertions.assertTrue(event.willBreak(), "Zero charges left after must be breaking");
+
+        // A use must cost at least one charge: negative, unchanged and increased counts are rejected
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setUsesLeftAfter(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setUsesLeftAfter(2));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setUsesLeftAfter(3));
 
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
@@ -236,6 +247,57 @@ class TestLimitedUseItemConsumeEvent {
             Assertions.assertEquals(1, usesLeftOf(stack), "A vetoed break must keep the last charge");
         } finally {
             HandlerList.unregisterAll(cancelling);
+        }
+    }
+
+    @Test
+    @DisplayName("Overriding the uses left after skips charges without breaking the item")
+    void testSetUsesLeftAfterSkipsCharges() {
+        Player player = server.addPlayer();
+        ItemStack stack = new ItemStack(Material.BLAZE_ROD);
+
+        Listener skipping = new Listener() {
+            @EventHandler
+            public void onConsume(LimitedUseItemConsumeEvent event) {
+                Assertions.assertEquals(MAX_USES - 1, event.getUsesLeftAfter(), "The uses left after must default to one less");
+                event.setUsesLeftAfter(1);
+            }
+        };
+        server.getPluginManager().registerEvents(skipping, plugin);
+
+        try {
+            item.damageItem(player, stack);
+
+            Assertions.assertEquals(1, usesLeftOf(stack), "The charge count must have dropped straight to one");
+            Assertions.assertEquals(1, stack.getAmount(), "The item must not have broken yet");
+            Assertions.assertEquals(Material.BLAZE_ROD, stack.getType());
+        } finally {
+            HandlerList.unregisterAll(skipping);
+        }
+    }
+
+    @Test
+    @DisplayName("Zeroing the uses left after breaks the item early")
+    void testSetUsesLeftAfterZeroBreaksEarly() {
+        Player player = server.addPlayer();
+        ItemStack stack = new ItemStack(Material.BLAZE_ROD);
+
+        Listener breaking = new Listener() {
+            @EventHandler
+            public void onConsume(LimitedUseItemConsumeEvent event) {
+                Assertions.assertFalse(event.willBreak(), "A fresh item must not be breaking by default");
+                event.setUsesLeftAfter(0);
+            }
+        };
+        server.getPluginManager().registerEvents(breaking, plugin);
+
+        try {
+            item.damageItem(player, stack);
+
+            Assertions.assertEquals(0, stack.getAmount(), "The item must have broken early");
+            Assertions.assertEquals(Material.AIR, stack.getType(), "The broken item must have turned to air");
+        } finally {
+            HandlerList.unregisterAll(breaking);
         }
     }
 
