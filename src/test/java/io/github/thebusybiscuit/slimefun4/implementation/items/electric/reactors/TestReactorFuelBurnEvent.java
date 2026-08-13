@@ -26,6 +26,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.implementation.operations.FuelOperation;
 import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineFuel;
@@ -274,7 +275,11 @@ class TestReactorFuelBurnEvent {
         BlockMenu menu = placeReactor(70, 70);
         menu.replaceExistingItem(FUEL_SLOT, SlimefunItems.URANIUM.item());
 
-        MachineFuel fuel = reactor.getFuelTypes().iterator().next();
+        // getFuelTypes() is an unordered Set, pick the fuel that actually matches the slot
+        MachineFuel fuel = reactor.getFuelTypes().stream()
+            .filter(f -> SlimefunUtils.isItemSimilar(f.getInput(), SlimefunItems.URANIUM.item(), true))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("No uranium fuel registered"));
 
         Listener watcher = new Listener() {
             @EventHandler
