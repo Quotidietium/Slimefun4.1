@@ -42,6 +42,17 @@ public class AutoSavingService {
      *            The interval in which to run this task
      */
     public void start(@Nonnull Slimefun plugin, int interval) {
+        if (interval <= 0) {
+            /*
+             * A missing or corrupted config value (Config#getInt returns 0) or a negative
+             * delay would schedule these tasks with a nonsensical period: running every
+             * tick (disk-I/O and log storm) or never repeating (auto-save silently
+             * disabled). Fall back to the documented default instead.
+             */
+            Slimefun.logger().log(Level.WARNING, "The auto-save delay is configured as {0} minute(s), which is invalid. Falling back to the default of 10 minutes", interval);
+            interval = 10;
+        }
+
         this.interval = interval;
 
         plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::saveAllPlayers, 2000L, interval * 60L * 20L);
@@ -63,10 +74,9 @@ public class AutoSavingService {
             boolean saved = true;
 
             if (profile.isDirty()) {
-                players++;
-
                 try {
                     profile.save();
+                    players++;
 
                     Debug.log(TestCase.PLAYER_PROFILE_DATA, "Saved data for {} ({})",
                         profile.getPlayer() != null ? profile.getPlayer().getName() : "Unknown", profile.getUUID()
@@ -115,29 +125,55 @@ public class AutoSavingService {
         Set<BlockStorage> worlds = new HashSet<>();
 
         for (World world : Bukkit.getWorlds()) {
-            BlockStorage storage = BlockStorage.getStorage(world);
+            try {
+                BlockStorage storage = BlockStorage.getStorage(world);
 
-            if (storage != null) {
-                storage.computeChanges();
+                if (storage != null) {
+                    storage.computeChanges();
 
-                if (storage.getChanges() > 0) {
-                    worlds.add(storage);
+                    if (storage.getChanges() > 0) {
+                        worlds.add(storage);
+                    }
                 }
+            } catch (Exception | LinkageError x) {
+                /*
+                 * One broken world must not abort the whole auto-save run (an uncaught
+                 * exception would even cancel this repeating task, silently disabling
+                 * block auto-saves until a restart).
+                 */
+                Slimefun.logger().log(Level.WARNING, x, () -> "Could not compute block-data changes for world " + world.getName() + ", will retry on the next cycle");
             }
         }
+
+        int savedWorlds = 0;
 
         if (!worlds.isEmpty()) {
             Slimefun.logger().log(Level.INFO, "Auto-saving block data... (Next auto-save: {0}m)", interval);
 
             for (BlockStorage storage : worlds) {
-                storage.save();
+                try {
+                    storage.save();
+                    savedWorlds++;
+                } catch (Exception | LinkageError x) {
+                    /*
+                     * One broken world must not abort the whole auto-save run (see above).
+                     * BlockStorage re-queues failed changes itself, so the next cycle
+                     * retries them.
+                     */
+                    Slimefun.logger().log(Level.WARNING, x, () -> "Could not auto-save block data for a world, will retry on the next cycle");
+                }
             }
         }
 
-        BlockStorage.saveChunks();
+        try {
+            BlockStorage.saveChunks();
+        } catch (Exception | LinkageError x) {
+            // The chunk counter was already drained; the next cycle re-attempts a save
+            Slimefun.logger().log(Level.WARNING, x, () -> "Could not auto-save chunk data, will retry on the next cycle");
+        }
 
         if (SlimefunBlockDataSaveEvent.getHandlerList().getRegisteredListeners().length > 0) {
-            Bukkit.getPluginManager().callEvent(new SlimefunBlockDataSaveEvent(worlds.size()));
+            Bukkit.getPluginManager().callEvent(new SlimefunBlockDataSaveEvent(savedWorlds));
         }
     }
 
