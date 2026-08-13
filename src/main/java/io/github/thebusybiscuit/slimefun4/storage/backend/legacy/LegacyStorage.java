@@ -51,6 +51,16 @@ public class LegacyStorage implements Storage {
                 int id = Integer.parseInt(key);
                 int size = playerFile.getInt("backpacks." + key + ".size");
 
+                if (size <= 0) {
+                    /*
+                     * The stored size is missing or corrupted (getInt returns 0 for
+                     * non-numbers). Loading an empty backpack here would permanently
+                     * wipe the stored contents on the next save, so infer the size
+                     * from the highest content slot instead.
+                     */
+                    size = inferBackpackSize(playerFile, "backpacks." + key + ".contents");
+                }
+
                 HashMap<Integer, ItemStack> items = new HashMap<>();
                 for (int i = 0; i < size; i++) {
                     items.put(i, playerFile.getItem("backpacks." + key + ".contents." + i));
@@ -79,6 +89,37 @@ public class LegacyStorage implements Storage {
         }
 
         return new PlayerData(researches, backpacks, waypoints);
+    }
+
+    /**
+     * Infers a backpack's size from its highest content slot, rounded up to the
+     * next multiple of 9 and capped at 54. Used when the stored size is missing
+     * or corrupted so the contents survive the load instead of being wiped by
+     * the next save.
+     *
+     * @param playerFile
+     *            The player's data file
+     * @param contentsPath
+     *            The config path of the backpack's contents section
+     *
+     * @return The inferred backpack size
+     */
+    private static int inferBackpackSize(@Nonnull Config playerFile, @Nonnull String contentsPath) {
+        int maxSlot = -1;
+
+        for (String contentKey : playerFile.getKeys(contentsPath)) {
+            try {
+                maxSlot = Math.max(maxSlot, Integer.parseInt(contentKey));
+            } catch (NumberFormatException ignored) {
+                // Not a slot key, skip it
+            }
+        }
+
+        if (maxSlot < 0) {
+            throw new IllegalStateException("The backpack size is corrupted and there are no contents to infer it from");
+        }
+
+        return Math.min(54, (maxSlot / 9 + 1) * 9);
     }
 
     // The current design of saving all at once isn't great, this will be refined.

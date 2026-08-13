@@ -151,6 +151,47 @@ class TestLegacyBackend {
      */
 
     @Test
+    void testLoadingBackpackWithCorruptedSize() throws IOException {
+        // A non-numeric size previously loaded an empty backpack, whose next save
+        // would permanently wipe the stored contents. The size is now inferred
+        // from the highest content slot (slot 17 -> 18 slots).
+        UUID uuid = UUID.randomUUID();
+        File playerFile = new File("data-storage/Slimefun/Players/" + uuid + ".yml");
+        Files.writeString(playerFile.toPath(), """
+        backpacks:
+          '0':
+            size: oops
+            contents:
+              '0': ''
+              '17': ''
+        """);
+
+        LegacyStorage storage = new LegacyStorage();
+        PlayerData data = storage.loadPlayerData(uuid);
+
+        Assertions.assertEquals(1, data.getBackpacks().size(), "The backpack must have been loaded");
+        Assertions.assertEquals(18, data.getBackpack(0).getSize(), "The size must have been inferred from the highest content slot");
+    }
+
+    @Test
+    void testLoadingBackpackWithCorruptedSizeAndNoContents() throws IOException {
+        // Nothing to infer the size from: the backpack is skipped (with a warning)
+        // instead of crashing the whole player data load.
+        UUID uuid = UUID.randomUUID();
+        File playerFile = new File("data-storage/Slimefun/Players/" + uuid + ".yml");
+        Files.writeString(playerFile.toPath(), """
+        backpacks:
+          '0':
+            size: oops
+        """);
+
+        LegacyStorage storage = new LegacyStorage();
+        PlayerData data = Assertions.assertDoesNotThrow(() -> storage.loadPlayerData(uuid));
+
+        Assertions.assertTrue(data.getBackpacks().isEmpty(), "An unrecoverable backpack must be skipped");
+    }
+
+    @Test
     void testLoadingWaypoints() throws IOException {
         // Create mock world
         server.createWorld(WorldCreator.name("world").environment(Environment.NORMAL));
