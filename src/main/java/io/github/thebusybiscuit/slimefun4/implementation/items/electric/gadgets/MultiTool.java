@@ -85,6 +85,12 @@ public class MultiTool extends SlimefunItem implements Rechargeable {
             e.cancel();
 
             int index = PersistentDataAPI.getInt(meta, key, 0);
+
+            if (index < 0 || index >= modes.size()) {
+                // Corrupted mode index (e.g. tampered NBT): fall back to the first mode
+                index = 0;
+            }
+
             SlimefunItem sfItem = modes.get(index).getItem();
 
             if (!p.isSneaking()) {

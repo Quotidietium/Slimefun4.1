@@ -110,6 +110,29 @@ class TestMultiToolModeSwitchEvent {
     }
 
     @Test
+    @DisplayName("A corrupted mode index in the item's NBT falls back to the first mode")
+    void testCorruptedModeIndexFallsBack() {
+        Player player = server.addPlayer();
+        ItemStack tool = multiTool.getItem().clone();
+
+        // Tampered NBT (e.g. via an NBT editor): the mode index is out of range
+        org.bukkit.inventory.meta.ItemMeta meta = tool.getItemMeta();
+        io.github.bakedlibs.dough.data.persistent.PersistentDataAPI.setInt(meta, new org.bukkit.NamespacedKey(plugin, "multitool_mode"), 99);
+        tool.setItemMeta(meta);
+
+        Block block = world.getBlockAt(0, 1, 0);
+        block.setType(Material.STONE);
+        PlayerInteractEvent interactEvent = new PlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, tool, block, BlockFace.UP);
+        PlayerRightClickEvent event = new PlayerRightClickEvent(interactEvent);
+
+        player.setSneaking(false);
+        Assertions.assertDoesNotThrow(() -> multiTool.callItemHandler(ItemUseHandler.class, handler -> handler.onRightClick(event)), "A corrupted mode index must not crash the use handler");
+
+        player.setSneaking(true);
+        Assertions.assertDoesNotThrow(() -> multiTool.callItemHandler(ItemUseHandler.class, handler -> handler.onRightClick(event)), "A corrupted mode index must not crash the mode switch");
+    }
+
+    @Test
     @DisplayName("MultiToolModeSwitchEvent exposes its fields and validates constructor arguments")
     void testEventFieldsAndValidation() {
         Player player = server.addPlayer();
