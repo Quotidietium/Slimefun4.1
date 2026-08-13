@@ -148,12 +148,28 @@ final class CargoUtils {
 
             if (SlimefunUtils.isItemSimilar(wrapperItemInSlot, wrapperTemplate, true) && matchesFilter(network, node, wrapperItemInSlot)) {
                 if (is.getAmount() > template.getAmount()) {
-                    is.setAmount(is.getAmount() - template.getAmount());
-                    menu.replaceExistingItem(slot, is);
-                    return template;
+                    // Work on a copy: mutating the live slot stack first could not be
+                    // undone if the menu's onItemStackChange hook vetoed the commit
+                    ItemStack reduced = is.clone();
+                    reduced.setAmount(is.getAmount() - template.getAmount());
+                    menu.replaceExistingItem(slot, reduced);
+
+                    ItemStack committed = menu.getItemInSlot(slot);
+
+                    if (committed != null && committed.getAmount() == reduced.getAmount() && SlimefunUtils.isItemSimilar(committed, wrapperItemInSlot, true, false)) {
+                        return template;
+                    }
+
+                    // The hook vetoed or altered the commit - nothing was withdrawn, try the next slot
                 } else {
                     menu.replaceExistingItem(slot, null);
-                    return is;
+
+                    if (menu.getItemInSlot(slot) == null) {
+                        return is;
+                    }
+
+                    // The hook vetoed the extraction - the item was never taken,
+                    // try the next slot instead of duplicating it
                 }
             }
         }
@@ -184,7 +200,9 @@ final class CargoUtils {
                     return template;
                 } else {
                     ItemStack clone = itemInSlot.clone();
-                    itemInSlot.setAmount(0);
+                    // Clear the slot properly: setting the amount to 0 would leave a
+                    // 0-amount "ghost" stack behind that getItem() still returns
+                    inv.setItem(slot, null);
                     return clone;
                 }
             }
@@ -203,7 +221,16 @@ final class CargoUtils {
 
                 if (matchesFilter(network, node, is)) {
                     menu.replaceExistingItem(slot, null);
-                    return new ItemStackAndInteger(is, slot);
+
+                    if (menu.getItemInSlot(slot) == null) {
+                        return new ItemStackAndInteger(is, slot);
+                    }
+
+                    /*
+                     * The preset's onItemStackChange hook vetoed the extraction - the
+                     * item was never taken. Try the next slot instead of carrying away
+                     * a duplicate.
+                     */
                 }
             }
         } else if (hasInventory(target)) {
@@ -278,7 +305,20 @@ final class CargoUtils {
 
             if (itemInSlot == null) {
                 menu.replaceExistingItem(slot, stack);
-                return null;
+
+                /*
+                 * The preset's onItemStackChange hook may have refused the insert or
+                 * shrunk the commit - only the amount actually placed counts.
+                 */
+                ItemStack committed = menu.getItemInSlot(slot);
+                int inserted = committed != null && SlimefunUtils.isItemSimilar(committed, wrapper, true, false) ? committed.getAmount() : 0;
+
+                if (inserted >= stack.getAmount()) {
+                    return null;
+                }
+
+                stack.setAmount(stack.getAmount() - inserted);
+                return stack;
             }
 
             int maxStackSize = itemInSlot.getType().getMaxStackSize();
@@ -305,12 +345,24 @@ final class CargoUtils {
 
                     menu.replaceExistingItem(slot, newSlotItem);
 
-                    if (amount > maxStackSize) {
-                        stack.setAmount(amount - maxStackSize);
-                    } else {
-                        stack = null;
+                    /*
+                     * The hook may also have vetoed or altered the commit without
+                     * throwing - only the amount actually merged counts.
+                     */
+                    ItemStack committed = menu.getItemInSlot(slot);
+                    int inserted = 0;
+
+                    if (committed != null && SlimefunUtils.isItemSimilar(committed, wrapper, true, false)) {
+                        inserted = Math.max(0, committed.getAmount() - currentAmount);
                     }
 
+                    int leftover = stack.getAmount() - inserted;
+
+                    if (leftover <= 0) {
+                        return null;
+                    }
+
+                    stack.setAmount(leftover);
                     return stack;
                 } else if (smartFill) {
                     return stack;
