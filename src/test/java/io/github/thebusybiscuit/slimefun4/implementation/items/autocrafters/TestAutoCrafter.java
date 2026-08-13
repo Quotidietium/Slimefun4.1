@@ -4,6 +4,9 @@ import javax.annotation.Nonnull;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Skull;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice.MaterialChoice;
 import org.bukkit.inventory.ShapelessRecipe;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.github.bakedlibs.dough.data.persistent.PersistentDataAPI;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -22,17 +26,20 @@ import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
 
 import be.seeseemelk.mockbukkit.MockBukkit;
+import be.seeseemelk.mockbukkit.ServerMock;
 import be.seeseemelk.mockbukkit.inventory.ChestInventoryMock;
 import be.seeseemelk.mockbukkit.inventory.InventoryMock;
 
 class TestAutoCrafter {
 
     private static Slimefun plugin;
+    private static World world;
 
     @BeforeAll
     public static void load() {
-        MockBukkit.mock();
+        ServerMock server = MockBukkit.mock();
         plugin = MockBukkit.load(Slimefun.class);
+        world = TestUtilities.createWorld(server);
     }
 
     @AfterAll
@@ -198,6 +205,43 @@ class TestAutoCrafter {
     void testEnergyConsumer() {
         AbstractAutoCrafter crafter = getVanillaAutoCrafter();
         Assertions.assertEquals(EnergyNetComponentType.CONSUMER, crafter.getEnergyComponentType());
+    }
+
+    @Test
+    @DisplayName("A corrupted stored recipe key is tolerated as no recipe instead of crashing the ticker")
+    void testCorruptedRecipeKeyReturnsNull() {
+        VanillaAutoCrafter crafter = (VanillaAutoCrafter) getVanillaAutoCrafter();
+        Block b = world.getBlockAt(1, 10, 1);
+        b.setType(Material.PLAYER_HEAD);
+
+        // Self-calibration: confirm MockBukkit actually models this block as a Skull with a
+        // PersistentDataContainer, otherwise getSelectedRecipe would short-circuit on the
+        // instanceof check and the corruption path below would never be exercised.
+        Assertions.assertTrue(b.getState() instanceof Skull, "MockBukkit must model PLAYER_HEAD as a Skull for this test to be meaningful");
+
+        // A valid, registered recipe round-trips through the skull's persistent data.
+        NamespacedKey key = new NamespacedKey(plugin, "corruption_round_trip_test");
+        ItemStack result = CustomItemStack.create(Material.DIAMOND, "&aRound Trip Diamond");
+        ShapelessRecipe recipe = new ShapelessRecipe(key, result);
+        recipe.addIngredient(Material.GOLD_NUGGET);
+        org.bukkit.Bukkit.addRecipe(recipe);
+
+        Skull validSkull = (Skull) b.getState();
+        PersistentDataAPI.setString(validSkull, crafter.recipeStorageKey, key.toString());
+        validSkull.update(true, false);
+
+        AbstractRecipe resolved = crafter.getSelectedRecipe(b);
+        Assertions.assertNotNull(resolved, "A valid stored recipe key must resolve back to a recipe");
+
+        // Now corrupt the stored value: an invalid NamespacedKey (illegal namespace char) would
+        // previously throw IllegalArgumentException out of getSelectedRecipe into the BlockTicker,
+        // which destroys the Auto-Crafter after four errors. It must now fail closed to null.
+        Skull corruptedSkull = (Skull) b.getState();
+        PersistentDataAPI.setString(corruptedSkull, crafter.recipeStorageKey, "invalid@namespace:key");
+        corruptedSkull.update(true, false);
+
+        Assertions.assertDoesNotThrow(() -> crafter.getSelectedRecipe(b), "A corrupted recipe key must not propagate an exception");
+        Assertions.assertNull(crafter.getSelectedRecipe(b), "A corrupted recipe key must resolve to no recipe");
     }
 
     @Nonnull

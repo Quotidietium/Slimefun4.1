@@ -71,21 +71,32 @@ public class VanillaAutoCrafter extends AbstractAutoCrafter {
                 String[] values = CommonPatterns.COLON.split(value);
 
                 if (values.length >= 2) {
-                    /*
-                     * Normally this constructor should not be used.
-                     * But it is completely fine for this purpose since we only use
-                     * it for lookups.
-                     */
-                    @SuppressWarnings("deprecation")
-                    NamespacedKey key = new NamespacedKey(values[0], values[1]);
-                    Recipe keyedRecipe = Slimefun.getMinecraftRecipeService().getRecipe(key);
+                    try {
+                        /*
+                         * Normally this constructor should not be used.
+                         * But it is completely fine for this purpose since we only use
+                         * it for lookups.
+                         */
+                        @SuppressWarnings("deprecation")
+                        NamespacedKey key = new NamespacedKey(values[0], values[1]);
+                        Recipe keyedRecipe = Slimefun.getMinecraftRecipeService().getRecipe(key);
 
-                    if (keyedRecipe != null) {
-                        boolean enabled = !container.has(recipeEnabledKey, PersistentDataType.BYTE);
-                        AbstractRecipe recipe = AbstractRecipe.of(keyedRecipe);
-                        recipe.setEnabled(enabled);
+                        if (keyedRecipe != null) {
+                            boolean enabled = !container.has(recipeEnabledKey, PersistentDataType.BYTE);
+                            AbstractRecipe recipe = AbstractRecipe.of(keyedRecipe);
+                            recipe.setEnabled(enabled);
 
-                        return recipe;
+                            return recipe;
+                        }
+                    } catch (IllegalArgumentException x) {
+                        /*
+                         * Corrupted recipe key (crashed write, manual edit, ...): the stored
+                         * value no longer maps to a valid NamespacedKey. Treat it as "no
+                         * selected recipe" instead of letting the exception propagate to the
+                         * BlockTicker, which would otherwise accumulate four errors and
+                         * destroy the Auto-Crafter block.
+                         */
+                        return null;
                     }
                 }
             }
