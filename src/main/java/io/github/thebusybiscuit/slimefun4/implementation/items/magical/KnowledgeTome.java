@@ -108,16 +108,45 @@ public class KnowledgeTome extends SimpleSlimefunItem<ItemUseHandler> {
                 }
 
                 final UUID sourceUuid = uuid;
-                PlayerProfile.get(p, profile -> PlayerProfile.fromUUID(sourceUuid, owner -> {
+
+                /*
+                 * Capture a copy BEFORE consumption so the tome can be refunded if the
+                 * share never happens (see below).
+                 */
+                ItemStack tomeCopy = item.clone();
+                tomeCopy.setAmount(1);
+
+                boolean consumed = p.getGameMode() != GameMode.CREATIVE;
+
+                if (consumed) {
+                    ItemUtils.consumeItem(item, false);
+                }
+
+                /*
+                 * Either profile (the sharer's or the source's) may fail to load entirely,
+                 * in which case the researches are never copied. Without a failureHandler
+                 * the consumed tome would simply vanish - refund it instead.
+                 */
+                Runnable failureHandler = consumed ? () -> refundTome(p, tomeCopy) : null;
+
+                PlayerProfile.get(p, profile -> PlayerProfile.get(Bukkit.getOfflinePlayer(sourceUuid), owner -> {
                     for (Research research : owner.getResearches()) {
                         research.unlock(p, true);
                     }
-                }));
-
-                if (p.getGameMode() != GameMode.CREATIVE) {
-                    ItemUtils.consumeItem(item, false);
-                }
+                }, failureHandler), failureHandler);
             }
         };
+    }
+
+    /**
+     * Hands a consumed {@link KnowledgeTome} back to the {@link Player} when a profile
+     * involved in the sharing could not be loaded and no researches were copied.
+     * Runs on the main Thread (profile failure handlers are dispatched synchronously).
+     */
+    private void refundTome(@Nonnull Player p, @Nonnull ItemStack tomeCopy) {
+        if (p.isOnline()) {
+            p.getInventory().addItem(tomeCopy).values().forEach(rest -> p.getWorld().dropItemNaturally(p.getLocation(), rest));
+            Slimefun.getLocalization().sendMessage(p, "messages.error-occurred", true);
+        }
     }
 }

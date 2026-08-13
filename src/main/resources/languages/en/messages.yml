@@ -195,6 +195,7 @@ messages:
   deprecated-item: '&4This item has been deprecated and will be removed from Slimefun soon.'
   researching-is-disabled: '&cResearching has been disabled on this server. Everything is unlocked by default!'
   await-deletion: '&cYou cannot place a Slimefun block so soon after breaking one. Try again shortly.'
+  error-occurred: '&4An internal error occurred. Your item was refunded.'
 
   multi-tool:
     mode-change: '&b%device% mode changed to: &9%mode%'
