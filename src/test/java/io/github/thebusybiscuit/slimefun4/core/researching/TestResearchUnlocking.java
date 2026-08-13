@@ -93,6 +93,10 @@ class TestResearchUnlocking {
         Assertions.assertEquals(400, event.getResearchTimeTicks());
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setResearchTimeTicks(-1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setResearchTimeTicks(ResearchUnlockEvent.MAX_RESEARCH_TIME_TICKS + 1), "The research time must be capped");
+
+        event.setResearchTimeTicks(ResearchUnlockEvent.MAX_RESEARCH_TIME_TICKS);
+        Assertions.assertEquals(ResearchUnlockEvent.MAX_RESEARCH_TIME_TICKS, event.getResearchTimeTicks());
     }
 
     @ParameterizedTest

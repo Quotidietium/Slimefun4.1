@@ -83,8 +83,17 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
                     sendUpdateMessage(p, duration);
 
                     Slimefun.runSync(() -> {
-                        unlockResearch(p, profile);
                         Slimefun.getRegistry().getCurrentlyResearchingPlayers().remove(p.getUniqueId());
+
+                        /*
+                         * Re-resolve the profile instead of using the captured one: the
+                         * player may have logged off mid-research and their profile been
+                         * unloaded by the auto-save since. setResearched on that orphaned
+                         * profile would never be persisted - the research would be lost
+                         * while the levels were already deducted. PlayerProfile#get
+                         * reloads from disk when the profile is gone.
+                         */
+                        PlayerProfile.get(p, freshProfile -> unlockResearch(p, freshProfile));
                     }, duration);
                 }
             }

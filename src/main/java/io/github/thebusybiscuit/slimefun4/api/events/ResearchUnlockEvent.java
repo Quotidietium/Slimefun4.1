@@ -72,15 +72,24 @@ public class ResearchUnlockEvent extends Event implements Cancellable {
     }
 
     /**
+     * The maximum research duration an addon may set: 72,000 ticks (one hour).
+     * An unbounded duration would leave the player in the "currently researching"
+     * set effectively forever - soft-locking any further research - and the
+     * scheduled unlock would never run.
+     */
+    public static final long MAX_RESEARCH_TIME_TICKS = 72_000L;
+
+    /**
      * This sets the number of ticks the non-instant research animation will take before
      * the {@link Research} is unlocked. A value of {@code 0} skips the animation entirely
      * and unlocks on the next tick.
      *
      * @param researchTimeTicks
-     *            The research duration in ticks, must not be negative
+     *            The research duration in ticks, between {@code 0} and {@link #MAX_RESEARCH_TIME_TICKS}
      */
     public void setResearchTimeTicks(long researchTimeTicks) {
         Validate.isTrue(researchTimeTicks >= 0, "The research time must not be negative");
+        Validate.isTrue(researchTimeTicks <= MAX_RESEARCH_TIME_TICKS, "The research time must not exceed " + MAX_RESEARCH_TIME_TICKS + " ticks");
 
         this.researchTimeTicks = researchTimeTicks;
     }
