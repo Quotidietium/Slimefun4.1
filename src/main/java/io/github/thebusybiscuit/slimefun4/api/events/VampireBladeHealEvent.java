@@ -64,9 +64,12 @@ public class VampireBladeHealEvent extends PlayerEvent implements Cancellable {
      * This overrides the amount of health that will be restored.
      *
      * @param healAmount
-     *            The new healing amount
+     *            The new healing amount, must be a finite number and not negative
      */
     public void setHealAmount(double healAmount) {
+        Validate.isTrue(Double.isFinite(healAmount), "The healing amount must be a finite number, received: " + healAmount);
+        Validate.isTrue(healAmount >= 0, "The healing amount must not be negative, received: " + healAmount);
+
         this.healAmount = healAmount;
     }
 

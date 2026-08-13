@@ -91,6 +91,10 @@ class TestVampireBladeHealEvent {
         event.setHealAmount(8.0);
         Assertions.assertEquals(8.0, event.getHealAmount(), 0.001);
 
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setHealAmount(-1.0), "A negative healing amount must be rejected");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setHealAmount(Double.NaN), "A non-finite healing amount must be rejected");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setHealAmount(Double.POSITIVE_INFINITY), "A non-finite healing amount must be rejected");
+
         event.setCancelled(true);
         Assertions.assertTrue(event.isCancelled());
 
