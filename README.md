@@ -59,7 +59,7 @@ mvn clean package
 构建成功后，产物位于：
 
 ```
-target/SlimeFun4.1-4.9.3.jar
+target/SlimeFun4.1-5.0.0.jar
 ```
 
 将该 jar 放入服务器的 `plugins/` 目录，重启服务器即可。
