@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Animals;
 import org.bukkit.event.Cancellable;
@@ -42,6 +43,9 @@ public class AutoBreedEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public AutoBreedEvent(@Nonnull AutoBreeder breeder, @Nonnull Block block, @Nonnull Animals animal, @Nonnull ItemStack food) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(breeder, "The AutoBreeder must not be null");
         Validate.notNull(block, "The Block must not be null");
         Validate.notNull(animal, "The Animals entity must not be null");

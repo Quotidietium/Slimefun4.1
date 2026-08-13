@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -42,7 +43,7 @@ public class RainbowArmorCycleEvent extends PlayerEvent implements Cancellable {
     private boolean cancelled;
 
     public RainbowArmorCycleEvent(@Nonnull Player player, @Nonnull RainbowArmorPiece armorPiece, @Nonnull ItemStack itemStack, @Nonnull Color previousColor, @Nonnull Color newColor) {
-        super(player);
+        super(player, !Bukkit.isPrimaryThread());
         Validate.notNull(armorPiece, "The RainbowArmorPiece must not be null");
         Validate.notNull(itemStack, "The ItemStack must not be null");
         Validate.notNull(previousColor, "The previous Color must not be null");

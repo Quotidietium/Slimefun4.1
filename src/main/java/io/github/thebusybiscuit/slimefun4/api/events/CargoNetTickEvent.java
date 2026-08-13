@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -32,6 +33,9 @@ public class CargoNetTickEvent extends Event {
     private final Block regulator;
 
     public CargoNetTickEvent(@Nonnull CargoNet network, @Nonnull Block regulator) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(network, "The CargoNet must not be null");
         Validate.notNull(regulator, "The regulator Block must not be null");
 

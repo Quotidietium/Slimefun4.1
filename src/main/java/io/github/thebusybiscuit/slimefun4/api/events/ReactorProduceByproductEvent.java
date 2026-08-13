@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -36,6 +37,9 @@ public class ReactorProduceByproductEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public ReactorProduceByproductEvent(@Nonnull Reactor reactor, @Nonnull Location location, @Nonnull ItemStack result) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(reactor, "The Reactor must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(result, "The result must not be null");

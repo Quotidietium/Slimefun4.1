@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -46,6 +47,9 @@ public class DustWashProcessEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public DustWashProcessEvent(@Nonnull ElectricDustWasher machine, @Nonnull Location location, @Nonnull ItemStack input, @Nonnull ItemStack output) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(machine, "The ElectricDustWasher must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(input, "The input must not be null");

@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -41,6 +42,9 @@ public class AndroidRefuelEvent extends Event implements Cancellable {
 
     @ParametersAreNonnullByDefault
     public AndroidRefuelEvent(ProgrammableAndroid android, Block block, Block interfaceBlock) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(android, "The ProgrammableAndroid must not be null");
         Validate.notNull(block, "The android Block must not be null");
         Validate.notNull(interfaceBlock, "The interface Block must not be null");

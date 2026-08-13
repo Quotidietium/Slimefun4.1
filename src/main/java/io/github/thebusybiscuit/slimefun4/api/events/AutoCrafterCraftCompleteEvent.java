@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -38,6 +39,9 @@ public class AutoCrafterCraftCompleteEvent extends Event {
     private final AbstractRecipe recipe;
 
     public AutoCrafterCraftCompleteEvent(@Nonnull AbstractAutoCrafter crafter, @Nonnull Block block, @Nonnull Inventory inventory, @Nonnull AbstractRecipe recipe) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(crafter, "The AutoCrafter must not be null");
         Validate.notNull(block, "The Block must not be null");
         Validate.notNull(inventory, "The Inventory must not be null");

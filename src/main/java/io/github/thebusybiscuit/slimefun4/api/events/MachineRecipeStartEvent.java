@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -45,6 +46,9 @@ public class MachineRecipeStartEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public MachineRecipeStartEvent(@Nonnull AContainer machine, @Nonnull Location location, @Nonnull MachineRecipe recipe) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(machine, "The AContainer must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(recipe, "The MachineRecipe must not be null");

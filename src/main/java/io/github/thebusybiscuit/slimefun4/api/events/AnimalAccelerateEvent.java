@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.event.Cancellable;
@@ -45,6 +46,9 @@ public class AnimalAccelerateEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public AnimalAccelerateEvent(@Nonnull AnimalGrowthAccelerator accelerator, @Nonnull Block block, @Nonnull Ageable animal, @Nonnull ItemStack food) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(accelerator, "The AnimalGrowthAccelerator must not be null");
         Validate.notNull(block, "The Block must not be null");
         Validate.notNull(animal, "The animal must not be null");

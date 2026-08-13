@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.event.Cancellable;
@@ -43,6 +44,9 @@ public class ExpCollectorCollectEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public ExpCollectorCollectEvent(@Nonnull ExpCollector collector, @Nonnull Block block, @Nonnull ExperienceOrb orb) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(collector, "The ExpCollector must not be null");
         Validate.notNull(block, "The Block must not be null");
         Validate.notNull(orb, "The ExperienceOrb must not be null");

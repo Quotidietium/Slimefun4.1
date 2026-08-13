@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -46,6 +47,9 @@ public class AutoAnvilRepairEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public AutoAnvilRepairEvent(@Nonnull AutoAnvil anvil, @Nonnull Location location, @Nonnull ItemStack ductTape, @Nonnull ItemStack item, @Nonnull ItemStack result) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(anvil, "The AutoAnvil must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(ductTape, "The duct tape must not be null");

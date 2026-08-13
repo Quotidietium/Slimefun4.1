@@ -5,6 +5,7 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
@@ -38,6 +39,9 @@ public class PlayerProfileUnloadEvent extends Event {
     private final UUID uuid;
 
     public PlayerProfileUnloadEvent(@Nonnull PlayerProfile profile) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(profile, "The PlayerProfile must not be null");
 
         this.profile = profile;

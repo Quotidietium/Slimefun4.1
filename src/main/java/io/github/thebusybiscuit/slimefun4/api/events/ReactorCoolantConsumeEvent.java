@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -39,6 +40,9 @@ public class ReactorCoolantConsumeEvent extends Event implements Cancellable {
 
     @ParametersAreNonnullByDefault
     public ReactorCoolantConsumeEvent(Reactor reactor, Location location, ItemStack coolantItem, int slot) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(reactor, "The Reactor must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(coolantItem, "The coolant item must not be null");

@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -42,6 +43,9 @@ public class AndroidAttackEvent extends Event implements Cancellable {
      */
     @ParametersAreNonnullByDefault
     public AndroidAttackEvent(AndroidInstance android, LivingEntity target, double damage) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         this.android = android;
         this.target = target;
         this.damage = damage;

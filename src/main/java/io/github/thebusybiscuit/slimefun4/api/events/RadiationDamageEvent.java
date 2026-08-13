@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -37,6 +38,9 @@ public class RadiationDamageEvent extends Event implements Cancellable {
      * @param exposure The amount of radiation exposure
      */
     public RadiationDamageEvent(@Nonnull Player player, int exposure) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(player, "The Player must not be null");
         Validate.isTrue(exposure >= 0, "The exposure must not be negative");
 

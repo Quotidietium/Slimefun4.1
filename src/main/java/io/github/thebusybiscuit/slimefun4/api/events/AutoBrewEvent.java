@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -44,6 +45,9 @@ public class AutoBrewEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public AutoBrewEvent(@Nonnull AutoBrewer brewer, @Nonnull Location location, @Nonnull ItemStack potion, @Nonnull ItemStack ingredient, @Nonnull ItemStack result) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(brewer, "The AutoBrewer must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(potion, "The potion must not be null");

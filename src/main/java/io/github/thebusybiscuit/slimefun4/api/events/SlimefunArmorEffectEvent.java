@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -40,6 +41,9 @@ public class SlimefunArmorEffectEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public SlimefunArmorEffectEvent(@Nonnull Player player, @Nonnull SlimefunArmorPiece armorItem, @Nonnull ItemStack item, @Nonnull PotionEffect[] effects) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(player, "The player must not be null");
         Validate.notNull(armorItem, "The armor item must not be null");
         Validate.notNull(item, "The item must not be null");

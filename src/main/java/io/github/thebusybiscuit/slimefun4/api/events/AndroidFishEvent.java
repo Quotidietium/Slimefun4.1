@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -41,6 +42,9 @@ public class AndroidFishEvent extends Event implements Cancellable {
      */
     @ParametersAreNonnullByDefault
     public AndroidFishEvent(AndroidInstance android, ItemStack drop) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         this.android = android;
         this.drop = drop;
     }

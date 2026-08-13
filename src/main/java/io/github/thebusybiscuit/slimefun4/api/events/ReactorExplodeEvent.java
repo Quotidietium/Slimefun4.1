@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -24,6 +25,9 @@ public class ReactorExplodeEvent extends Event {
     private final Reactor reactor;
 
     public ReactorExplodeEvent(@Nonnull Location l, @Nonnull Reactor reactor) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(l, "A Location must be provided");
         Validate.notNull(reactor, "A Reactor cannot be null");
 

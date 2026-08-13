@@ -9,6 +9,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -61,6 +62,9 @@ public class AndroidMineEvent extends Event implements Cancellable {
      */
     @ParametersAreNonnullByDefault
     public AndroidMineEvent(Block block, AndroidInstance android, Collection<ItemStack> drops) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(block, "The mined Block must not be null");
         Validate.notNull(android, "The AndroidInstance must not be null");
         Validate.notNull(drops, "The drops must not be null");

@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -43,6 +44,9 @@ public class GEOResourceGenerationEvent extends Event {
 
     @ParametersAreNonnullByDefault
     public GEOResourceGenerationEvent(World world, Biome biome, int x, int z, GEOResource resource, int value) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         this.world = world;
         this.biome = biome;
         this.resource = resource;

@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.Cancellable;
@@ -41,6 +42,9 @@ public class RainbowBlockCycleEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public RainbowBlockCycleEvent(@Nonnull SlimefunItem item, @Nonnull Block block, @Nonnull Material previousMaterial, @Nonnull Material nextMaterial) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(item, "The SlimefunItem must not be null");
         Validate.notNull(block, "The Block must not be null");
         Validate.notNull(previousMaterial, "The previous Material must not be null");

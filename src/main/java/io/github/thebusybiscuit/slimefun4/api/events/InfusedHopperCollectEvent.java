@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Item;
@@ -70,6 +71,9 @@ public class InfusedHopperCollectEvent extends Event implements Cancellable {
      *            The default collection destination
      */
     public InfusedHopperCollectEvent(@Nonnull InfusedHopper hopper, @Nonnull Block block, @Nonnull Item item, @Nonnull Location destination) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(hopper, "The InfusedHopper must not be null");
         Validate.notNull(block, "The Block must not be null");
         Validate.notNull(item, "The Item must not be null");

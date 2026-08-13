@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.Cancellable;
@@ -47,6 +48,9 @@ public class NetherStarReactorWitherEvent extends Event implements Cancellable {
 
     @ParametersAreNonnullByDefault
     public NetherStarReactorWitherEvent(NetherStarReactor reactor, Location location, LivingEntity entity) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(reactor, "The NetherStarReactor must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(entity, "The entity must not be null");

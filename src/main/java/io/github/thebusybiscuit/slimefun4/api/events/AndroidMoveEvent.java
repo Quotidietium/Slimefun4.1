@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.Cancellable;
@@ -49,6 +50,9 @@ public class AndroidMoveEvent extends Event implements Cancellable {
      */
     @ParametersAreNonnullByDefault
     public AndroidMoveEvent(AndroidInstance android, Block to, BlockFace face) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(android, "The AndroidInstance must not be null");
         Validate.notNull(to, "The destination Block must not be null");
         Validate.notNull(face, "The BlockFace must not be null");

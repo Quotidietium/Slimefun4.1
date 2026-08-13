@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
@@ -40,7 +41,7 @@ public class SolarHelmetChargeEvent extends PlayerEvent implements Cancellable {
 
     @ParametersAreNonnullByDefault
     public SolarHelmetChargeEvent(Player player, SolarHelmet helmet, ItemStack item, Rechargeable rechargeable, float charge) {
-        super(player);
+        super(player, !Bukkit.isPrimaryThread());
         Validate.notNull(helmet, "The SolarHelmet must not be null");
         Validate.notNull(item, "The ItemStack must not be null");
         Validate.notNull(rechargeable, "The Rechargeable must not be null");

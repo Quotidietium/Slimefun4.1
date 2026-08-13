@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -39,6 +40,9 @@ public class GEOMiningCompleteEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public GEOMiningCompleteEvent(@Nonnull GEOMiner miner, @Nonnull Location location, @Nonnull ItemStack result) {
+
+        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        super(!Bukkit.isPrimaryThread());
         Validate.notNull(miner, "The GEOMiner must not be null");
         Validate.notNull(location, "The Location must not be null");
         Validate.notNull(result, "The result must not be null");
