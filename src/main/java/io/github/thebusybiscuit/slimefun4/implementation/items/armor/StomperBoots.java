@@ -87,11 +87,13 @@ public class StomperBoots extends SlimefunItem {
                     pushVelocity = pushEvent.getPushVelocity();
                 }
 
-                Vector velocity = pushVelocity != null ? pushVelocity : getShockwave(player.getLocation(), entity.getLocation());
-                entity.setVelocity(velocity);
-
-                // Check if it's not a Player or if PvP is enabled
+                // Check if it's not a Player or if PvP is enabled - before applying any
+                // knockback, otherwise players in protected areas would still be pushed
+                // around (only the damage was gated, the velocity was not).
                 if (!(entity instanceof Player) || (player.getWorld().getPVP() && Slimefun.getProtectionManager().hasPermission(player, entity.getLocation(), Interaction.ATTACK_PLAYER))) {
+                    Vector velocity = pushVelocity != null ? pushVelocity : getShockwave(player.getLocation(), entity.getLocation());
+                    entity.setVelocity(velocity);
+
                     EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(player, entity, DamageCause.ENTITY_ATTACK, damage);
                     Bukkit.getPluginManager().callEvent(event);
 
