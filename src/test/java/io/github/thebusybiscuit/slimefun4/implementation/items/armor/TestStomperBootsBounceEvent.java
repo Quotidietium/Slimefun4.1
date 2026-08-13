@@ -115,6 +115,7 @@ class TestStomperBootsBounceEvent {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new StomperBootsBounceEvent(player, null, new Vector(0, 0.7, 0)));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new StomperBootsBounceEvent(player, boots, null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setBounceVelocity(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setBounceVelocity(new Vector(0, Double.POSITIVE_INFINITY, 0)), "Non-finite vector components must be rejected");
     }
 
     @Test

@@ -77,6 +77,10 @@ public class MagicEyeOfEnderLaunchEvent extends PlayerEvent implements Cancellab
      *            The launch velocity, or {@code null} for the vanilla default
      */
     public void setVelocity(@Nullable Vector velocity) {
+        if (velocity != null) {
+            Validate.isTrue(Double.isFinite(velocity.getX()) && Double.isFinite(velocity.getY()) && Double.isFinite(velocity.getZ()), "The vector must have finite components, received: " + velocity);
+        }
+
         this.velocity = velocity;
     }
 

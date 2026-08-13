@@ -115,6 +115,7 @@ class TestGrapplingHookFireEvent {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new GrapplingHookFireEvent(player, null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new GrapplingHookFireEvent(player, grapplingHook, null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDirection(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDirection(new Vector(0, Double.NaN, 0)), "Non-finite vector components must be rejected");
     }
 
     @Test

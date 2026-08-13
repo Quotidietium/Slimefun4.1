@@ -99,6 +99,8 @@ public class GrapplingHookFireEvent extends PlayerEvent implements Cancellable {
     public void setDirection(@Nonnull Vector direction) {
         Validate.notNull(direction, "The launch direction must not be null");
 
+        Validate.isTrue(Double.isFinite(direction.getX()) && Double.isFinite(direction.getY()) && Double.isFinite(direction.getZ()), "The vector must have finite components, received: " + direction);
+
         this.direction = direction;
     }
 

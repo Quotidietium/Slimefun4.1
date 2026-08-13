@@ -64,6 +64,8 @@ public class ClimbingPickLaunchEvent extends PlayerEvent implements Cancellable 
      */
     public void setVelocity(@Nonnull Vector velocity) {
         Validate.notNull(velocity);
+        Validate.isTrue(Double.isFinite(velocity.getX()) && Double.isFinite(velocity.getY()) && Double.isFinite(velocity.getZ()), "The vector must have finite components, received: " + velocity);
+
         this.velocity = velocity;
     }
 

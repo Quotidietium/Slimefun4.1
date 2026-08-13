@@ -72,6 +72,8 @@ public class WindStaffLaunchEvent extends PlayerEvent implements Cancellable {
      */
     public void setVelocity(@Nullable Vector velocity) {
         Validate.notNull(velocity, "The velocity must not be null");
+        Validate.isTrue(Double.isFinite(velocity.getX()) && Double.isFinite(velocity.getY()) && Double.isFinite(velocity.getZ()), "The vector must have finite components, received: " + velocity);
+
         this.velocity = velocity;
     }
 

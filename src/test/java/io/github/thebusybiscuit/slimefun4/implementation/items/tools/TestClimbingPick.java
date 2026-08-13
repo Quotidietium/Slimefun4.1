@@ -33,6 +33,8 @@ import be.seeseemelk.mockbukkit.ServerMock;
 import be.seeseemelk.mockbukkit.block.BlockMock;
 import be.seeseemelk.mockbukkit.entity.PlayerMock;
 
+import org.bukkit.util.Vector;
+
 class TestClimbingPick implements SlimefunItemTest<ClimbingPick> {
 
     private static final double STRONG_SURFACE_DEFAULT = 1.0;
@@ -143,6 +145,20 @@ class TestClimbingPick implements SlimefunItemTest<ClimbingPick> {
         } else {
             Assertions.assertEquals(0, player.getVelocity().length());
         }
+    }
+
+    @Test
+    @DisplayName("ClimbingPickLaunchEvent rejects null and non-finite velocity")
+    void testLaunchEventVelocityValidation() {
+        PlayerMock player = server.addPlayer();
+        ClimbingPick pick = registerSlimefunItem(plugin, "TEST_CLIMBING_PICK_VELOCITY_VALIDATION");
+        BlockMock block = new BlockMock(Material.ICE, player.getLocation());
+
+        ClimbingPickLaunchEvent event = new ClimbingPickLaunchEvent(player, new Vector(0, 1, 0), pick, pick.getItem().clone(), block);
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setVelocity(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setVelocity(new Vector(Double.NaN, 0, 0)), "Non-finite vector components must be rejected");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setVelocity(new Vector(0, 0, Double.NEGATIVE_INFINITY)), "Non-finite vector components must be rejected");
     }
 
     @Test

@@ -106,6 +106,7 @@ class TestMagicEyeOfEnderLaunchEvent {
         event.setVelocity(velocity);
         Assertions.assertEquals(velocity, event.getVelocity());
         event.setVelocity(null);
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setVelocity(new Vector(0, 0, Double.POSITIVE_INFINITY)), "Non-finite vector components must be rejected");
         Assertions.assertNull(event.getVelocity(), "Setting the velocity back to null must restore the vanilla default");
 
         event.setCancelled(true);

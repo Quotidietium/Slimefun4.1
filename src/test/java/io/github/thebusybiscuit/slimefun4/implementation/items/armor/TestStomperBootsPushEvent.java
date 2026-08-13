@@ -122,6 +122,7 @@ class TestStomperBootsPushEvent {
         event.setPushVelocity(custom);
         Assertions.assertEquals(custom, event.getPushVelocity());
         event.setPushVelocity(null);
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setPushVelocity(new Vector(Double.NaN, 0, 0)), "Non-finite vector components must be rejected");
         Assertions.assertNull(event.getPushVelocity(), "Setting the push velocity back to null must restore the computed shockwave");
 
         event.setCancelled(true);

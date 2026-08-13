@@ -100,6 +100,7 @@ class TestWindStaffLaunchEvent {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new WindStaffLaunchEvent(player, null, velocity));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new WindStaffLaunchEvent(player, windStaff, null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setVelocity(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setVelocity(new Vector(Double.NaN, 0, 0)), "Non-finite vector components must be rejected");
     }
 
     @Test

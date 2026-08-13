@@ -114,6 +114,10 @@ public class StomperBootsPushEvent extends PlayerEvent implements Cancellable {
      *            The push velocity, or {@code null} for the computed shockwave
      */
     public void setPushVelocity(@Nullable Vector pushVelocity) {
+        if (pushVelocity != null) {
+            Validate.isTrue(Double.isFinite(pushVelocity.getX()) && Double.isFinite(pushVelocity.getY()) && Double.isFinite(pushVelocity.getZ()), "The vector must have finite components, received: " + pushVelocity);
+        }
+
         this.pushVelocity = pushVelocity;
     }
 

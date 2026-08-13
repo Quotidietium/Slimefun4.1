@@ -73,6 +73,8 @@ public class StomperBootsBounceEvent extends PlayerEvent implements Cancellable 
      */
     public void setBounceVelocity(@Nonnull Vector bounceVelocity) {
         Validate.notNull(bounceVelocity, "The bounce velocity must not be null");
+        Validate.isTrue(Double.isFinite(bounceVelocity.getX()) && Double.isFinite(bounceVelocity.getY()) && Double.isFinite(bounceVelocity.getZ()), "The vector must have finite components, received: " + bounceVelocity);
+
         this.bounceVelocity = bounceVelocity;
     }
 
