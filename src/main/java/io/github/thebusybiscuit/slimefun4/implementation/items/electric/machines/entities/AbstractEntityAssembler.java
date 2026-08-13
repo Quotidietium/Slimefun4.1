@@ -175,15 +175,39 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
             });
         }
 
-        double offset = (!BlockStorage.hasBlockInfo(b) || BlockStorage.getLocationInfo(b.getLocation(), KEY_OFFSET) == null) ? 3.0F : Double.valueOf(BlockStorage.getLocationInfo(b.getLocation(), KEY_OFFSET));
+        double offset = getSpawnOffset(b);
 
         menu.replaceExistingItem(31, CustomItemStack.create(Material.PISTON, "&7Offset: &3" + offset + " Block(s)", "", "&fLeft Click: &7+0.1", "&fRight Click: &7-0.1"));
         menu.addMenuClickHandler(31, (p, slot, item, action) -> {
-            double offsetv = NumberUtils.reparseDouble(Double.valueOf(BlockStorage.getLocationInfo(b.getLocation(), KEY_OFFSET)) + (action.isRightClicked() ? -0.1F : 0.1F));
+            double offsetv = NumberUtils.reparseDouble(getSpawnOffset(b) + (action.isRightClicked() ? -0.1F : 0.1F));
             BlockStorage.addBlockInfo(b, KEY_OFFSET, String.valueOf(offsetv));
             updateBlockInventory(menu, b);
             return false;
         });
+    }
+
+    /**
+     * Reads the spawn offset of the given assembler {@link Block} from
+     * {@link BlockStorage}, defaulting to {@code 3.0} when the value is missing
+     * or corrupted. A non-numeric stored value previously crashed the menu and
+     * threw an NPE in the click handler.
+     */
+    private static double getSpawnOffset(@Nonnull Block b) {
+        if (!BlockStorage.hasBlockInfo(b)) {
+            return 3.0F;
+        }
+
+        String offsetData = BlockStorage.getLocationInfo(b.getLocation(), KEY_OFFSET);
+
+        if (offsetData == null) {
+            return 3.0F;
+        }
+
+        try {
+            return Double.parseDouble(offsetData);
+        } catch (NumberFormatException x) {
+            return 3.0F;
+        }
     }
 
     /**
@@ -253,17 +277,25 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
                             spawnLocation = event.getSpawnLocation();
                         }
 
-                        consumeResources(menu);
-
-                        removeCharge(b.getLocation(), getEnergyConsumption());
                         String offsetData = BlockStorage.getLocationInfo(b.getLocation(), KEY_OFFSET);
                         double offset;
 
                         try {
                             offset = Double.parseDouble(offsetData);
-                        } catch (NumberFormatException x) {
+                        } catch (NullPointerException | NumberFormatException x) {
+                            /*
+                             * Missing or corrupted offset data: skip this assembly.
+                             * This must happen BEFORE any resources are consumed,
+                             * otherwise every failed tick would eat a full set of
+                             * materials and energy, and repeated failures would let
+                             * the TickerTask destroy this machine.
+                             */
                             return;
                         }
+
+                        consumeResources(menu);
+
+                        removeCharge(b.getLocation(), getEnergyConsumption());
 
                         Location customLocation = spawnLocation;
                         Slimefun.runSync(() -> {

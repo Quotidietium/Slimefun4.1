@@ -158,6 +158,34 @@ class TestAsyncEntityAssembleEvent {
     }
 
     @Test
+    @DisplayName("Missing or corrupted offset data aborts the assembly without consuming anything")
+    void testCorruptedOffsetKeepsResources() {
+        // A missing offset previously NPE'd AFTER the resources were consumed
+        Block b = setupAssembler(900, 900);
+        BlockStorage.addBlockInfo(b.getLocation(), "offset", null, false);
+
+        tick(b, false);
+        assertResourcesKept(b);
+
+        // A non-numeric offset silently ate the resources the same way
+        Block b2 = setupAssembler(910, 910);
+        BlockStorage.addBlockInfo(b2.getLocation(), "offset", "not-a-number", false);
+
+        tick(b2, false);
+        assertResourcesKept(b2);
+    }
+
+    private void assertResourcesKept(Block b) {
+        BlockMenu menu = BlockStorage.getInventory(b);
+        Assertions.assertNotNull(menu.getItemInSlot(19), "The pumpkin must not have been consumed");
+        ItemStack iron = menu.getItemInSlot(25);
+        Assertions.assertNotNull(iron, "The iron blocks must not have been consumed");
+        Assertions.assertEquals(4, iron.getAmount(), "The iron blocks must not have been consumed");
+        Assertions.assertEquals("4096", BlockStorage.getLocationInfo(b.getLocation(), "energy-charge"), "The energy must not have been consumed");
+        Assertions.assertNull(lastSpawnLocation, "Nothing must have been spawned");
+    }
+
+    @Test
     @DisplayName("AsyncEntityAssembleEvent exposes its fields and validates constructor arguments")
     void testEventFieldsAndValidation() {
         Block b = world.getBlockAt(1, 1, 1);
