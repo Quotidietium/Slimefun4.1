@@ -81,7 +81,12 @@ public class FishermanAndroid extends ProgrammableAndroid {
                     drop = event.getDrop();
                 }
 
-                menu.pushItem(drop.clone(), getOutputSlots());
+                ItemStack rest = menu.pushItem(drop.clone(), getOutputSlots());
+
+                if (rest != null) {
+                    // The output slots are full: drop the catch instead of voiding it
+                    b.getWorld().dropItemNaturally(b.getLocation(), rest);
+                }
             }
         }
     }

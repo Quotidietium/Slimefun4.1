@@ -55,13 +55,20 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
 
             if (!list.isEmpty()) {
                 Block log = list.get(list.size() - 1);
+                OfflinePlayer owner = getOwner(b);
+
+                if (owner == null || !Slimefun.getProtectionManager().hasPermission(owner, log.getLocation(), Interaction.BREAK_BLOCK)) {
+                    /*
+                     * The owner may not chop this log (protected claim or missing owner
+                     * data): give up on this tree and move on, instead of replaying the
+                     * effect and burning fuel on the same instruction forever.
+                     */
+                    return true;
+                }
+
                 // BlockData is the primary data type of this effect
                 log.getWorld().playEffect(log.getLocation(), Effect.STEP_SOUND, log.getType().createBlockData());
-
-                OfflinePlayer owner = getOwner(b);
-                if (owner != null && Slimefun.getProtectionManager().hasPermission(owner, log.getLocation(), Interaction.BREAK_BLOCK)) {
-                    breakLog(log, b, menu, face);
-                }
+                breakLog(log, b, menu, face);
 
                 return false;
             }

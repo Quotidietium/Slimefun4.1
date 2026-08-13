@@ -133,7 +133,12 @@ public class MinerAndroid extends ProgrammableAndroid {
 
         // Push our drops to the inventory
         for (ItemStack drop : drops) {
-            menu.pushItem(drop, getOutputSlots());
+            ItemStack rest = menu.pushItem(drop, getOutputSlots());
+
+            if (rest != null) {
+                // The output slots are full: drop the surplus instead of voiding it
+                block.getWorld().dropItemNaturally(block.getLocation(), rest);
+            }
         }
 
         // Check if Block Generator optimizations should be applied.

@@ -93,6 +93,15 @@ public class ButcherAndroid extends ProgrammableAndroid {
                 n.setMetadata(METADATA_KEY, new FixedMetadataValue(Slimefun.instance(), instance));
 
                 ((LivingEntity) n).damage(damage);
+
+                /*
+                 * The tag must only be present when THIS damage actually kills the entity
+                 * (EntityDeathEvent fires synchronously inside damage() and consumes it).
+                 * If the entity survived, a later death - e.g. another player killing their
+                 * own livestock inside their own claim - must not route the drops into this
+                 * android.
+                 */
+                n.removeMetadata(METADATA_KEY, Slimefun.instance());
                 break;
             }
         }
