@@ -185,7 +185,14 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
     private void produceFlasks(@Nonnull Location location, int experiencePoints) {
         int withdrawn = 0;
         BlockMenu menu = BlockStorage.getInventory(location);
-        for (int level = 0; level < getStoredExperience(location); level = level + 10) {
+
+        // Only produce a flask for each FULL 10 XP (floor, not ceil): a Flask of Knowledge is a
+        // discrete 10-XP item, so the previous "level < stored" bound produced an extra partial
+        // flask whenever the stored value was not a multiple of 10, making "withdrawn" exceed the
+        // available XP and driving the stored value negative (a debt only repaid by future orbs -
+        // and lost on block break, a small XP dup). With the floor bound, withdrawn <= stored and
+        // the new stored (experiencePoints - withdrawn) stays >= 0.
+        for (int level = 0; level + 10 <= getStoredExperience(location); level = level + 10) {
             ItemStack flask = SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item();
 
             if (!menu.fits(flask, getOutputSlots())) {

@@ -204,4 +204,31 @@ class TestExpCollectorProduceEvent {
             server.unregisterEntity(orb);
         }
     }
+
+    @Test
+    @DisplayName("A non-multiple-of-10 stored value produces only full flasks and never goes negative")
+    void testNonMultipleStoredStaysNonNegative() {
+        Block b = world.getBlockAt(40, 1, 40);
+        b.setType(Material.PLAYER_HEAD);
+        BlockStorage.addBlockInfo(b, "id", collector.getId(), true);
+        BlockStorage.addBlockInfo(b.getLocation(), "energy-charge", "100", false);
+        // A non-multiple-of-10 stored value: previously the "level < stored" loop produced an
+        // extra partial flask (ceil), withdrawing more than available and driving stored negative.
+        BlockStorage.addBlockInfo(b.getLocation(), "stored-exp", "25", false);
+        ExperienceOrbMock orb = spawnOrb(b, 1);
+
+        try {
+            tick(b);
+
+            String stored = BlockStorage.getLocationInfo(b.getLocation(), "stored-exp");
+            Assertions.assertNotNull(stored);
+            int storedXp = Integer.parseInt(stored);
+            Assertions.assertTrue(storedXp >= 0, "Stored XP must never go negative (over-production), got: " + storedXp);
+            // floor(25/10) = 2 full flasks (20 XP) produced, leaving 5 + 1 (orb) = 6 stored
+            Assertions.assertEquals(6, storedXp, "Two full flasks must leave the remainder plus the new orb");
+        } finally {
+            if (orb.isValid()) orb.remove();
+            server.unregisterEntity(orb);
+        }
+    }
 }
