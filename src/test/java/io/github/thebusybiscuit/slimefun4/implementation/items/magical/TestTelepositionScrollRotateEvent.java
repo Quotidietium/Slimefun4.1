@@ -107,6 +107,9 @@ class TestTelepositionScrollRotateEvent {
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TelepositionScrollRotateEvent(player, null, cow, 180F));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TelepositionScrollRotateEvent(player, scroll, null, 180F));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setNewYaw(Float.NaN));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setNewYaw(Float.POSITIVE_INFINITY));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setNewYaw(Float.NEGATIVE_INFINITY));
     }
 
     @Test

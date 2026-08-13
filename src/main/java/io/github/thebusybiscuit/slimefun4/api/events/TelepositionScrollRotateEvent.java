@@ -77,9 +77,10 @@ public class TelepositionScrollRotateEvent extends PlayerEvent implements Cancel
      * This sets the yaw the {@link LivingEntity} will be rotated to.
      *
      * @param newYaw
-     *            The new yaw
+     *            The new yaw, must be a finite value
      */
     public void setNewYaw(float newYaw) {
+        Validate.isTrue(Float.isFinite(newYaw), "The new yaw must be finite, received: " + newYaw);
         this.newYaw = newYaw;
     }
 
