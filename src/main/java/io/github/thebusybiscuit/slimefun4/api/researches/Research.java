@@ -234,9 +234,11 @@ public class Research implements Keyed {
      *
      * <p>
      * This enables add-ons to model research <b>trees</b> / tech prerequisites without having
-     * to reimplement the unlock flow. The check is enforced inside
-     * {@link #unlockFromGuide} and is a strict no-op for any {@link Research} without
-     * dependencies.
+     * to reimplement the unlock flow. The check is enforced for every unlock: the guide path
+     * checks it in {@link #unlockFromGuide} before any cost is taken, and
+     * {@link PlayerResearchTask} re-checks it when the unlock runs, so KnowledgeTome shares,
+     * {@code /sf research all} and direct {@code unlock()} calls cannot skip prerequisites
+     * either. It is a strict no-op for any {@link Research} without dependencies.
      * </p>
      *
      * <p>

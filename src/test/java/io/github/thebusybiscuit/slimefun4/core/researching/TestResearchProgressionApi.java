@@ -160,6 +160,48 @@ class TestResearchProgressionApi {
     }
 
     @Test
+    @DisplayName("Test research.unlock() enforces dependencies on every path, not only in the guide")
+    void testUnlockEnforcesDependencies() throws InterruptedException {
+        Research prereq = new Research(new NamespacedKey(plugin, "enforce_prereq"), 8815, "Enforce Prereq", 1);
+        Research dependent = new Research(new NamespacedKey(plugin, "enforce_dependent"), 8816, "Enforce Dependent", 1);
+        prereq.register();
+        dependent.register();
+        dependent.addDependency(prereq);
+
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+
+        // Direct unlock() calls (KnowledgeTome shares, addons) must not skip the tree
+        dependent.unlock(player, true);
+        Assertions.assertFalse(profile.hasUnlocked(dependent), "A research with unmet prerequisites must not unlock");
+
+        prereq.unlock(player, true);
+        Assertions.assertTrue(profile.hasUnlocked(prereq));
+
+        dependent.unlock(player, true);
+        Assertions.assertTrue(profile.hasUnlocked(dependent), "A research must unlock once its prerequisites are unlocked");
+    }
+
+    @Test
+    @DisplayName("Test a dependency refusal runs the cancelHandler so callers can compensate a taken cost")
+    void testDependencyRefusalRunsCancelHandler() throws InterruptedException {
+        Research prereq = new Research(new NamespacedKey(plugin, "refund_prereq"), 8817, "Refund Prereq", 1);
+        Research dependent = new Research(new NamespacedKey(plugin, "refund_dependent"), 8818, "Refund Dependent", 1);
+        prereq.register();
+        dependent.register();
+        dependent.addDependency(prereq);
+
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+
+        boolean[] compensated = { false };
+        dependent.unlock(player, true, null, null, () -> compensated[0] = true);
+
+        Assertions.assertTrue(compensated[0], "The cancelHandler must run when prerequisites are unmet");
+        Assertions.assertFalse(profile.hasUnlocked(dependent));
+    }
+
+    @Test
     @DisplayName("Test ResearchLockEvent fires when a research is re-locked")
     void testResearchLockEvent() throws InterruptedException {
         Research research = new Research(new NamespacedKey(plugin, "lock_event_research"), 8809, "Lockable", 1);

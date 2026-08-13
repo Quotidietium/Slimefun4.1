@@ -76,7 +76,26 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
 
     @Override
     public void accept(PlayerProfile profile) {
-        if (!profile.hasUnlocked(research)) {
+        if (profile.hasUnlocked(research)) {
+            return;
+        }
+
+        if (!research.meetsDependencies(profile)) {
+            /*
+             * Prerequisite researches are enforced here, not only in the guide:
+             * KnowledgeTome shares, /sf research all and direct unlock() calls all
+             * funnel through this task, so none of them can skip the research tree.
+             * Compensate any cost the caller already took, same as a vetoed
+             * ResearchUnlockEvent.
+             */
+            if (cancelHandler != null) {
+                Slimefun.runSync(cancelHandler);
+            }
+
+            return;
+        }
+
+        {
             Player p = profile.getPlayer();
 
             if (p == null) {
