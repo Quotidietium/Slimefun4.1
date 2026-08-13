@@ -194,6 +194,45 @@ class TestTrashCanVoidEvent {
     }
 
     @Test
+    @DisplayName("Sparing an item must not confuse slots whose items differ only in item meta")
+    void testSparedItemMatchesByMeta() {
+        BlockMenu menu = placeTrashCan(80, 80);
+        ItemStack plain = new ItemStack(Material.DIAMOND_PICKAXE);
+        ItemStack named = new ItemStack(Material.DIAMOND_PICKAXE);
+        named.editMeta(meta -> meta.setDisplayName("Precious"));
+
+        // ItemStack#equals ignores meta, so the plain pickaxe "equals" the named one.
+        // The plain one sits in the earlier slot on purpose: sparing must still keep
+        // the named pickaxe and void the plain one, not the other way around.
+        menu.replaceExistingItem(INPUT_SLOT, plain);
+        menu.replaceExistingItem(INPUT_SLOT + 1, named);
+
+        Listener sparing = new Listener() {
+            @EventHandler
+            public void onVoid(TrashCanVoidEvent event) {
+                for (ItemStack item : event.getItems()) {
+                    if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                        event.spareItem(item);
+                    }
+                }
+            }
+        };
+        server.getPluginManager().registerEvents(sparing, plugin);
+
+        try {
+            tick(menu);
+
+            Assertions.assertNull(menu.getItemInSlot(INPUT_SLOT), "The unspared plain pickaxe must have been voided");
+            ItemStack kept = menu.getItemInSlot(INPUT_SLOT + 1);
+            Assertions.assertNotNull(kept, "The spared named pickaxe must have been kept");
+            Assertions.assertTrue(kept.hasItemMeta(), "The kept pickaxe must be the named one");
+            Assertions.assertEquals("Precious", kept.getItemMeta().getDisplayName());
+        } finally {
+            HandlerList.unregisterAll(sparing);
+        }
+    }
+
+    @Test
     @DisplayName("A tick with items in the input fires the event and voids them")
     void testTickFiresEventAndVoids() {
         BlockMenu menu = placeTrashCan(10, 10);

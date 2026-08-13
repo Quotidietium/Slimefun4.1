@@ -17,6 +17,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.interfaces.InventoryBlock;
@@ -74,12 +75,14 @@ public class TrashCan extends SlimefunItem implements InventoryBlock {
 
                 if (TrashCanVoidEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     List<ItemStack> items = new ArrayList<>();
+                    List<Integer> occupiedSlots = new ArrayList<>();
 
                     for (int slot : getInputSlots()) {
                         ItemStack stack = menu.getItemInSlot(slot);
 
                         if (stack != null) {
                             items.add(stack);
+                            occupiedSlots.add(slot);
                         }
                     }
 
@@ -96,11 +99,12 @@ public class TrashCan extends SlimefunItem implements InventoryBlock {
 
                         if (!spared.isEmpty()) {
                             // Void everything that was not spared, one slot at a time.
-                            for (int slot : getInputSlots()) {
-                                ItemStack stack = menu.getItemInSlot(slot);
-
-                                if (stack != null && !spared.remove(stack)) {
-                                    menu.replaceExistingItem(slot, null);
+                            // Compare against the exact ItemStack references the event exposed:
+                            // addons pass those into spareItem(...) and a fresh getItemInSlot(...)
+                            // may be a copy, breaking identity-based matching.
+                            for (int i = 0; i < items.size(); i++) {
+                                if (!removeSpared(spared, items.get(i))) {
+                                    menu.replaceExistingItem(occupiedSlots.get(i), null);
                                 }
                             }
 
@@ -121,6 +125,42 @@ public class TrashCan extends SlimefunItem implements InventoryBlock {
                 return true;
             }
         });
+    }
+
+    /**
+     * Removes one matching entry from the spared list, returning whether the given
+     * stack was spared.
+     * <p>
+     * {@link ItemStack#equals(Object)} deliberately ignores item meta (it only compares
+     * type, amount and durability), so a plain {@code List#remove(Object)} would consider
+     * an enchanted pickaxe "equal" to a plain one and could spare the wrong slot, voiding
+     * the exact item an addon asked to keep. Identity is preferred because addons usually
+     * pass a reference straight from {@link TrashCanVoidEvent#getItems()}; the meta-aware
+     * {@link SlimefunUtils#isItemSimilar(ItemStack, ItemStack, boolean, boolean)} + amount
+     * comparison covers defensive clones.
+     */
+    private static boolean removeSpared(List<ItemStack> spared, ItemStack stack) {
+        int similarFallback = -1;
+
+        for (int i = 0; i < spared.size(); i++) {
+            ItemStack entry = spared.get(i);
+
+            if (entry == stack) {
+                spared.remove(i);
+                return true;
+            }
+
+            if (similarFallback < 0 && entry.getAmount() == stack.getAmount() && SlimefunUtils.isItemSimilar(entry, stack, true, false)) {
+                similarFallback = i;
+            }
+        }
+
+        if (similarFallback >= 0) {
+            spared.remove(similarFallback);
+            return true;
+        }
+
+        return false;
     }
 
 }
