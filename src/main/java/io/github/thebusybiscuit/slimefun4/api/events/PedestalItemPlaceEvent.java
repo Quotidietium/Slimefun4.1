@@ -84,6 +84,10 @@ public class PedestalItemPlaceEvent extends PlayerEvent implements Cancellable {
      * This sets the {@link ItemStack} that will be displayed on the pedestal. The hand
      * item of the {@link Player} is still consumed; only the displayed copy and its
      * nametag follow the given item.
+     * <p>
+     * Setting an air or otherwise empty {@link ItemStack} destroys the item (consistent
+     * with the cargo withdraw/insert events): the hand item is consumed and nothing is
+     * displayed on the pedestal.
      *
      * @param item
      *            The {@link ItemStack} to display instead

@@ -213,6 +213,37 @@ class TestPedestalItemPlaceEvent {
     }
 
     @Test
+    @DisplayName("setItem(AIR) destroys the hand item without leaving a broken display behind")
+    void testSetItemAirDestroysItem() {
+        Player player = server.addPlayer();
+        Block b = placePedestal(50, 50);
+        ItemStack hand = new ItemStack(Material.DIAMOND, 3);
+        player.getInventory().setItemInMainHand(hand);
+
+        Listener destroying = new Listener() {
+            @EventHandler
+            public void onPlace(PedestalItemPlaceEvent event) {
+                event.setItem(new ItemStack(Material.AIR));
+            }
+        };
+        server.getPluginManager().registerEvents(destroying, plugin);
+
+        try {
+            place(player, b);
+
+            Assertions.assertEquals(2, player.getInventory().getItemInMainHand().getAmount(), "The hand item must have been consumed");
+
+            // No display entity must be left behind (an air display would be a broken, unremovable state)
+            Location displayLocation = new Location(world, 50.5, 2.2, 50.5);
+            for (Entity entity : world.getNearbyEntities(displayLocation, 0.5, 0.5, 0.5, AncientPedestal::testItem)) {
+                Assertions.fail("An air replacement must not spawn a display entity, found: " + entity);
+            }
+        } finally {
+            HandlerList.unregisterAll(destroying);
+        }
+    }
+
+    @Test
     @DisplayName("Placing without listeners still consumes, preserving the old behavior")
     void testPlaceWithoutListenersStillConsumes() {
         Player player = server.addPlayer();

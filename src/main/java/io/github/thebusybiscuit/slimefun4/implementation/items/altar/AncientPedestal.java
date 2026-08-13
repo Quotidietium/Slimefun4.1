@@ -170,6 +170,20 @@ public class AncientPedestal extends SimpleSlimefunItem<BlockDispenseHandler> im
 
             // An addon may have changed which item is displayed on the pedestal
             placed = event.getItem();
+
+            if (placed.getType().isAir() || placed.getAmount() <= 0) {
+                /*
+                 * Setting an air or otherwise empty ItemStack destroys the item
+                 * (consistent with the cargo withdraw/insert events): the hand item
+                 * is consumed and nothing is displayed. Spawning an air display
+                 * entity would leave a broken, unremovable pedestal state behind.
+                 */
+                if (p.getGameMode() != GameMode.CREATIVE) {
+                    ItemUtils.consumeItem(hand, false);
+                }
+
+                return;
+            }
         }
 
         String displayName = ITEM_PREFIX + System.nanoTime();
