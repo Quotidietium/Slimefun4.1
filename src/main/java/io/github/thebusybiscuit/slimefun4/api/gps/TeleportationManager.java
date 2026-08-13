@@ -71,6 +71,21 @@ public final class TeleportationManager {
     }
 
     @ParametersAreNonnullByDefault
+    /**
+     * This returns whether the {@link Player} with the given {@link UUID} currently has a
+     * teleporter GUI open or a teleportation in progress. While this is {@code true},
+     * {@link #openTeleporterGUI} refuses to open another GUI.
+     *
+     * @param uuid
+     *            The {@link UUID} of the {@link Player}
+     *
+     * @return Whether that {@link Player} is currently using the teleporter
+     */
+    public boolean isTeleporting(@Nonnull UUID uuid) {
+        Validate.notNull(uuid, "The UUID must not be null");
+        return teleporterUsers.contains(uuid);
+    }
+
     public void openTeleporterGUI(Player p, UUID ownerUUID, Block b, int complexity) {
         /*
          * Check-only, do NOT commit here: if the profile fails to load, the
@@ -168,9 +183,16 @@ public final class TeleportationManager {
             return;
         }
 
+        /*
+         * Compute the teleportation time BEFORE claiming the teleport slot: if the
+         * calculation throws (e.g. a corrupted destination), a prematurely claimed
+         * entry would linger in #teleporterUsers with no GUI and no close handler,
+         * soft-locking the Player from ever opening a teleporter GUI again.
+         */
+        int time = startEvent.getTeleportationTime() > 0 ? startEvent.getTeleportationTime() : getTeleportationTime(complexity, source, startEvent.getDestination());
+
         teleporterUsers.add(uuid);
 
-        int time = startEvent.getTeleportationTime() > 0 ? startEvent.getTeleportationTime() : getTeleportationTime(complexity, source, startEvent.getDestination());
         int speed = Math.max(1, 100 / time);
         updateProgress(uuid, speed, 0, source, startEvent.getDestination(), resistance);
     }

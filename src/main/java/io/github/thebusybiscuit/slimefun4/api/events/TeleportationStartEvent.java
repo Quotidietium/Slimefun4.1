@@ -114,10 +114,13 @@ public class TeleportationStartEvent extends Event implements Cancellable {
      * distance.
      *
      * @param destination
-     *            The new destination {@link Location}, must not be null
+     *            The new destination {@link Location}, must not be null, must have a
+     *            non-null {@link org.bukkit.World} and finite coordinates
      */
     public void setDestination(@Nonnull Location destination) {
         Validate.notNull(destination, "The destination must not be null");
+        Validate.notNull(destination.getWorld(), "The destination must have a World");
+        Validate.isTrue(Double.isFinite(destination.getX()) && Double.isFinite(destination.getY()) && Double.isFinite(destination.getZ()), "The destination must have finite coordinates, received: " + destination);
         this.destination = destination;
     }
 

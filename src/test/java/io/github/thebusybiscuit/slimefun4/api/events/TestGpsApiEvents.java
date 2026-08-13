@@ -105,6 +105,26 @@ class TestGpsApiEvents {
     }
 
     @Test
+    @DisplayName("TeleportationStartEvent.setDestination rejects worldless and non-finite destinations")
+    void testSetDestinationValidation() {
+        Player player = server.addPlayer();
+        Location source = player.getLocation();
+        Location destination = player.getLocation().add(5, 0, 5);
+
+        TeleportationStartEvent event = new TeleportationStartEvent(player.getUniqueId(), 500, source, destination, false);
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDestination(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDestination(new Location(null, 1, 64, 1)));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDestination(new Location(player.getWorld(), Double.NaN, 64, 1)));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDestination(new Location(player.getWorld(), 1, Double.POSITIVE_INFINITY, 1)));
+
+        // A valid destination is still accepted
+        Location valid = player.getLocation().add(10, 0, 10);
+        Assertions.assertDoesNotThrow(() -> event.setDestination(valid));
+        Assertions.assertEquals(valid, event.getDestination());
+    }
+
+    @Test
     @DisplayName("TeleportationCompleteEvent exposes uuid, destination and resistance and is not cancellable")
     void testTeleportationCompleteEventFields() {
         Player player = server.addPlayer();
@@ -153,6 +173,15 @@ class TestGpsApiEvents {
         // Without a listener the removal behaves exactly as before
         profile.removeWaypoint(waypoint);
         Assertions.assertTrue(profile.getWaypoints().isEmpty());
+    }
+
+    @Test
+    @DisplayName("TeleportationManager.isTeleporting reports only players with an active teleporter session")
+    void testIsTeleporting() {
+        Player player = server.addPlayer();
+
+        Assertions.assertFalse(Slimefun.getGPSNetwork().getTeleportationManager().isTeleporting(player.getUniqueId()));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> Slimefun.getGPSNetwork().getTeleportationManager().isTeleporting(null));
     }
 
     @Test
