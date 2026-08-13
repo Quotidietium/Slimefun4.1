@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -16,7 +17,6 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
-import io.github.bakedlibs.dough.common.CommonPatterns;
 import io.github.thebusybiscuit.slimefun4.api.events.CargoNetTickEvent;
 import io.github.thebusybiscuit.slimefun4.api.network.Network;
 import io.github.thebusybiscuit.slimefun4.api.network.NetworkComponent;
@@ -112,6 +112,13 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
         if (from == NetworkComponent.TERMINUS) {
             inputNodes.remove(l);
             outputNodes.remove(l);
+
+            /*
+             * Evict the per-node caches too: both are keyed by Location and would
+             * otherwise grow without bound on networks with high node churn.
+             */
+            filterCache.remove(l);
+            roundRobin.remove(l);
         }
 
         if (to == NetworkComponent.TERMINUS) {
@@ -220,25 +227,40 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
     }
 
     /**
+     * Corrupted frequencies are reported once per node (not on every cargo tick) so a
+     * single tampered node cannot spam the log for the lifetime of the server.
+     */
+    private static final Set<Location> CORRUPTED_FREQUENCY_REPORTED = ConcurrentHashMap.newKeySet();
+
+    /**
      * This method returns the frequency a given node is set to.
-     * Should there be invalid data this method it will fall back to zero in
-     * order to preserve the integrity of the {@link CargoNet}.
-     * 
+     * A missing value falls back to zero in order to preserve the integrity of the
+     * {@link CargoNet}. Corrupted data (non-numeric or overflowing values, reachable
+     * via NBT editing) fails closed with -1, so both {@link #mapInputNodes()} and
+     * {@link #mapOutputNodes()} skip the node instead of silently rerouting its
+     * container into channel 0 or crashing the Cargo Manager.
+     *
      * @param node
      *            The {@link Location} of our cargo node
-     * 
-     * @return The frequency of the given node
+     *
+     * @return The frequency of the given node, or -1 for corrupted data
      */
     private static int getFrequency(@Nonnull Location node) {
         String frequency = BlockStorage.getLocationInfo(node, "frequency");
 
         if (frequency == null) {
             return 0;
-        } else if (!CommonPatterns.NUMERIC.matcher(frequency).matches()) {
-            Slimefun.logger().log(Level.SEVERE, () -> "Failed to parse a Cargo Node Frequency (" + node.getWorld().getName() + " - " + node.getBlockX() + ',' + node.getBlockY() + ',' + node.getBlockZ() + "): " + frequency);
-            return 0;
-        } else {
+        }
+
+        try {
             return Integer.parseInt(frequency);
+        } catch (NumberFormatException x) {
+            // Also caught: values that are numeric but exceed the integer range
+            if (CORRUPTED_FREQUENCY_REPORTED.add(node)) {
+                Slimefun.logger().log(Level.SEVERE, () -> "Failed to parse a Cargo Node Frequency (" + node.getWorld().getName() + " - " + node.getBlockX() + ',' + node.getBlockY() + ',' + node.getBlockZ() + "): " + frequency + " - the node is skipped until fixed");
+            }
+
+            return -1;
         }
     }
 }
