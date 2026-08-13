@@ -97,6 +97,13 @@ public class PlayerProfile {
     // by the async auto-save thread and onDisable. Without volatile the auto-save thread may never
     // observe a just-written dirty=true and skip saving the profile for a whole cycle.
     private volatile boolean dirty = false;
+
+    /*
+     * Serializes save() calls across threads: the async auto-save task may be writing
+     * this profile while onDisable (or /reload) saves the same profile from the main
+     * thread - two interleaved writers would produce a corrupted .yml.
+     */
+    private final Object saveLock = new Object();
     private volatile boolean markedForDeletion = false;
 
     /**
@@ -176,18 +183,20 @@ public class PlayerProfile {
      * This method will save the Player's Researches and Backpacks to the hard drive
      */
     public void save() {
-        // Capture the epoch before writing. If any mutation (which always bumps the epoch via
-        // markDirty() AFTER changing the data) lands while we are writing, the epoch will have
-        // moved and we leave the profile dirty so the change is saved on the next cycle instead
-        // of being silently dropped.
-        long epochBefore = modificationEpoch.get();
+        synchronized (saveLock) {
+            // Capture the epoch before writing. If any mutation (which always bumps the epoch via
+            // markDirty() AFTER changing the data) lands while we are writing, the epoch will have
+            // moved and we leave the profile dirty so the change is saved on the next cycle instead
+            // of being silently dropped.
+            long epochBefore = modificationEpoch.get();
 
-        // Throws UncheckedIOException on failure, which leaves dirty untouched so the profile is
-        // retried on the next save cycle.
-        Slimefun.getPlayerStorage().savePlayerData(this.ownerId, this.data);
+            // Throws UncheckedIOException on failure, which leaves dirty untouched so the profile is
+            // retried on the next save cycle.
+            Slimefun.getPlayerStorage().savePlayerData(this.ownerId, this.data);
 
-        if (modificationEpoch.get() == epochBefore) {
-            dirty = false;
+            if (modificationEpoch.get() == epochBefore) {
+                dirty = false;
+            }
         }
     }
 
@@ -375,8 +384,14 @@ public class PlayerProfile {
      */
     public final void markDirty() {
         Debug.log(TestCase.PLAYER_PROFILE_DATA, "Marking {} ({}) profile as dirty", name, ownerId);
-        dirty = true;
+
+        /*
+         * Bump the epoch BEFORE setting the dirty flag. In the reverse order a save()
+         * could read the (unchanged) epoch in between the two statements and clear the
+         * dirty flag for a change it did not capture - losing that change silently.
+         */
         modificationEpoch.incrementAndGet();
+        dirty = true;
     }
 
     public @Nonnull PlayerBackpack createBackpack(int size) {
