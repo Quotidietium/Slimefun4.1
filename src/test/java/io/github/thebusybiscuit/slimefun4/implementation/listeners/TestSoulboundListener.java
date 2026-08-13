@@ -200,4 +200,82 @@ class TestSoulboundListener {
         Assertions.assertTrue(player.getInventory().contains(item.getType()));
     }
 
+    @Test
+    @DisplayName("Test that a respawn return does not overwrite an item another plugin placed in the slot")
+    void testReturnDoesNotOverwriteOccupiedSlot() {
+        PlayerMock player = server.addPlayer();
+        ItemStack item = CustomItemStack.create(Material.DIAMOND_SWORD, "&4Cool Sword");
+        SlimefunUtils.setSoulbound(item, true);
+        player.getInventory().setItem(6, item);
+
+        List<ItemStack> drops = new ArrayList<>();
+        drops.add(item.clone());
+
+        PlayerDeathEvent deathEvent = Mockito.mock(PlayerDeathEvent.class);
+        Mockito.when(deathEvent.getEntity()).thenReturn(player);
+        Mockito.when(deathEvent.getKeepInventory()).thenReturn(false);
+        Mockito.when(deathEvent.getDrops()).thenReturn(drops);
+
+        listener.onDamage(deathEvent);
+        Assertions.assertTrue(drops.isEmpty());
+
+        // Another plugin places a respawn item into the slot while the player is dead
+        player.getInventory().setItem(6, new ItemStack(Material.APPLE));
+
+        PlayerRespawnEvent respawnEvent = Mockito.mock(PlayerRespawnEvent.class);
+        Mockito.when(respawnEvent.getPlayer()).thenReturn(player);
+        listener.onRespawn(respawnEvent);
+
+        Assertions.assertEquals(Material.APPLE, player.getInventory().getItem(6).getType(), "The foreign item must not be overwritten and destroyed");
+
+        boolean mergedElsewhere = false;
+
+        for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+
+            if (slot != 6 && stack != null && SlimefunUtils.isItemSimilar(stack, item, true)) {
+                mergedElsewhere = true;
+            }
+        }
+
+        Assertions.assertTrue(mergedElsewhere, "The soulbound item must have been merged into a free slot instead");
+    }
+
+    @Test
+    @DisplayName("Test that a soulbound item that fits nowhere is dropped instead of voided")
+    void testLeftoverDroppedWhenInventoryFull() {
+        PlayerMock player = server.addPlayer();
+
+        // Fill every inventory slot so nothing can be added
+        for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+            player.getInventory().setItem(slot, new ItemStack(Material.STONE, 64));
+        }
+
+        ItemStack item = CustomItemStack.create(Material.DIAMOND_SWORD, "&4Cool Sword");
+        SlimefunUtils.setSoulbound(item, true);
+        player.setItemOnCursor(item);
+
+        List<ItemStack> drops = new ArrayList<>();
+        drops.add(item.clone());
+
+        PlayerDeathEvent deathEvent = Mockito.mock(PlayerDeathEvent.class);
+        Mockito.when(deathEvent.getEntity()).thenReturn(player);
+        Mockito.when(deathEvent.getKeepInventory()).thenReturn(false);
+        Mockito.when(deathEvent.getDrops()).thenReturn(drops);
+
+        listener.onDamage(deathEvent);
+        Assertions.assertTrue(drops.isEmpty());
+
+        PlayerRespawnEvent respawnEvent = Mockito.mock(PlayerRespawnEvent.class);
+        Mockito.when(respawnEvent.getPlayer()).thenReturn(player);
+        listener.onRespawn(respawnEvent);
+
+        boolean dropped = player.getWorld().getEntities().stream()
+            .filter(entity -> entity instanceof org.bukkit.entity.Item)
+            .map(entity -> ((org.bukkit.entity.Item) entity).getItemStack())
+            .anyMatch(stack -> SlimefunUtils.isItemSimilar(stack, item, true, false));
+
+        Assertions.assertTrue(dropped, "A soulbound item that fits nowhere must be dropped at the player's feet, not voided");
+    }
+
 }

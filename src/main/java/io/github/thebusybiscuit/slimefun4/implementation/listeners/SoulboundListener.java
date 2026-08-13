@@ -124,16 +124,38 @@ public class SoulboundListener implements Listener {
 
         if (items != null) {
             for (Map.Entry<Integer, ItemStack> entry : items.entrySet()) {
-                if (entry.getKey() == CURSOR_SLOT) {
-                    // The cursor slot does not exist on respawn, add it to the inventory
-                    p.getInventory().addItem(entry.getValue());
-                } else {
+                ItemStack occupying = entry.getKey() == CURSOR_SLOT ? null : p.getInventory().getItem(entry.getKey());
+
+                if (entry.getKey() != CURSOR_SLOT && (occupying == null || occupying.getType().isAir())) {
+                    // The slot is still free, restore the item to its original position
                     p.getInventory().setItem(entry.getKey(), entry.getValue());
+                } else {
+                    /*
+                     * The cursor slot does not exist on respawn, or something else (e.g.
+                     * another plugin's respawn handling) claimed the slot while the Player
+                     * was dead. setItem() would silently overwrite and destroy that item,
+                     * and addItem() alone would silently void any leftover - merge into the
+                     * inventory and drop the remainder at the Player's feet instead, so
+                     * nothing is ever lost.
+                     */
+                    giveOrDrop(p, entry.getValue());
                 }
             }
 
             // Notify addons that the stored soulbound items were returned
             Bukkit.getPluginManager().callEvent(new SoulboundItemsReturnEvent(p, items));
+        }
+    }
+
+    /**
+     * Adds the given {@link ItemStack} to the {@link Player Player's} inventory and drops
+     * any amount that did not fit at their feet, instead of voiding it.
+     */
+    private void giveOrDrop(@Nonnull Player p, @Nonnull ItemStack item) {
+        Map<Integer, ItemStack> leftover = p.getInventory().addItem(item);
+
+        for (ItemStack rest : leftover.values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), rest);
         }
     }
 }
