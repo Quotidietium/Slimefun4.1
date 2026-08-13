@@ -30,6 +30,15 @@ public class PlayerData {
     private final Map<Integer, PlayerBackpack> backpacks = new ConcurrentHashMap<>();
     private final Set<Waypoint> waypoints = ConcurrentHashMap.newKeySet();
 
+    /*
+     * Raw waypoint entries that could not be resolved when the profile was read (their
+     * world was not loaded). They are not part of #waypoints, but must be written back
+     * verbatim on save - otherwise the next save would wipe them from the file
+     * permanently (data loss for servers with late-loading or temporarily unloaded
+     * worlds). Populated by the storage backend during load.
+     */
+    private final Map<String, Map<String, Object>> unresolvedWaypoints = new ConcurrentHashMap<>();
+
     public PlayerData(Set<Research> researches, Map<Integer, PlayerBackpack> backpacks, Set<Waypoint> waypoints) {
         this.researches.addAll(researches);
         this.backpacks.putAll(backpacks);
@@ -72,6 +81,20 @@ public class PlayerData {
 
     public Set<Waypoint> getWaypoints() {
         return waypoints;
+    }
+
+    /**
+     * Returns the raw waypoint entries that could not be resolved when this profile was
+     * read (e.g. their {@link org.bukkit.World} was not loaded). These are not visible
+     * as {@link Waypoint Waypoints} and cannot be interacted with, but the storage
+     * backend writes them back verbatim on save so they survive until their world is
+     * available again.
+     *
+     * @return A mutable map of waypoint id to its raw config entries (path suffix to value)
+     */
+    @Nonnull
+    public Map<String, Map<String, Object>> getUnresolvedWaypoints() {
+        return unresolvedWaypoints;
     }
 
     public void addWaypoint(@Nonnull Waypoint waypoint) {

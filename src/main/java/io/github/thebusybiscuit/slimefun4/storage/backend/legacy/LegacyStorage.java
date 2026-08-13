@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import com.google.common.annotations.Beta;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -76,19 +78,47 @@ public class LegacyStorage implements Storage {
 
         // Load waypoints
         Set<Waypoint> waypoints = new HashSet<>();
+        Map<String, Map<String, Object>> unresolvedWaypoints = new HashMap<>();
+
         for (String key : waypointsFile.getKeys()) {
             try {
                 if (waypointsFile.contains(key + ".world") && Bukkit.getWorld(waypointsFile.getString(key + ".world")) != null) {
                     String waypointName = waypointsFile.getString(key + ".name");
                     Location loc = waypointsFile.getLocation(key);
                     waypoints.add(new Waypoint(uuid, key, loc, waypointName));
+                } else {
+                    /*
+                     * The waypoint's world is not loaded (e.g. a multi-world plugin loading
+                     * after Slimefun, or a temporarily renamed/unloaded world). Dropping the
+                     * entry here would make the next save wipe it from the file permanently
+                     * (waypointsFile.clear()), so preserve the raw values and write them
+                     * back verbatim on save instead.
+                     */
+                    unresolvedWaypoints.put(key, captureRawWaypoint(waypointsFile, key));
                 }
             } catch (Exception x) {
                 Slimefun.logger().log(Level.WARNING, x, () -> "Could not load Waypoint \"" + key + "\" for Player \"" + uuid + '"');
             }
         }
 
-        return new PlayerData(researches, backpacks, waypoints);
+        PlayerData playerData = new PlayerData(researches, backpacks, waypoints);
+        playerData.getUnresolvedWaypoints().putAll(unresolvedWaypoints);
+        return playerData;
+    }
+
+    /**
+     * Captures the raw config entries of a waypoint that could not be resolved, keyed
+     * by their path suffix relative to the waypoint id (e.g. "x", "world", "name").
+     */
+    @ParametersAreNonnullByDefault
+    private static Map<String, Object> captureRawWaypoint(Config waypointsFile, String key) {
+        Map<String, Object> raw = new HashMap<>();
+
+        for (String sub : waypointsFile.getKeys(key)) {
+            raw.put(sub, waypointsFile.getValue(key + "." + sub));
+        }
+
+        return raw;
     }
 
     /**
@@ -170,10 +200,31 @@ public class LegacyStorage implements Storage {
 
         // Save waypoints
         waypointsFile.clear();
+
         for (Waypoint waypoint : data.getWaypoints()) {
             // Legacy data uses IDs
             waypointsFile.setValue(waypoint.getId(), waypoint.getLocation());
             waypointsFile.setValue(waypoint.getId() + ".name", waypoint.getName());
+        }
+
+        /*
+         * Write back the entries that could not be resolved on load (their world was
+         * not loaded), unless a resolvable waypoint now claims the same id - clear()
+         * above must not become a silent delete for waypoints we simply cannot see
+         * right now.
+         */
+        Set<String> resolvedIds = new HashSet<>();
+
+        for (Waypoint waypoint : data.getWaypoints()) {
+            resolvedIds.add(waypoint.getId());
+        }
+
+        for (Map.Entry<String, Map<String, Object>> entry : data.getUnresolvedWaypoints().entrySet()) {
+            if (!resolvedIds.contains(entry.getKey())) {
+                for (Map.Entry<String, Object> value : entry.getValue().entrySet()) {
+                    waypointsFile.setValue(entry.getKey() + "." + value.getKey(), value.getValue());
+                }
+            }
         }
 
         // Save files (atomically - a crash mid-write must not corrupt the previous state)

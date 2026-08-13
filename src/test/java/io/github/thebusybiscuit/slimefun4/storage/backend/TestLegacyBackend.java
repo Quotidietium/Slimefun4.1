@@ -12,6 +12,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+
+import io.github.bakedlibs.dough.config.Config;
 import org.bukkit.World.Environment;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.ItemStack;
@@ -227,6 +229,54 @@ class TestLegacyBackend {
         Assertions.assertEquals(178.0, waypoint.getLocation().getYaw());
         Assertions.assertEquals(0.0, waypoint.getLocation().getPitch());
         Assertions.assertEquals("world", waypoint.getLocation().getWorld().getName());
+    }
+
+    @Test
+    void testWaypointWithUnloadedWorldSurvivesSave() throws IOException {
+        // Only "world" exists; the second waypoint points at a world that is not loaded
+        server.createWorld(WorldCreator.name("world").environment(Environment.NORMAL));
+
+        UUID uuid = UUID.randomUUID();
+        File waypointFile = new File("data-storage/Slimefun/waypoints/" + uuid + ".yml");
+        Files.writeString(waypointFile.toPath(), """
+        LOADED:
+          x: 1.0
+          y: 64.0
+          z: 2.0
+          pitch: 0.0
+          yaw: 0.0
+          world: world
+          name: home
+        STRANDED:
+          x: 10.0
+          y: 70.0
+          z: 20.0
+          pitch: 0.0
+          yaw: 90.0
+          world: not-loaded-world
+          name: far away
+        """);
+
+        LegacyStorage storage = new LegacyStorage();
+        PlayerData data = storage.loadPlayerData(uuid);
+
+        Assertions.assertEquals(1, data.getWaypoints().size(), "Only the waypoint in the loaded world resolves");
+        Assertions.assertEquals(1, data.getUnresolvedWaypoints().size(), "The stranded waypoint must be preserved as raw data");
+
+        storage.savePlayerData(uuid, data);
+
+        // The unresolved waypoint must have been written back verbatim instead of
+        // being wiped by waypointsFile.clear()
+        Config waypointsFile = new Config("data-storage/Slimefun/waypoints/" + uuid + ".yml");
+        Assertions.assertTrue(waypointsFile.contains("STRANDED.world"), "The stranded waypoint must survive the save");
+        Assertions.assertEquals("not-loaded-world", waypointsFile.getString("STRANDED.world"));
+        Assertions.assertEquals("far away", waypointsFile.getString("STRANDED.name"));
+        Assertions.assertEquals(10.0, waypointsFile.getDouble("STRANDED.x"), 0.001);
+        Assertions.assertEquals(90.0, waypointsFile.getDouble("STRANDED.yaw"), 0.001);
+
+        // The resolved waypoint round-trips normally
+        Assertions.assertTrue(waypointsFile.contains("LOADED.world"));
+        Assertions.assertEquals("home", waypointsFile.getString("LOADED.name"));
     }
 
     @Test
