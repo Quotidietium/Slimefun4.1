@@ -185,6 +185,22 @@ class TestGpsApiEvents {
     }
 
     @Test
+    @DisplayName("WaypointRemoveEvent declares its thread context correctly (async off the main thread)")
+    void testWaypointRemoveAsyncDeclaration() throws InterruptedException {
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+        Waypoint waypoint = new Waypoint(player.getUniqueId(), "async-test", player.getLocation(), "test");
+
+        java.util.concurrent.atomic.AtomicBoolean async = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Thread worker = new Thread(() -> async.set(new WaypointRemoveEvent(profile, waypoint).isAsynchronous()));
+        worker.start();
+        worker.join(5000);
+
+        Assertions.assertTrue(async.get(), "Constructed off the main thread, the event must declare itself asynchronous");
+        Assertions.assertFalse(new WaypointRemoveEvent(profile, waypoint).isAsynchronous(), "Constructed on the main thread, the event must declare itself synchronous");
+    }
+
+    @Test
     @DisplayName("Teleportation events are dispatchable to listeners")
     void testTeleportationEventDispatch() {
         Player player = server.addPlayer();

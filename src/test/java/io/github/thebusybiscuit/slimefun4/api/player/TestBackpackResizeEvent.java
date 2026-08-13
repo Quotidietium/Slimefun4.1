@@ -78,6 +78,20 @@ class TestBackpackResizeEvent {
     }
 
     @Test
+    @DisplayName("BackpackResizeEvent declares its thread context correctly (async off the main thread)")
+    void testAsyncDeclaration() throws InterruptedException {
+        PlayerBackpack backpack = newBackpack(9);
+
+        java.util.concurrent.atomic.AtomicBoolean async = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Thread worker = new Thread(() -> async.set(new BackpackResizeEvent(backpack, 9, 18).isAsynchronous()));
+        worker.start();
+        worker.join(5000);
+
+        Assertions.assertTrue(async.get(), "Constructed off the main thread, the event must declare itself asynchronous");
+        Assertions.assertFalse(new BackpackResizeEvent(backpack, 9, 18).isAsynchronous(), "Constructed on the main thread, the event must declare itself synchronous");
+    }
+
+    @Test
     @DisplayName("Resizing a backpack fires the event and applies the new size")
     void testResizeFiresEventAndApplies() throws InterruptedException {
         PlayerBackpack backpack = newBackpack(9);

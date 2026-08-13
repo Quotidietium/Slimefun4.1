@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -39,6 +40,9 @@ public class BackpackResizeEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public BackpackResizeEvent(@Nonnull PlayerBackpack backpack, int oldSize, int newSize) {
+        /* May be fired from asynchronous API calls (e.g. async profile access). */
+        super(!Bukkit.isPrimaryThread());
+
         Validate.notNull(backpack, "The PlayerBackpack must not be null");
         Validate.isTrue(oldSize > 0, "The old size must be positive");
         Validate.isTrue(newSize > 0, "The new size must be positive");

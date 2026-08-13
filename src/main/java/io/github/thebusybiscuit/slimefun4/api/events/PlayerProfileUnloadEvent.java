@@ -40,7 +40,7 @@ public class PlayerProfileUnloadEvent extends Event {
 
     public PlayerProfileUnloadEvent(@Nonnull PlayerProfile profile) {
 
-        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        // Fired from the async auto-save thread (machine/network tick) - report the actual context
         super(!Bukkit.isPrimaryThread());
         Validate.notNull(profile, "The PlayerProfile must not be null");
 

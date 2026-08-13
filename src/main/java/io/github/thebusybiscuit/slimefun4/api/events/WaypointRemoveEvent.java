@@ -5,6 +5,7 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -34,6 +35,9 @@ public class WaypointRemoveEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public WaypointRemoveEvent(@Nonnull PlayerProfile profile, @Nonnull Waypoint waypoint) {
+        /* May be fired from asynchronous API calls (e.g. async profile access). */
+        super(!Bukkit.isPrimaryThread());
+
         this.profile = profile;
         this.waypoint = waypoint;
     }
