@@ -44,7 +44,8 @@ public class AutoBreedEvent extends Event implements Cancellable {
 
     public AutoBreedEvent(@Nonnull AutoBreeder breeder, @Nonnull Block block, @Nonnull Animals animal, @Nonnull ItemStack food) {
 
-        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        // The AutoBreeder ticks synchronously (isSynchronized = true), so this fires on the main
+        // thread. The adaptive declaration reports the actual context regardless.
         super(!Bukkit.isPrimaryThread());
         Validate.notNull(breeder, "The AutoBreeder must not be null");
         Validate.notNull(block, "The Block must not be null");
