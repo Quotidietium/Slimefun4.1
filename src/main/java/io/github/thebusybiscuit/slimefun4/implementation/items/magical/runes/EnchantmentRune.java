@@ -157,10 +157,15 @@ public class EnchantmentRune extends SimpleSlimefunItem<ItemDropHandler> {
                         l.getWorld().spawnParticle(VersionedParticle.ENCHANTED_HIT, l, 1);
                         SoundEffect.ENCHANTMENT_RUNE_ADD_ENCHANT_SOUND.playAt(l, SoundCategory.PLAYERS);
 
+                        /*
+                         * Enchant first, then remove the entities: should the application
+                         * ever fail, the rune and the target item must not be voided.
+                         */
+                        itemStack.addEnchantment(appliedEnchantment, appliedLevel);
+
                         item.remove();
                         rune.remove();
 
-                        itemStack.addEnchantment(appliedEnchantment, appliedLevel);
                         l.getWorld().dropItemNaturally(l, itemStack);
 
                         Slimefun.getLocalization().sendMessage(p, "messages.enchantment-rune.success", true);

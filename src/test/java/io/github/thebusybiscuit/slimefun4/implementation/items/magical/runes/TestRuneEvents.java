@@ -141,6 +141,7 @@ class TestRuneEvents {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new EnchantmentRuneApplyEvent(player, runeEntity, targetEntity, stack, Enchantment.SHARPNESS, 0));
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setEnchantment(null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setLevel(0));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setLevel(Enchantment.PROTECTION.getMaxLevel() + 1), "A level beyond the enchantment's maximum must be rejected");
     }
 
     @Test

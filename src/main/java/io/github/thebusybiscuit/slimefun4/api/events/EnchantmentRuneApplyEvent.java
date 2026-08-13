@@ -119,13 +119,15 @@ public class EnchantmentRuneApplyEvent extends PlayerEvent implements Cancellabl
     /**
      * This replaces the randomly chosen enchantment level. The level must satisfy
      * the contract of {@link ItemStack#addEnchantment(Enchantment, int)} for the
-     * current {@link Enchantment}.
+     * current {@link Enchantment}: exceeding its maximum level would make the
+     * application fail on the deferred task.
      *
      * @param level
-     *            The level to apply instead, at least 1
+     *            The level to apply instead, between 1 and the enchantment's maximum level
      */
     public void setLevel(int level) {
         Validate.isTrue(level >= 1, "The level must be at least 1");
+        Validate.isTrue(level <= enchantment.getMaxLevel(), "The level must not exceed the maximum level (" + enchantment.getMaxLevel() + ") of " + enchantment.getKey());
         this.level = level;
     }
 
