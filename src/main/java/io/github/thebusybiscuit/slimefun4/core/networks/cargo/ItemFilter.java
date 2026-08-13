@@ -58,7 +58,11 @@ class ItemFilter implements Predicate<ItemStack> {
      * If an {@link ItemFilter} is marked as dirty / outdated, then it will be updated
      * on the next tick.
      */
-    private boolean dirty = false;
+    /*
+     * Written from the async ticker thread (via markDirty on network updates) and
+     * read/cleared from the main-thread cargo task.
+     */
+    private volatile boolean dirty = false;
 
     /**
      * How often {@link #update(Block)} may fail in a row before giving up.
