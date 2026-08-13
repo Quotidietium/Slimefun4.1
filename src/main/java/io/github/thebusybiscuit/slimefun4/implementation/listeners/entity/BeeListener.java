@@ -14,7 +14,9 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bakedlibs.dough.items.ItemUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.BeeStingProtectionEvent;
+import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
+import io.github.thebusybiscuit.slimefun4.core.attributes.DamageableItem;
 import io.github.thebusybiscuit.slimefun4.core.attributes.ProtectionType;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -56,7 +58,17 @@ public class BeeListener implements Listener {
 
                 for (ItemStack armor : p.getInventory().getArmorContents()) {
                     if (armor != null) {
-                        ItemUtils.damageItem(armor, 1, false);
+                        // Route Slimefun armor pieces through DamageableItem so their
+                        // isDamageable() config and SlimefunItemWearEvent are respected
+                        // (ItemUtils.damageItem bypasses both). Vanilla armor still uses
+                        // the dough utility, which handles Unbreaking and break correctly.
+                        SlimefunItem sfItem = SlimefunItem.getByItem(armor);
+
+                        if (sfItem instanceof DamageableItem damageableItem) {
+                            damageableItem.damageItem(p, armor);
+                        } else {
+                            ItemUtils.damageItem(armor, 1, false);
+                        }
                     }
                 }
 
