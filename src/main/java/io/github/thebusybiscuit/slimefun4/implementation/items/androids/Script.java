@@ -207,7 +207,14 @@ public final class Script {
 
         String path = "rating." + (positive ? "positive" : "negative");
         List<String> list = config.getStringList(path);
-        list.add(p.getUniqueId().toString());
+        String uuid = p.getUniqueId().toString();
+
+        if (list.contains(uuid) || config.getStringList("rating." + (positive ? "negative" : "positive")).contains(uuid)) {
+            // One vote per player and script, enforced at write time as well
+            return;
+        }
+
+        list.add(uuid);
 
         config.setValue(path, list);
         config.save();
@@ -258,7 +265,14 @@ public final class Script {
 
     @ParametersAreNonnullByDefault
     public static void upload(Player p, AndroidType androidType, int id, String name, String code) {
-        Config config = new Config("plugins/Slimefun/scripts/" + androidType.name() + '/' + p.getName() + ' ' + id + ".sfs");
+        /*
+         * The filename must not embed the raw player name: on offline-mode servers a
+         * login name can contain path separators or "..", allowing a .sfs write outside
+         * the scripts directory. It also collided after name changes (two players with
+         * the same name at different times share "Name id.sfs"). The UUID is a safe
+         * charset and unique. Loading never parses filenames, so legacy files still work.
+         */
+        Config config = new Config("plugins/Slimefun/scripts/" + androidType.name() + '/' + p.getUniqueId() + ' ' + id + ".sfs");
 
         config.setValue("author", p.getUniqueId().toString());
         config.setValue("author_name", p.getName());
