@@ -93,11 +93,20 @@ public class AsyncEntityAssembleEvent extends Event implements Cancellable {
      * This redirects where the entity is spawned. Passing {@code null} resets the
      * spawn location to the assembler's default (the configured offset above the
      * assembler {@link Block}).
+     * <p>
+     * The location must have a non-null {@link org.bukkit.World} and finite
+     * coordinates; an invalid location would otherwise corrupt the synchronous
+     * spawn task (or spawn the entity at a broken position).
      *
      * @param spawnLocation
      *            The spawn {@link Location}, or null for the default
      */
     public void setSpawnLocation(@Nullable Location spawnLocation) {
+        if (spawnLocation != null) {
+            Validate.notNull(spawnLocation.getWorld(), "The spawn location must have a world");
+            Validate.isTrue(Double.isFinite(spawnLocation.getX()) && Double.isFinite(spawnLocation.getY()) && Double.isFinite(spawnLocation.getZ()), "The spawn location must have finite coordinates, received: " + spawnLocation);
+        }
+
         this.spawnLocation = spawnLocation;
     }
 

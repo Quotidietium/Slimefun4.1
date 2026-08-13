@@ -181,6 +181,11 @@ class TestAsyncEntityAssembleEvent {
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> new AsyncEntityAssembleEvent(null, b));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new AsyncEntityAssembleEvent(assembler, null));
+
+        // Invalid redirect targets must be rejected
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setSpawnLocation(new org.bukkit.Location(null, 100, 64, 100)), "A location without a world must be rejected");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setSpawnLocation(new org.bukkit.Location(world, Double.NaN, 64, 100)), "Non-finite coordinates must be rejected");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setSpawnLocation(new org.bukkit.Location(world, 100, 64, Double.POSITIVE_INFINITY)), "Non-finite coordinates must be rejected");
     }
 
     @Test
