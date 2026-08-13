@@ -66,7 +66,17 @@ public class FarmerAndroid extends ProgrammableAndroid {
         if (!event.isCancelled()) {
             drop = event.getDrop();
 
-            if (drop != null && menu.pushItem(drop, getOutputSlots()) == null) {
+            if (drop != null) {
+                ItemStack leftover = menu.pushItem(drop, getOutputSlots());
+
+                if (leftover != null) {
+                    // The output slots are full - drop the excess on the ground instead of voiding it
+                    block.getWorld().dropItemNaturally(block.getLocation(), leftover);
+                }
+
+                // Replant the crop regardless of whether the output was full: the harvest happened,
+                // so the crop must be reset. Previously, a full output left the crop at max age AND
+                // voided the leftover drop every tick (data loss + soft stall).
                 block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, blockType);
 
                 if (data instanceof Ageable ageable) {
