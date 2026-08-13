@@ -44,7 +44,8 @@ public class FluidPumpCollectEvent extends Event implements Cancellable {
 
     public FluidPumpCollectEvent(@Nonnull FluidPump pump, @Nonnull Block block, @Nonnull Block fluid, @Nonnull ItemStack filledContainer) {
 
-        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        // The FluidPump ticks synchronously (isSynchronized = true), so this fires on the main
+        // thread. The adaptive declaration reports the actual context regardless.
         super(!Bukkit.isPrimaryThread());
         Validate.notNull(pump, "The FluidPump must not be null");
         Validate.notNull(block, "The Block must not be null");
