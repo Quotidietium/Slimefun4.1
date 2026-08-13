@@ -69,8 +69,18 @@ public class SlimefunAutoCrafter extends AbstractAutoCrafter {
             if (item != null) {
                 boolean enabled = !container.has(recipeEnabledKey, PersistentDataType.BYTE);
                 AbstractRecipe recipe = AbstractRecipe.of(item, targetRecipeType);
-                recipe.setEnabled(enabled);
-                return recipe;
+
+                /*
+                 * The stored item may no longer match this crafter's RecipeType (e.g. an addon
+                 * update moved it, or the stored id was corrupted), in which case of() returns
+                 * null. Treat that as "no selected recipe" instead of NPE-ing into the ticker,
+                 * which would otherwise accumulate four errors and destroy the Auto-Crafter.
+                 * updateRecipe() already null-checks the same call.
+                 */
+                if (recipe != null) {
+                    recipe.setEnabled(enabled);
+                    return recipe;
+                }
             }
         }
 

@@ -244,6 +244,34 @@ class TestAutoCrafter {
         Assertions.assertNull(crafter.getSelectedRecipe(b), "A corrupted recipe key must resolve to no recipe");
     }
 
+    @Test
+    @DisplayName("SlimefunAutoCrafter tolerates a stored item whose RecipeType no longer matches")
+    void testMismatchedRecipeTypeReturnsNull() {
+        // A crafter that targets RecipeType.NULL
+        SlimefunItemStack crafterStack = new SlimefunItemStack("TEST_SF_CRAFTER_MISMATCH", Material.PLAYER_HEAD, "&7Test SF Crafter");
+        SlimefunAutoCrafter crafter = new SlimefunAutoCrafter(TestUtilities.getItemGroup(plugin, "sf_crafter_mismatch"), crafterStack, RecipeType.NULL, new ItemStack[9], RecipeType.NULL);
+        crafter.setCapacity(100);
+        crafter.setEnergyConsumption(10);
+        crafter.register(plugin);
+
+        // An item registered under a DIFFERENT RecipeType - of(item, targetRecipeType) returns null
+        SlimefunItemStack itemStack = new SlimefunItemStack("TEST_MISMATCH_ITEM", Material.GOLD_INGOT, "&6Mismatch Item");
+        SlimefunItem item = new SlimefunItem(TestUtilities.getItemGroup(plugin, "mismatch_item"), itemStack, RecipeType.ENHANCED_CRAFTING_TABLE, new ItemStack[9]);
+        item.register(plugin);
+
+        Block b = world.getBlockAt(2, 10, 2);
+        b.setType(Material.PLAYER_HEAD);
+        Assertions.assertTrue(b.getState() instanceof Skull, "MockBukkit must model PLAYER_HEAD as a Skull");
+
+        Skull skull = (Skull) b.getState();
+        // Store the mismatched item's id as the selected recipe
+        PersistentDataAPI.setString(skull, crafter.recipeStorageKey, item.getId());
+        skull.update(true, false);
+
+        Assertions.assertDoesNotThrow(() -> crafter.getSelectedRecipe(b), "A RecipeType mismatch must not propagate an NPE into the ticker");
+        Assertions.assertNull(crafter.getSelectedRecipe(b), "A stored item whose RecipeType no longer matches must resolve to no recipe");
+    }
+
     @Nonnull
     private AbstractAutoCrafter getVanillaAutoCrafter() {
         SlimefunItemStack item = new SlimefunItemStack("MOCK_AUTO_CRAFTER", Material.CRAFTING_TABLE, "Mock Auto Crafter");

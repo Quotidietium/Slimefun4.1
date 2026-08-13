@@ -517,6 +517,11 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
             loc = state.getLocation();
         } else if (holder instanceof Block block) {
             loc = block.getLocation();
+        } else if (holder instanceof org.bukkit.block.DoubleChest doubleChest) {
+            // A double chest is neither a BlockState nor a Block - resolve its location directly.
+            // Without this branch, leftovers that do not fit back into a full double chest would
+            // be silently voided (the single-chest path above drops them as intended).
+            loc = doubleChest.getLocation();
         }
 
         if (loc == null) {

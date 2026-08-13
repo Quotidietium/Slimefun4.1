@@ -40,9 +40,14 @@ class SlimefunItemRecipe extends AbstractRecipe {
     @Nonnull
     private static Collection<Predicate<ItemStack>> getInputs(@Nonnull SlimefunItem item) {
         List<Predicate<ItemStack>> predicates = new ArrayList<>();
+        ItemStack[] recipe = item.getRecipe();
 
-        for (int i = 0; i < 9; i++) {
-            ItemStack ingredient = item.getRecipe()[i];
+        // Guard against malformed addon items with a recipe array shorter than 9 slots,
+        // which would otherwise throw AIOOBE here and crash the Auto-Crafter's ticker.
+        int length = recipe == null ? 0 : Math.min(recipe.length, 9);
+
+        for (int i = 0; i < length; i++) {
+            ItemStack ingredient = recipe[i];
 
             if (ingredient != null && !ingredient.getType().isAir()) {
                 predicates.add(stack -> SlimefunUtils.isItemSimilar(stack, ingredient, true));
@@ -58,8 +63,9 @@ class SlimefunItemRecipe extends AbstractRecipe {
         Validate.notNull(task, "The RecipeChoiceTask cannot be null!");
         menu.addItem(24, getResult().clone(), ChestMenuUtils.getEmptyClickHandler());
         ItemStack[] recipe = item.getRecipe();
+        int length = recipe == null ? 0 : Math.min(recipe.length, 9);
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < length; i++) {
             menu.addItem(slots[i], recipe[i], ChestMenuUtils.getEmptyClickHandler());
         }
     }
