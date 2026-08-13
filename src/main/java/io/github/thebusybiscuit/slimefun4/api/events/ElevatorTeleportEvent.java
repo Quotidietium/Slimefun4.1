@@ -60,10 +60,14 @@ public class ElevatorTeleportEvent extends PlayerEvent implements Cancellable {
      * arrival title are taken from the replacement floor.
      *
      * @param floor
-     *            The new destination {@link ElevatorFloor}, must not be null
+     *            The new destination {@link ElevatorFloor}, must not be null and must
+     *            be in the same {@link org.bukkit.World} as the {@link Player} (the
+     *            teleport destination is computed in the Player's world, so a floor
+     *            from another world would drop them at wrong, unchecked coordinates)
      */
     public void setFloor(@Nonnull ElevatorFloor floor) {
         Validate.notNull(floor, "The floor must not be null");
+        Validate.isTrue(floor.getLocation().getWorld().equals(player.getWorld()), "The floor must be in the same World as the player");
 
         this.floor = floor;
     }

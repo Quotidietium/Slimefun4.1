@@ -274,6 +274,15 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
     void renameFloor(Player p, Block b, String message) {
         String name = message;
 
+        /*
+         * The player typed the name asynchronously while the editor was open - the plate
+         * may have been broken in the meantime. Writing the floor data regardless would
+         * attach it to whatever block now occupies that spot (ghost BlockStorage data).
+         */
+        if (!BlockStorage.check(b, getId())) {
+            return;
+        }
+
         if (ElevatorFloorRenameEvent.getHandlerList().getRegisteredListeners().length > 0) {
             ElevatorFloorRenameEvent event = new ElevatorFloorRenameEvent(p, b, BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY), name);
             Bukkit.getPluginManager().callEvent(event);

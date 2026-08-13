@@ -141,6 +141,21 @@ class TestElevatorFloorRenameEvent {
     }
 
     @Test
+    @DisplayName("Renaming after the plate was broken writes no ghost floor data onto the replacement block")
+    void testRenameAfterPlateBrokenWritesNothing() {
+        Player player = server.addPlayer();
+
+        // A plain block without any BlockStorage id - the plate was broken while the
+        // player typed the name and another block now occupies the spot
+        Block b = world.getBlockAt(50, 60, 50);
+        b.setType(Material.STONE);
+
+        plate.renameFloor(player, b, "Ghost Floor");
+
+        Assertions.assertNull(storedName(b), "No floor data must be written to a block that is no longer an elevator plate");
+    }
+
+    @Test
     @DisplayName("Renaming fires the event with the raw typed name and stores the sanitized name")
     void testRenameFiresEventAndStoresName() {
         Player player = server.addPlayer();

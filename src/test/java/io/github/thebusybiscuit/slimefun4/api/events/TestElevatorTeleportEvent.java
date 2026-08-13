@@ -87,6 +87,24 @@ class TestElevatorTeleportEvent {
     }
 
     @Test
+    @DisplayName("setFloor rejects a floor from another world and accepts a same-world redirect")
+    void testSetFloorRejectsOtherWorld() {
+        Player player = server.addPlayer();
+        WorldMock foreign = server.addSimpleWorld("elevators_foreign");
+
+        ElevatorFloor homeFloor = new ElevatorFloor("&bHome", 1, player.getWorld().getBlockAt(1, 70, 1));
+        ElevatorTeleportEvent event = new ElevatorTeleportEvent(player, homeFloor);
+
+        // A floor from another world would drop the player at unchecked coordinates
+        ElevatorFloor foreignFloor = new ElevatorFloor("&bForeign", 2, foreign.getBlockAt(2, 70, 2));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setFloor(foreignFloor));
+
+        ElevatorFloor sameWorldFloor = new ElevatorFloor("&bOther", 3, player.getWorld().getBlockAt(3, 70, 3));
+        Assertions.assertDoesNotThrow(() -> event.setFloor(sameWorldFloor));
+        Assertions.assertEquals(sameWorldFloor, event.getFloor());
+    }
+
+    @Test
     @DisplayName("ElevatorTeleportEvent is dispatchable to listeners")
     void testEventDispatch() {
         Player player = server.addPlayer();
