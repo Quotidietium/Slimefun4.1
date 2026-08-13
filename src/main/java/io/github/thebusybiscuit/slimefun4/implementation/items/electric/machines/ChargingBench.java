@@ -79,8 +79,22 @@ public class ChargingBench extends AContainer {
                 charge = event.getCharge();
             }
 
+            float previousCharge = rechargeable.getItemCharge(item);
+
             if (rechargeable.addItemCharge(item, charge)) {
-                removeCharge(b.getLocation(), getEnergyConsumption());
+                /*
+                 * addItemCharge() clamps to the item's maximum charge: when only part
+                 * of the intended charge could be delivered, deducting the full
+                 * operation cost would make the undelivered energy vanish. Consume
+                 * only what was actually delivered (2 J network energy per 1 J item
+                 * charge - the same rate as the default charge = consumption / 2).
+                 */
+                float delivered = rechargeable.getItemCharge(item) - previousCharge;
+                int consumed = Math.min(getEnergyConsumption(), (int) Math.ceil(delivered * 2F));
+
+                if (consumed > 0) {
+                    removeCharge(b.getLocation(), consumed);
+                }
             } else if (inv.fits(item, getOutputSlots())) {
                 inv.pushItem(item, getOutputSlots());
                 inv.replaceExistingItem(slot, null);
