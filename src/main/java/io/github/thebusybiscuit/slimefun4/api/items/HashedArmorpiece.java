@@ -60,8 +60,12 @@ public final class HashedArmorpiece {
         } else {
             ItemStack copy = stack.clone();
             ItemMeta meta = copy.getItemMeta();
-            ((Damageable) meta).setDamage(0);
-            copy.setItemMeta(meta);
+
+            if (meta instanceof Damageable damageable) {
+                damageable.setDamage(0);
+                copy.setItemMeta(meta);
+            }
+
             this.hash = copy.hashCode();
         }
 
@@ -86,8 +90,12 @@ public final class HashedArmorpiece {
         } else {
             ItemStack copy = stack.clone();
             ItemMeta meta = copy.getItemMeta();
-            ((Damageable) meta).setDamage(0);
-            copy.setItemMeta(meta);
+
+            if (meta instanceof Damageable damageable) {
+                damageable.setDamage(0);
+                copy.setItemMeta(meta);
+            }
+
             return copy.hashCode() != hash;
         }
     }

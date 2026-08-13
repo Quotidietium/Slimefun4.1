@@ -81,6 +81,18 @@ public class RainbowArmorTask extends AbstractArmorTask {
         }
 
         leatherArmorMeta.setColor(newColor);
-        itemStack.setItemMeta(leatherArmorMeta);
+
+        // Apply the color change on the main thread: this task runs asynchronously, and writing
+        // the full ItemMeta back to the live armor item off-thread races with main-thread meta
+        // changes (e.g. durability damage), which could clobber them (effectively granting the
+        // rainbow armor piece free durability). Re-reading the meta on the main thread also
+        // ensures we don't apply a color to an item that was swapped in the meantime.
+        Color finalColor = newColor;
+        io.github.thebusybiscuit.slimefun4.implementation.Slimefun.runSync(() -> {
+            if (itemStack.getItemMeta() instanceof LeatherArmorMeta liveMeta) {
+                liveMeta.setColor(finalColor);
+                itemStack.setItemMeta(liveMeta);
+            }
+        });
     }
 }

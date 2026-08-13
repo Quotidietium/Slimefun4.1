@@ -39,7 +39,11 @@ public final class RadiationUtils {
     public static void addExposure(@Nonnull Player p, int exposure) {
         Preconditions.checkNotNull(p, "The player cannot be null");
 
-        int level = Math.min(RADIATION_EFFECT.getLevel(p).orElse(0) + exposure, MAX_EXPOSURE_LEVEL);
+        // Clamp both bounds: the upper bound caps exposure at MAX_EXPOSURE_LEVEL, the lower bound
+        // guards against int overflow (e.g. an addon setting a huge exposureChange via
+        // RadiationExposureEvent) that would wrap to negative, persist, and then cause
+        // RadiationDamageEvent's >= 0 validation to throw on the main thread every tick.
+        int level = Math.max(0, Math.min(RADIATION_EFFECT.getLevel(p).orElse(0) + exposure, MAX_EXPOSURE_LEVEL));
         RADIATION_EFFECT.addPermanent(p, level);
     }
 
