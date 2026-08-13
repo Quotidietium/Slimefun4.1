@@ -117,10 +117,14 @@ public class ExplosionsListener implements Listener {
     @ParametersAreNonnullByDefault
     private void handleExplosion(BlockBreakHandler handler, Block block) {
         if (handler.isExplosionAllowed(block)) {
-            destroy(block);
-
+            // Collect drops BEFORE destroying the block: SimpleBlockBreakHandler.onExplode delegates
+            // to onBlockBreak which reads BlockStorage.getInventory(block) to drop the machine's
+            // contents. If destroy() (which calls clearBlockInfo) runs first, the inventory is gone
+            // and the contents are silently voided.
             List<ItemStack> drops = new ArrayList<>();
             handler.onExplode(block, drops);
+
+            destroy(block);
 
             for (ItemStack drop : drops) {
                 if (drop != null && !drop.getType().isAir()) {
@@ -144,10 +148,14 @@ public class ExplosionsListener implements Listener {
             return;
         }
 
-        destroy(block);
-
+        // Collect drops BEFORE destroying the block: SimpleBlockBreakHandler.onExplode delegates
+        // to onBlockBreak which reads BlockStorage.getInventory(block) to drop the machine's
+        // contents. If destroy() (which calls clearBlockInfo) runs first, the inventory is gone
+        // and the contents are silently voided.
         List<ItemStack> drops = new ArrayList<>();
         handler.onExplode(block, drops);
+
+        destroy(block);
 
         for (ItemStack drop : drops) {
             if (drop != null && !drop.getType().isAir()) {
