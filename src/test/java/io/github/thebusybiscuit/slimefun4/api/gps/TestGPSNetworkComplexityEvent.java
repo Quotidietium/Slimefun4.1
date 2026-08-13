@@ -100,6 +100,18 @@ class TestGPSNetworkComplexityEvent {
     }
 
     @Test
+    @DisplayName("GPSNetworkComplexityEvent declares its thread context correctly (async off the main thread)")
+    void testAsyncDeclaration() throws InterruptedException {
+        java.util.concurrent.atomic.AtomicBoolean async = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Thread worker = new Thread(() -> async.set(new GPSNetworkComplexityEvent(java.util.UUID.randomUUID(), 100, 200).isAsynchronous()));
+        worker.start();
+        worker.join(5000);
+
+        Assertions.assertTrue(async.get(), "Constructed on the transmitter ticker thread, the event must declare itself asynchronous");
+        Assertions.assertFalse(new GPSNetworkComplexityEvent(java.util.UUID.randomUUID(), 100, 200).isAsynchronous(), "Constructed on the main thread, the event must declare itself synchronous");
+    }
+
+    @Test
     @DisplayName("Adding a transmitter fires GPSNetworkComplexityEvent with increased complexity")
     void testAddTransmitterFiresEvent() {
         UUID uuid = UUID.randomUUID();
