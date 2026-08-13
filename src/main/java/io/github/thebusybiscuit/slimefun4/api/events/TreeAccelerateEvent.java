@@ -43,6 +43,15 @@ public class TreeAccelerateEvent extends Event implements Cancellable {
     private int growthBoost = 1;
     private boolean cancelled;
 
+    /**
+     * The maximum growth boost an addon may apply to a single sapling.
+     * The consumer applies bonemeal in a loop of this size on the tick thread,
+     * so an unbounded value would let a faulty listener stall the server.
+     * 100 bonemeal applications grow any tree many times over (the regular
+     * boost is {@code 1}), so this ceiling does not constrain legitimate use.
+     */
+    public static final int MAX_GROWTH_BOOST = 100;
+
     public TreeAccelerateEvent(@Nonnull TreeGrowthAccelerator accelerator, @Nonnull Block block, @Nonnull Block sapling, @Nonnull ItemStack fertilizer) {
         Validate.notNull(accelerator, "The TreeGrowthAccelerator must not be null");
         Validate.notNull(block, "The Block must not be null");
@@ -111,10 +120,11 @@ public class TreeAccelerateEvent extends Event implements Cancellable {
      * the sapling untouched (the energy and fertilizer are still consumed).
      *
      * @param growthBoost
-     *            The growth boost, must not be negative
+     *            The growth boost, between {@code 0} and {@link #MAX_GROWTH_BOOST}
      */
     public void setGrowthBoost(int growthBoost) {
         Validate.isTrue(growthBoost >= 0, "The growth boost must not be negative");
+        Validate.isTrue(growthBoost <= MAX_GROWTH_BOOST, "The growth boost must not exceed " + MAX_GROWTH_BOOST);
 
         this.growthBoost = growthBoost;
     }

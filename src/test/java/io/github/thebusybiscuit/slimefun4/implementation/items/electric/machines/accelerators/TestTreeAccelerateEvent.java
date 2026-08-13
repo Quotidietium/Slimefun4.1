@@ -165,6 +165,12 @@ class TestTreeAccelerateEvent {
         Assertions.assertTrue(event.isCancelled());
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setGrowthBoost(-1));
+
+        // The boost is capped: an unbounded value would stall the tick thread in the bonemeal loop
+        event.setGrowthBoost(TreeAccelerateEvent.MAX_GROWTH_BOOST);
+        Assertions.assertEquals(TreeAccelerateEvent.MAX_GROWTH_BOOST, event.getGrowthBoost());
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setGrowthBoost(TreeAccelerateEvent.MAX_GROWTH_BOOST + 1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setGrowthBoost(Integer.MAX_VALUE));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TreeAccelerateEvent(null, b, sapling, fertilizer));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TreeAccelerateEvent(accelerator, null, sapling, fertilizer));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new TreeAccelerateEvent(accelerator, b, null, fertilizer));

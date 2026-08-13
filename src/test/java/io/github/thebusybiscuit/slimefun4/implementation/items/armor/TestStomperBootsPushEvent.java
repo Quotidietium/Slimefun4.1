@@ -112,6 +112,11 @@ class TestStomperBootsPushEvent {
         event.setDamage(2.5);
         Assertions.assertEquals(2.5, event.getDamage());
 
+        // NaN or infinite damage would corrupt the entity's health state
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDamage(Double.NaN));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDamage(Double.POSITIVE_INFINITY));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setDamage(Double.NEGATIVE_INFINITY));
+
         // The push can be overridden and reset to the computed shockwave
         Vector custom = new Vector(0, 2, 0);
         event.setPushVelocity(custom);

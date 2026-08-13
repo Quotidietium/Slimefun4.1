@@ -86,9 +86,11 @@ public class StomperBootsPushEvent extends PlayerEvent implements Cancellable {
      * This sets the damage this entity will take.
      *
      * @param damage
-     *            The damage to deal
+     *            The damage to deal, must be a finite number (not NaN or infinite)
      */
     public void setDamage(double damage) {
+        Validate.isTrue(Double.isFinite(damage), "The damage must be a finite number, received: " + damage);
+
         this.damage = damage;
     }
 
