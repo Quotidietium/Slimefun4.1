@@ -150,6 +150,27 @@ class TestBackpackResizeEvent {
     }
 
     @Test
+    @DisplayName("Resizing while a viewer has the backpack open moves the viewer onto the new inventory")
+    void testResizeMovesViewerOntoNewInventory() throws InterruptedException {
+        Player player = server.addPlayer();
+        PlayerBackpack backpack = TestUtilities.awaitProfile(player).createBackpack(9);
+        backpack.getInventory().setItem(0, new ItemStack(Material.DIRT, 32));
+
+        backpack.open(player);
+        Assertions.assertSame(backpack.getInventory(), player.getOpenInventory().getTopInventory(), "The viewer must be looking at the backpack inventory");
+
+        backpack.setSize(18);
+
+        /*
+         * Without re-seating, the viewer would keep editing the discarded old Inventory
+         * and every change would be lost on save.
+         */
+        Assertions.assertSame(backpack.getInventory(), player.getOpenInventory().getTopInventory(), "The viewer must have been moved onto the resized inventory");
+        Assertions.assertEquals(18, player.getOpenInventory().getTopInventory().getSize());
+        Assertions.assertEquals(Material.DIRT, player.getOpenInventory().getTopInventory().getItem(0).getType(), "The contents must be visible in the re-seated view");
+    }
+
+    @Test
     @DisplayName("An out-of-range size throws without firing the event")
     void testInvalidSizeThrowsWithoutEvent() throws InterruptedException {
         PlayerBackpack backpack = newBackpack(9);

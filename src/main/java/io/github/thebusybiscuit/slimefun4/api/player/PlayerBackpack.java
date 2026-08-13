@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
@@ -235,9 +236,23 @@ public class PlayerBackpack {
             inv.setItem(slot, this.inventory.getItem(slot));
         }
 
+        /*
+         * Anyone currently viewing this backpack is looking at the OLD Inventory.
+         * After the swap their edits would go into that discarded instance and be
+         * lost on save - move every viewer onto the new Inventory instead.
+         */
+        List<HumanEntity> viewers = new ArrayList<>(this.inventory.getViewers());
+
         // Only swap the state over once the new inventory is fully populated
         this.size = size;
         this.inventory = inv;
+
+        Slimefun.runSync(() -> {
+            for (HumanEntity viewer : viewers) {
+                viewer.closeInventory();
+                viewer.openInventory(inv);
+            }
+        });
 
         markDirty();
     }
