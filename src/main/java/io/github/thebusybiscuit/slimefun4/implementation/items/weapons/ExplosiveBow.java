@@ -68,7 +68,10 @@ public class ExplosiveBow extends SlimefunBow {
             SoundEffect.EXPLOSIVE_BOW_HIT_SOUND.playAt(target.getLocation(), SoundCategory.PLAYERS);
 
             for (Entity nearby : entities) {
-                LivingEntity entity = (LivingEntity) nearby;
+                if (!(nearby instanceof LivingEntity entity)) {
+                    // Addons can modify the affected-entities list; ignore anything not living
+                    continue;
+                }
 
                 Vector distanceVector = entity.getLocation().toVector().subtract(target.getLocation().toVector()).add(new Vector(0, 0.75, 0));
 

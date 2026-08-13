@@ -21,7 +21,8 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.weapons.Explosive
  * <p>
  * Cancelling this event skips the explosion entirely: no particles, no sound, no knockback and
  * no area damage. Addons may also remove entries from {@link #getAffectedEntities()} to spare
- * specific entities; the hit target itself is never affected by the area damage.
+ * specific entities; the hit target itself is never affected by the area damage. Anything that
+ * is not a {@link LivingEntity} is ignored at detonation time.
  *
  * @author Zurker
  *
