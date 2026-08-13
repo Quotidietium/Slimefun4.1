@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
@@ -19,6 +20,10 @@ import io.github.thebusybiscuit.slimefun4.api.network.Network;
  * network. Add-ons that want to react to a network coming into existence can listen here.
  * <p>
  * The event is fired synchronously from the thread that registered the network.
+ * <p>
+ * Note that networks may be registered from the asynchronous ticker thread
+ * (e.g. {@code getNetworkFromLocationOrCreate} during a cargo tick), in which case
+ * this event fires asynchronously.
  *
  * @author Zurker
  *
@@ -32,6 +37,9 @@ public class NetworkCreateEvent extends Event {
     private final Network network;
 
     public NetworkCreateEvent(@Nonnull Network network) {
+        /* Networks can be registered from the async ticker thread. */
+        super(!Bukkit.isPrimaryThread());
+
         Validate.notNull(network, "The Network must not be null");
 
         this.network = network;

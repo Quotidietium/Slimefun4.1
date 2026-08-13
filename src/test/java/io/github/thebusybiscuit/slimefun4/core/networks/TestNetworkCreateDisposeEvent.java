@@ -85,6 +85,26 @@ class TestNetworkCreateDisposeEvent {
     }
 
     @Test
+    @DisplayName("Both events declare their thread context correctly (async off the main thread)")
+    void testAsyncDeclaration() throws InterruptedException {
+        CargoNet network = CargoNet.getNetworkFromLocationOrCreate(loc(3, 3));
+
+        java.util.concurrent.atomic.AtomicBoolean createAsync = new java.util.concurrent.atomic.AtomicBoolean(false);
+        java.util.concurrent.atomic.AtomicBoolean disposeAsync = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Thread worker = new Thread(() -> {
+            createAsync.set(new NetworkCreateEvent(network).isAsynchronous());
+            disposeAsync.set(new NetworkDisposeEvent(network).isAsynchronous());
+        });
+        worker.start();
+        worker.join(5000);
+
+        Assertions.assertTrue(createAsync.get(), "Constructed off the main thread (e.g. async cargo ticker), the event must declare itself asynchronous");
+        Assertions.assertTrue(disposeAsync.get(), "Constructed off the main thread, the event must declare itself asynchronous");
+        Assertions.assertFalse(new NetworkCreateEvent(network).isAsynchronous(), "Constructed on the main thread, the event must declare itself synchronous");
+        Assertions.assertFalse(new NetworkDisposeEvent(network).isAsynchronous(), "Constructed on the main thread, the event must declare itself synchronous");
+    }
+
+    @Test
     @DisplayName("Creating a cargo network fires NetworkCreateEvent")
     void testCargoNetCreateFiresEvent() {
         Location l = loc(10, 10);

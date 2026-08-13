@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
@@ -18,6 +19,10 @@ import io.github.thebusybiscuit.slimefun4.api.network.Network;
  * listen here.
  * <p>
  * The event is fired synchronously from the thread that unregistered the network.
+ * <p>
+ * Note that networks may be unregistered from the asynchronous ticker thread
+ * (e.g. during an asynchronous network rebuild), in which case this event fires
+ * asynchronously.
  *
  * @author Zurker
  *
@@ -31,6 +36,9 @@ public class NetworkDisposeEvent extends Event {
     private final Network network;
 
     public NetworkDisposeEvent(@Nonnull Network network) {
+        /* Networks can be unregistered from the async ticker thread. */
+        super(!Bukkit.isPrimaryThread());
+
         Validate.notNull(network, "The Network must not be null");
 
         this.network = network;
