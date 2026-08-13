@@ -39,7 +39,15 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.bukkit.Bukkit;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+
+import io.github.thebusybiscuit.slimefun4.api.events.PlayerBackpackCloseEvent;
 
 class TestBackpackListener {
 
@@ -172,6 +180,39 @@ class TestBackpackListener {
         listener.onClick(event);
 
         Assertions.assertEquals(type != Material.AIR, event.isCancelled());
+    }
+
+    @Test
+    @DisplayName("Opening a backpack over another open inventory keeps the view tracked (the close event must not remove the new mapping)")
+    void testOpenOverOtherInventoryKeepsTracking() throws InterruptedException {
+        Player player = server.addPlayer();
+
+        // The player has an unrelated inventory open (e.g. a chest) when opening the backpack
+        player.openInventory(Bukkit.createInventory(null, 9, "Chest"));
+        openMockBackpack(player, "RACE_TRACKING_BACKPACK", 27);
+
+        /*
+         * openInventory() fires an InventoryCloseEvent for the chest view. If the view
+         * mapping was registered BEFORE opening, our own onClose() removes it again and
+         * the backpack stays open without dirty tracking - every edit would be swallowed
+         * on save. The mapping must therefore survive until the backpack view is closed.
+         */
+        AtomicBoolean closeFired = new AtomicBoolean(false);
+        Listener watcher = new Listener() {
+            @EventHandler
+            public void onBackpackClose(PlayerBackpackCloseEvent event) {
+                closeFired.set(true);
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            player.closeInventory();
+
+            Assertions.assertTrue(closeFired.get(), "The backpack view was untracked: closing it fired no PlayerBackpackCloseEvent (edits would be lost)");
+        } finally {
+            HandlerList.unregisterAll(watcher);
+        }
     }
 
 }

@@ -287,8 +287,16 @@ public class BackpackListener implements Listener {
                                 }
 
                                 SoundEffect.BACKPACK_OPEN_SOUND.playAt(p.getLocation(), SoundCategory.PLAYERS);
-                                backpacks.put(p.getUniqueId(), item);
+
+                                /*
+                                 * Open BEFORE claiming the view: openInventory() fires an
+                                 * InventoryCloseEvent for any previously open view, and our
+                                 * own onClose() would remove a mapping that was put here
+                                 * first. The backpack would then stay open without dirty
+                                 * tracking, silently swallowing every edit on save.
+                                 */
                                 backpack.open(p);
+                                backpacks.put(p.getUniqueId(), item);
                             }
                         });
                     }
