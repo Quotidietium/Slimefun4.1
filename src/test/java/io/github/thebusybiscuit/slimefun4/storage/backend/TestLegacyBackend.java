@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
 import io.github.thebusybiscuit.slimefun4.api.gps.Waypoint;
+import io.github.thebusybiscuit.slimefun4.api.player.PlayerBackpack;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.api.researches.Research;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -277,6 +279,30 @@ class TestLegacyBackend {
         // The resolved waypoint round-trips normally
         Assertions.assertTrue(waypointsFile.contains("LOADED.world"));
         Assertions.assertEquals("home", waypointsFile.getString("LOADED.name"));
+    }
+
+    @Test
+    void testRemovedBackpackStaysRemovedAfterSave() throws IOException {
+        UUID uuid = UUID.randomUUID();
+        LegacyStorage storage = new LegacyStorage();
+
+        // Save a profile with two backpacks
+        PlayerData data = storage.loadPlayerData(uuid);
+        PlayerBackpack first = PlayerBackpack.newBackpack(uuid, 0, 9);
+        PlayerBackpack second = PlayerBackpack.newBackpack(uuid, 1, 9);
+        data.addBackpack(first);
+        data.addBackpack(second);
+        storage.savePlayerData(uuid, data);
+
+        // Remove one backpack (e.g. an addon settling its contents) and save again
+        data.removeBackpack(second);
+        storage.savePlayerData(uuid, data);
+
+        // The removed backpack must not be resurrected from the stale file section
+        PlayerData reloaded = storage.loadPlayerData(uuid);
+        Assertions.assertEquals(1, reloaded.getBackpacks().size(), "A removed backpack must not survive the save");
+        Assertions.assertTrue(reloaded.getBackpacks().containsKey(0));
+        Assertions.assertFalse(reloaded.getBackpacks().containsKey(1), "The removed backpack was resurrected - its contents would be duplicated");
     }
 
     @Test

@@ -197,11 +197,28 @@ public class DirtyChestMenu extends ChestMenu {
         File target = config.getFile();
         File tmpFile = new File(target.getParentFile(), target.getName() + ".tmp");
 
-        config.save(tmpFile);
+        try {
+            /*
+             * Write via Files.write instead of Config#save: Config#save swallows any
+             * IOException, so a half-written tmp (disk full, I/O error) would pass the
+             * exists() check below and atomically replace a perfectly good file with a
+             * truncated one. On failure the partial tmp is deleted before reporting it.
+             */
+            Files.write(tmpFile.toPath(), config.getConfiguration().saveToString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (IOException x) {
+            try {
+                Files.deleteIfExists(tmpFile.toPath());
+            } catch (IOException ignored) {
+                // The tmp is already gone or undeletable - either way there is nothing to move
+            }
+
+            Slimefun.logger().log(Level.SEVERE, x, () -> "Could not write a temporary file for \"" + target.getName() + "\" (disk full?), will retry on the next save cycle");
+            return false;
+        }
 
         if (!tmpFile.exists()) {
-            // Config.save() swallowed an IOException (e.g. disk full) - nothing to move
-            Slimefun.logger().log(Level.SEVERE, "Could not write a temporary file for \"{0}\" (disk full?), will retry on the next save cycle", target.getName());
+            // Defensive: the write reported success but there is nothing to move
+            Slimefun.logger().log(Level.SEVERE, "Could not write a temporary file for \"{0}\", will retry on the next save cycle", target.getName());
             return false;
         }
 
