@@ -237,4 +237,32 @@ class TestComposterProcessEvent {
             HandlerList.unregisterAll(watcher);
         }
     }
+
+    @Test
+    @DisplayName("An input below the recipe amount is rejected without consuming")
+    void testInsufficientInputIsRejected() {
+        Player player = server.addPlayer();
+        Block b = placeComposter(50, 50);
+        // The leaves recipe requires 8; a single leaf must not compost into a full dirt output
+        ItemStack input = new ItemStack(Material.OAK_LEAVES, 1);
+        player.getInventory().setItemInMainHand(input);
+
+        boolean[] seen = { false };
+        Listener watcher = new Listener() {
+            @EventHandler
+            public void onProcess(ComposterProcessEvent event) {
+                seen[0] = true;
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            compost(player, b, input);
+
+            Assertions.assertFalse(seen[0], "No event must fire for an input below the recipe amount");
+            Assertions.assertEquals(1, player.getInventory().getItemInMainHand().getAmount(), "An insufficient input must not be consumed");
+        } finally {
+            HandlerList.unregisterAll(watcher);
+        }
+    }
 }

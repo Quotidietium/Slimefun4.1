@@ -127,7 +127,11 @@ public class Crucible extends SimpleSlimefunItem<BlockUseHandler> implements Rec
                     ItemStack input = e.getItem();
                     Block block = b.getRelative(BlockFace.UP);
 
-                    if (matches(input)) {
+                    // Require the full recipe amount up front: without this, consumeInput's
+                    // removeItem() would silently consume only the available portion (e.g. a single
+                    // cobblestone) while the full output (a lava bucket) is still generated - letting
+                    // a player split a stack and smelt single items for the full output (a 16x cheat).
+                    if (matches(input) && hasEnoughInput(p, input)) {
                         boolean water = Tag.LEAVES.isTagged(input.getType());
 
                         if (CrucibleLiquidGenerateEvent.getHandlerList().getRegisteredListeners().length > 0) {
@@ -149,6 +153,28 @@ public class Crucible extends SimpleSlimefunItem<BlockUseHandler> implements Rec
                 }
             }
         };
+    }
+
+    /**
+     * Checks whether the player's inventory holds at least the recipe amount of the given input.
+     *
+     * @param p
+     *            The {@link Player}
+     * @param input
+     *            The input {@link ItemStack}
+     * @return Whether the full recipe amount is available
+     */
+    @ParametersAreNonnullByDefault
+    private boolean hasEnoughInput(Player p, ItemStack input) {
+        for (int i = 0; i < recipes.size(); i += 2) {
+            ItemStack catalyst = recipes.get(i);
+
+            if (SlimefunUtils.isItemSimilar(input, catalyst, true)) {
+                return p.getInventory().containsAtLeast(input, catalyst.getAmount());
+            }
+        }
+
+        return false;
     }
 
     /**

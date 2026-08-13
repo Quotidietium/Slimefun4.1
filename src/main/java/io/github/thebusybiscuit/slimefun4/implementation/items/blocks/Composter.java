@@ -87,7 +87,11 @@ public class Composter extends SimpleSlimefunItem<BlockUseHandler> implements Re
                     ItemStack input = e.getItem();
                     ItemStack output = findOutput(input);
 
-                    if (output != null) {
+                    // Require the full recipe amount up front: without this, consumeInput's
+                    // removeItem() would silently consume only the available portion (e.g. a single
+                    // leaf) while the full output (one dirt) is still produced - letting a player
+                    // split a stack and compost single items for the full output (an 8x resource cheat).
+                    if (output != null && hasEnoughInput(p, input)) {
                         boolean produce = true;
 
                         if (ComposterProcessEvent.getHandlerList().getRegisteredListeners().length > 0) {
@@ -142,6 +146,27 @@ public class Composter extends SimpleSlimefunItem<BlockUseHandler> implements Re
     @ParametersAreNonnullByDefault
     private Optional<Inventory> findOutputChest(Block b, ItemStack output) {
         return OutputChest.findOutputChestFor(b, output);
+    }
+
+    /**
+     * Checks whether the player's inventory holds at least the recipe amount of the given input.
+     *
+     * @param p
+     *            The {@link Player}
+     * @param input
+     *            The input {@link ItemStack}
+     * @return Whether the full recipe amount is available
+     */
+    private boolean hasEnoughInput(Player p, ItemStack input) {
+        for (int i = 0; i < recipes.size(); i += 2) {
+            ItemStack convert = recipes.get(i);
+
+            if (convert != null && SlimefunUtils.isItemSimilar(input, convert, true)) {
+                return p.getInventory().containsAtLeast(input, convert.getAmount());
+            }
+        }
+
+        return false;
     }
 
     /**

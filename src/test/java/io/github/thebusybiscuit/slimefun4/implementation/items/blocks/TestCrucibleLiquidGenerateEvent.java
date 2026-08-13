@@ -258,4 +258,32 @@ class TestCrucibleLiquidGenerateEvent {
             HandlerList.unregisterAll(watcher);
         }
     }
+
+    @Test
+    @DisplayName("An input below the recipe amount is rejected without consuming")
+    void testInsufficientInputIsRejected() {
+        Player player = server.addPlayer();
+        Block b = placeCrucible(60, 60);
+        // The stone recipe requires 12; a single stone must not smelt into a full lava bucket
+        ItemStack stone = new ItemStack(Material.STONE, 1);
+        player.getInventory().setItemInMainHand(stone);
+
+        boolean[] seen = { false };
+        Listener watcher = new Listener() {
+            @EventHandler
+            public void onGenerate(CrucibleLiquidGenerateEvent event) {
+                seen[0] = true;
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            melt(player, b, stone);
+
+            Assertions.assertFalse(seen[0], "No event must fire for an input below the recipe amount");
+            Assertions.assertEquals(1, player.getInventory().getItemInMainHand().getAmount(), "An insufficient input must not be consumed");
+        } finally {
+            HandlerList.unregisterAll(watcher);
+        }
+    }
 }
