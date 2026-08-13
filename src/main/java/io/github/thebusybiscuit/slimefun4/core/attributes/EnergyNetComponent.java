@@ -104,7 +104,14 @@ public interface EnergyNetComponent extends ItemAttribute {
 
         if (charge != null) {
             try {
-                return Integer.parseInt(charge);
+                /*
+                 * Fail closed on corrupted values (crashed writes, manual editing,
+                 * malicious NBT): a negative charge would poison the whole network
+                 * settlement (negative supply makes every capacitor get wiped to
+                 * zero), an over-capacity charge would inject free energy for one
+                 * tick. Clamp to the legal range instead.
+                 */
+                return NumberUtils.clamp(0, Integer.parseInt(charge), getCapacity());
             } catch (NumberFormatException x) {
                 /*
                  * Corrupted charge data (crashed write, manual editing, ...).
@@ -166,6 +173,16 @@ public interface EnergyNetComponent extends ItemAttribute {
 
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
+                /*
+                 * Never write into data that carries no "id": the block was deleted
+                 * mid-tick and getLocationInfo() returned an empty Config. Writing
+                 * "energy-charge" here would resurrect a ghost record without an id
+                 * (no SlimefunItem, invisible to the network, never cleaned up).
+                 */
+                if (data.getString("id") == null) {
+                    return;
+                }
+
                 charge = NumberUtils.clamp(0, charge, capacity);
 
                 // Do we even need to update the value?
@@ -192,6 +209,11 @@ public interface EnergyNetComponent extends ItemAttribute {
 
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
+                // Never create a ghost record for a block that was deleted mid-tick
+                if (BlockStorage.checkID(l) == null) {
+                    return;
+                }
+
                 int currentCharge = getCharge(l);
 
                 // Check if there is even space for new energy
@@ -223,6 +245,11 @@ public interface EnergyNetComponent extends ItemAttribute {
 
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
+                // Never create a ghost record for a block that was deleted mid-tick
+                if (BlockStorage.checkID(l) == null) {
+                    return;
+                }
+
                 int currentCharge = getCharge(l);
 
                 // Check if there is even energy stored
