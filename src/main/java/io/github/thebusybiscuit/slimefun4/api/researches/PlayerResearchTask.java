@@ -35,10 +35,11 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
     private final Research research;
     private final boolean isInstant;
     private final Consumer<Player> callback;
+    private final Runnable cancelHandler;
 
     /**
      * This constructs a new {@link PlayerResearchTask}.
-     * 
+     *
      * @param research
      *            The {@link Research} to unlock
      * @param isInstant
@@ -47,11 +48,30 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
      *            The callback to run when the task has completed
      */
     PlayerResearchTask(@Nonnull Research research, boolean isInstant, @Nullable Consumer<Player> callback) {
+        this(research, isInstant, callback, null);
+    }
+
+    /**
+     * This constructs a new {@link PlayerResearchTask}.
+     *
+     * @param research
+     *            The {@link Research} to unlock
+     * @param isInstant
+     *            Whether to unlock this {@link Research} instantaneously
+     * @param callback
+     *            The callback to run when the task has completed
+     * @param cancelHandler
+     *            A {@link Runnable} run on the main Thread when an addon cancelled the
+     *            {@link ResearchUnlockEvent} (so the {@link Research} was never unlocked),
+     *            allowing callers to compensate any cost they already took
+     */
+    PlayerResearchTask(@Nonnull Research research, boolean isInstant, @Nullable Consumer<Player> callback, @Nullable Runnable cancelHandler) {
         Validate.notNull(research, "The Research must not be null");
 
         this.research = research;
         this.isInstant = isInstant;
         this.callback = callback;
+        this.cancelHandler = cancelHandler;
     }
 
     @Override
@@ -73,29 +93,36 @@ public class PlayerResearchTask implements Consumer<PlayerProfile> {
             ResearchUnlockEvent event = new ResearchUnlockEvent(p, research);
             Bukkit.getPluginManager().callEvent(event);
 
-            if (!event.isCancelled()) {
-                if (isInstant) {
-                    Slimefun.runSync(() -> unlockResearch(p, profile));
-                } else if (Slimefun.getRegistry().getCurrentlyResearchingPlayers().add(p.getUniqueId())) {
-                    long duration = event.getResearchTimeTicks();
-
-                    Slimefun.getLocalization().sendMessage(p, "messages.research.start", true, msg -> msg.replace(PLACEHOLDER, research.getName(p)));
-                    sendUpdateMessage(p, duration);
-
-                    Slimefun.runSync(() -> {
-                        Slimefun.getRegistry().getCurrentlyResearchingPlayers().remove(p.getUniqueId());
-
-                        /*
-                         * Re-resolve the profile instead of using the captured one: the
-                         * player may have logged off mid-research and their profile been
-                         * unloaded by the auto-save since. setResearched on that orphaned
-                         * profile would never be persisted - the research would be lost
-                         * while the levels were already deducted. PlayerProfile#get
-                         * reloads from disk when the profile is gone.
-                         */
-                        PlayerProfile.get(p, freshProfile -> unlockResearch(p, freshProfile));
-                    }, duration);
+            if (event.isCancelled()) {
+                /*
+                 * An addon vetoed the unlock. The caller may already have taken a cost
+                 * (e.g. the XP levels deducted by the guide) - let it compensate that
+                 * instead of letting the levels vanish without unlocking anything.
+                 */
+                if (cancelHandler != null) {
+                    Slimefun.runSync(cancelHandler);
                 }
+            } else if (isInstant) {
+                Slimefun.runSync(() -> unlockResearch(p, profile));
+            } else if (Slimefun.getRegistry().getCurrentlyResearchingPlayers().add(p.getUniqueId())) {
+                long duration = event.getResearchTimeTicks();
+
+                Slimefun.getLocalization().sendMessage(p, "messages.research.start", true, msg -> msg.replace(PLACEHOLDER, research.getName(p)));
+                sendUpdateMessage(p, duration);
+
+                Slimefun.runSync(() -> {
+                    Slimefun.getRegistry().getCurrentlyResearchingPlayers().remove(p.getUniqueId());
+
+                    /*
+                     * Re-resolve the profile instead of using the captured one: the
+                     * player may have logged off mid-research and their profile been
+                     * unloaded by the auto-save since. setResearched on that orphaned
+                     * profile would never be persisted - the research would be lost
+                     * while the levels were already deducted. PlayerProfile#get
+                     * reloads from disk when the profile is gone.
+                     */
+                    PlayerProfile.get(p, freshProfile -> unlockResearch(p, freshProfile));
+                }, duration);
             }
         }
     }

@@ -20,6 +20,12 @@ import io.github.thebusybiscuit.slimefun4.api.researches.Research;
  * faster or to make high-cost researches take longer. The progress messages are spread
  * proportionally across the adjusted duration. On the instant unlock path the value is
  * ignored.
+ * <p>
+ * Cancelling this event prevents the unlock entirely. On the guide unlock path the XP
+ * levels that were already deducted are refunded to the {@link Player} (the same happens
+ * when the {@link io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile} cannot be
+ * loaded); programmatic {@code research.unlock(...)} callers can attach their own
+ * compensation via {@link Research#unlock(org.bukkit.entity.Player, boolean, java.util.function.Consumer, Runnable, Runnable)}.
  *
  * @author TheBusyBiscuit
  *

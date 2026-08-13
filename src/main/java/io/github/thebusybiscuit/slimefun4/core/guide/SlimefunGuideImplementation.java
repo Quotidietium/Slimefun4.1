@@ -112,6 +112,14 @@ public interface SlimefunGuideImplementation {
                 if (p.isOnline() && refundedCost > 0) {
                     p.setLevel(p.getLevel() + refundedCost);
                 }
+            }, () -> {
+                /*
+                 * An addon cancelled the ResearchUnlockEvent, so the research was never
+                 * unlocked - refund the levels we took, same as above.
+                 */
+                if (p.isOnline() && refundedCost > 0) {
+                    p.setLevel(p.getLevel() + refundedCost);
+                }
             });
         }
     }

@@ -18,6 +18,7 @@ import be.seeseemelk.mockbukkit.ServerMock;
 
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.events.ResearchCostEvent;
+import io.github.thebusybiscuit.slimefun4.api.events.ResearchUnlockEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.api.researches.Research;
@@ -235,6 +236,32 @@ class TestResearchCostEvent {
             Assertions.assertEquals(100, player.getLevel(), "A zero cost must not deduct any levels");
         } finally {
             HandlerList.unregisterAll(zeroing);
+        }
+    }
+
+    @Test
+    @DisplayName("Cancelling ResearchUnlockEvent refunds the deducted levels and does not unlock")
+    void testUnlockCancelRefundsLevels() throws InterruptedException {
+        Player player = server.addPlayer();
+        player.setLevel(100);
+        Research research = prepare(player, 70, 50);
+
+        Listener vetoing = new Listener() {
+            @EventHandler
+            public void onUnlock(ResearchUnlockEvent event) {
+                event.setCancelled(true);
+            }
+        };
+        server.getPluginManager().registerEvents(vetoing, plugin);
+
+        try {
+            guide().unlockItem(player, SlimefunItem.getById("RESEARCH_COST_ITEM_70"), pl -> {
+            });
+
+            Assertions.assertEquals(100, player.getLevel(), "A vetoed unlock must refund the deducted levels");
+            Assertions.assertFalse(PlayerProfile.find(player).orElseThrow().hasUnlocked(research), "A vetoed unlock must not unlock the research");
+        } finally {
+            HandlerList.unregisterAll(vetoing);
         }
     }
 

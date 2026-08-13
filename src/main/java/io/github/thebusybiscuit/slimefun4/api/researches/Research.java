@@ -495,7 +495,29 @@ public class Research implements Keyed {
      *            allowing callers to compensate any cost they already took
      */
     public void unlock(@Nonnull Player p, boolean isInstant, @Nullable Consumer<Player> callback, @Nullable Runnable failureHandler) {
-        PlayerProfile.get(p, new PlayerResearchTask(this, isInstant, callback), failureHandler);
+        unlock(p, isInstant, callback, failureHandler, null);
+    }
+
+    /**
+     * Unlocks this {@link Research} for the specified {@link Player}.
+     *
+     * @param p
+     *            The {@link Player} who should unlock this {@link Research}
+     * @param isInstant
+     *            Whether to unlock this {@link Research} instantly
+     * @param callback
+     *            A callback which will be run when the {@link Research} animation completed
+     * @param failureHandler
+     *            A {@link Runnable} run on the main Thread when the {@link PlayerProfile}
+     *            could not be loaded at all (so the {@link Research} was never unlocked),
+     *            allowing callers to compensate any cost they already took
+     * @param cancelHandler
+     *            A {@link Runnable} run on the main Thread when an addon cancelled the
+     *            {@link ResearchUnlockEvent} (so the {@link Research} was never unlocked),
+     *            allowing callers to compensate any cost they already took
+     */
+    public void unlock(@Nonnull Player p, boolean isInstant, @Nullable Consumer<Player> callback, @Nullable Runnable failureHandler, @Nullable Runnable cancelHandler) {
+        PlayerProfile.get(p, new PlayerResearchTask(this, isInstant, callback, cancelHandler), failureHandler);
     }
 
     /**
