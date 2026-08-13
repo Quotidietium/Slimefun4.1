@@ -124,6 +124,8 @@ class TestStormStaffStrikeEvent {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new StormStaffStrikeEvent(player, null, loc));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new StormStaffStrikeEvent(player, stormStaff, null));
         Assertions.assertThrows(IllegalArgumentException.class, () -> event.setLocation(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setLocation(new Location(null, 5, 4, 5)), "A location without a world must be rejected");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> event.setLocation(new Location(world, Double.NaN, 4, 5)), "Non-finite coordinates must be rejected");
     }
 
     @Test

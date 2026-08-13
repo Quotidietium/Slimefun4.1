@@ -69,12 +69,19 @@ public class StormStaffStrikeEvent extends PlayerEvent implements Cancellable {
 
     /**
      * This sets the {@link Location} the lightning bolt will strike.
+     * <p>
+     * The location must have a non-null {@link org.bukkit.World} and finite coordinates.
+     * Note that a redirected strike is <strong>not</strong> re-validated against the
+     * target-range and protection checks the original target passed; redirecting is the
+     * addon's own responsibility.
      *
      * @param location
      *            The strike {@link Location}
      */
     public void setLocation(@Nonnull Location location) {
         Validate.notNull(location, "The strike Location must not be null");
+        Validate.notNull(location.getWorld(), "The strike Location must have a world");
+        Validate.isTrue(Double.isFinite(location.getX()) && Double.isFinite(location.getY()) && Double.isFinite(location.getZ()), "The strike Location must have finite coordinates, received: " + location);
 
         this.location = location;
     }
