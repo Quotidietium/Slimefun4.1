@@ -45,6 +45,20 @@ public class WindStaff extends SimpleSlimefunItem<ItemUseHandler> {
             Player p = e.getPlayer();
 
             if (p.getFoodLevel() >= 2) {
+                Vector velocity = p.getEyeLocation().getDirection().multiply(multiplier.getValue());
+
+                if (WindStaffLaunchEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                    WindStaffLaunchEvent launchEvent = new WindStaffLaunchEvent(p, WindStaff.this, velocity);
+                    Bukkit.getPluginManager().callEvent(launchEvent);
+
+                    if (launchEvent.isCancelled()) {
+                        // Vetoed before anything was consumed: no velocity, no hunger
+                        return;
+                    }
+
+                    velocity = launchEvent.getVelocity();
+                }
+
                 // The isItem() check is here to prevent the MultiTool from consuming hunger
                 if (isItem(e.getItem()) && p.getGameMode() != GameMode.CREATIVE) {
                     FoodLevelChangeEvent event = new FoodLevelChangeEvent(p, p.getFoodLevel() - 2);
@@ -53,19 +67,6 @@ public class WindStaff extends SimpleSlimefunItem<ItemUseHandler> {
                     if (!event.isCancelled()) {
                         p.setFoodLevel(event.getFoodLevel());
                     }
-                }
-
-                Vector velocity = p.getEyeLocation().getDirection().multiply(multiplier.getValue());
-
-                if (WindStaffLaunchEvent.getHandlerList().getRegisteredListeners().length > 0) {
-                    WindStaffLaunchEvent launchEvent = new WindStaffLaunchEvent(p, WindStaff.this, velocity);
-                    Bukkit.getPluginManager().callEvent(launchEvent);
-
-                    if (launchEvent.isCancelled()) {
-                        return;
-                    }
-
-                    velocity = launchEvent.getVelocity();
                 }
 
                 p.setVelocity(velocity);

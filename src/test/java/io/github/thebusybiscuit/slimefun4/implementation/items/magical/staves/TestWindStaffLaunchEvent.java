@@ -123,6 +123,7 @@ class TestWindStaffLaunchEvent {
 
             Assertions.assertTrue(seen[0], "WindStaffLaunchEvent was not fired");
             Assertions.assertTrue(player.getVelocity().length() > 0, "The player must have been launched");
+            Assertions.assertEquals(18, player.getFoodLevel(), "A launched cast must still consume hunger");
         } finally {
             HandlerList.unregisterAll(watcher);
         }
@@ -147,6 +148,7 @@ class TestWindStaffLaunchEvent {
             useStaff(player);
 
             Assertions.assertEquals(0, player.getVelocity().length(), "A cancelled launch must not apply velocity");
+            Assertions.assertEquals(foodBefore, player.getFoodLevel(), "A cancelled launch must not consume hunger");
         } finally {
             HandlerList.unregisterAll(cancelling);
         }
