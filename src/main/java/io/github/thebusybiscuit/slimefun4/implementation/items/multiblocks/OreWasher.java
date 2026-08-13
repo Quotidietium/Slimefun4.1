@@ -140,6 +140,13 @@ public class OreWasher extends MultiBlockMachine {
 
                         return;
                     } else if (SlimefunUtils.isItemSimilar(input, new ItemStack(Material.SAND, 2), false)) {
+                        // isItemSimilar ignores amounts: require the full 2 sand (across the whole
+                        // dispenser inventory, since removeItem() pulls from any slot) so a single
+                        // sand can't smelt into a full salt output (matches Composter/Crucible fix).
+                        if (!inv.containsAtLeast(input, 2)) {
+                            continue;
+                        }
+
                         ItemStack output = SlimefunItems.SALT.item();
                         Inventory outputInv = findOutputInventory(output, dispBlock, inv);
 

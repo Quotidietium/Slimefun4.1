@@ -62,6 +62,14 @@ public class Juicer extends MultiBlockMachine {
             for (ItemStack current : inv.getContents()) {
                 for (ItemStack convert : RecipeType.getRecipeInputs(this)) {
                     if (convert != null && SlimefunUtils.isItemSimilar(current, convert, true)) {
+                        // isItemSimilar ignores amounts: require the full recipe amount (across the
+                        // whole inventory, since removeItem() below pulls from any slot) so it can
+                        // never silently consume less than the recipe needs while still producing
+                        // the full output (matches Composter/Crucible fix).
+                        if (!inv.containsAtLeast(current, convert.getAmount())) {
+                            continue;
+                        }
+
                         ItemStack adding = RecipeType.getRecipeOutput(this, convert);
                         Inventory outputInv = findOutputInventory(adding, possibleDispenser, inv);
                         MultiBlockCraftEvent event = new MultiBlockCraftEvent(p, this, current, adding);
@@ -73,7 +81,7 @@ public class Juicer extends MultiBlockMachine {
 
                         if (outputInv != null) {
                             ItemStack removing = current.clone();
-                            removing.setAmount(1);
+                            removing.setAmount(convert.getAmount());
                             inv.removeItem(removing);
                             outputInv.addItem(event.getOutput());
 
