@@ -206,7 +206,7 @@ class TestResearchCostEvent {
             });
 
             Assertions.assertEquals(100, player.getLevel(), "An unaffordable surcharge must not deduct any levels");
-            PlayerProfile profile = TestUtilities.awaitProfile(player);
+            PlayerProfile profile = PlayerProfile.find(player).orElseThrow();
             Assertions.assertFalse(profile.hasUnlocked(research), "An unaffordable surcharge must refuse the unlock");
         } finally {
             HandlerList.unregisterAll(surcharging);
@@ -218,7 +218,7 @@ class TestResearchCostEvent {
     void testSetCostZero() throws InterruptedException {
         Player player = server.addPlayer();
         player.setLevel(100);
-        Research research = prepare(player, 40, 50);
+        Research research = prepare(player, 50, 50);
 
         Listener zeroing = new Listener() {
             @EventHandler
@@ -229,7 +229,7 @@ class TestResearchCostEvent {
         server.getPluginManager().registerEvents(zeroing, plugin);
 
         try {
-            guide().unlockItem(player, SlimefunItem.getById("RESEARCH_COST_ITEM_40"), pl -> {
+            guide().unlockItem(player, SlimefunItem.getById("RESEARCH_COST_ITEM_50"), pl -> {
             });
 
             Assertions.assertEquals(100, player.getLevel(), "A zero cost must not deduct any levels");
@@ -243,9 +243,9 @@ class TestResearchCostEvent {
     void testUnlockWithoutListenersDeducts() throws InterruptedException {
         Player player = server.addPlayer();
         player.setLevel(100);
-        Research research = prepare(player, 50, 50);
+        Research research = prepare(player, 60, 50);
 
-        guide().unlockItem(player, SlimefunItem.getById("RESEARCH_COST_ITEM_50"), pl -> {
+        guide().unlockItem(player, SlimefunItem.getById("RESEARCH_COST_ITEM_60"), pl -> {
         });
 
         Assertions.assertEquals(50, player.getLevel(), "The full level cost must have been deducted");
