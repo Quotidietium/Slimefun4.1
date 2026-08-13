@@ -223,6 +223,37 @@ class TestBlockPlacerPlaceEvent {
     }
 
     @Test
+    @DisplayName("A replacement that fails the placement rules is rejected: nothing placed, nothing consumed")
+    void testVanillaPlaceRejectsInvalidReplacement() {
+        Block placer = placePlacer(600, 600);
+        Block faced = placer.getRelative(BlockFace.NORTH);
+        Dispenser state = (Dispenser) placer.getState();
+        state.getInventory().addItem(new ItemStack(Material.STONE, 3));
+
+        Listener replacing = new Listener() {
+            @EventHandler
+            public void onPlace(BlockPlacerPlaceEvent event) {
+                // A stick is not a block: the replacement must be re-validated against
+                // the same isAllowed(...) rules the original item passed.
+                event.setItemStack(new ItemStack(Material.STICK));
+            }
+        };
+        server.getPluginManager().registerEvents(replacing, plugin);
+
+        try {
+            dispense(placer, new ItemStack(Material.STONE));
+
+            Assertions.assertEquals(Material.AIR, faced.getType(), "An invalid replacement must place nothing");
+
+            ItemStack remaining = state.getInventory().getItem(0);
+            Assertions.assertNotNull(remaining, "The items must stay in the dispenser");
+            Assertions.assertEquals(3, remaining.getAmount(), "Nothing must have been consumed");
+        } finally {
+            HandlerList.unregisterAll(replacing);
+        }
+    }
+
+    @Test
     @DisplayName("A Slimefun block is placed with its Slimefun identity")
     void testSlimefunPlaceDefault() {
         Block placer = placePlacer(400, 400);

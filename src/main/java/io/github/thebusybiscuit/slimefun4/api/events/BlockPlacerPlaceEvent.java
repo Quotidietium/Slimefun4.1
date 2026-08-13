@@ -76,7 +76,10 @@ public class BlockPlacerPlaceEvent extends BlockEvent implements Cancellable {
      * This sets the placed {@link ItemStack}.
      * <p>
      * The replacement is placed as-is: its material is set on the faced {@link Block} and,
-     * for nameable blocks, a custom display name is applied. It should be a block item.
+     * for nameable blocks, a custom display name is applied. The replacement is re-validated
+     * against the same placement rules the original item had to pass (a placeable block
+     * material, not blacklisted via the {@code unplaceable-blocks} setting); if it does not
+     * qualify, the placement is skipped and nothing is consumed.
      * The originally dispensed item is still the one consumed from the {@link BlockPlacer}'s
      * inventory. When a {@link SlimefunItem} is being placed, the placed {@link Block} keeps
      * the original Slimefun identity (its stored id and {@link io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler}),

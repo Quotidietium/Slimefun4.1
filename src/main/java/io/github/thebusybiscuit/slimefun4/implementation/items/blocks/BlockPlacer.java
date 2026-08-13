@@ -192,6 +192,13 @@ public class BlockPlacer extends SlimefunItem {
             // An addon may have replaced the placed item; the Slimefun identity stays the original one
             ItemStack placed = e.getItemStack();
 
+            // The original material passed isAllowed(...) before the event fired;
+            // a replacement must pass the same checks, otherwise an addon could
+            // smuggle in a non-block or blacklisted material.
+            if (!isAllowed(block, placed.getType())) {
+                return;
+            }
+
             boolean hasItemHandler = sfItem.callItemHandler(BlockPlaceHandler.class, handler -> {
                 if (handler.isBlockPlacerAllowed()) {
                     schedulePlacement(block, dispenser.getInventory(), item, placed, () -> {
@@ -220,6 +227,13 @@ public class BlockPlacer extends SlimefunItem {
         if (!e.isCancelled()) {
             // An addon may have replaced the placed item
             ItemStack placed = e.getItemStack();
+
+            // The original material passed isAllowed(...) before the event fired;
+            // a replacement must pass the same checks, otherwise an addon could
+            // smuggle in a non-block or blacklisted material.
+            if (!isAllowed(facedBlock, placed.getType())) {
+                return;
+            }
 
             schedulePlacement(facedBlock, dispenser.getInventory(), item, placed, () -> {
                 facedBlock.setType(placed.getType());
