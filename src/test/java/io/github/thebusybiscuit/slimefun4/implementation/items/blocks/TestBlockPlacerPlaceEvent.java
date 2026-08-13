@@ -254,6 +254,30 @@ class TestBlockPlacerPlaceEvent {
     }
 
     @Test
+    @DisplayName("A corrupted owner entry fails closed: nothing placed, nothing dispensed")
+    void testCorruptedOwnerFailsClosed() {
+        Block placer = placePlacer(700, 700);
+        // Corrupted BlockStorage data: the owner is not a valid UUID. This previously
+        // threw before the dispense event was cancelled, degrading the placer to a
+        // vanilla dispenser and losing the item.
+        BlockStorage.addBlockInfo(placer, "owner", "not-a-uuid");
+        Block faced = placer.getRelative(BlockFace.NORTH);
+        Dispenser state = (Dispenser) placer.getState();
+        state.getInventory().addItem(new ItemStack(Material.STONE, 3));
+
+        BlockDispenseEvent e = new BlockDispenseEvent(placer, new ItemStack(Material.STONE), new Vector(0, 0, 0));
+        Assertions.assertDoesNotThrow(() -> blockPlacer.callItemHandler(BlockDispenseHandler.class, handler -> handler.onBlockDispense(e, state, faced, blockPlacer)));
+        server.getScheduler().performTicks(3);
+
+        Assertions.assertTrue(e.isCancelled(), "The dispense must have been cancelled");
+        Assertions.assertEquals(Material.AIR, faced.getType(), "Nothing must have been placed");
+
+        ItemStack remaining = state.getInventory().getItem(0);
+        Assertions.assertNotNull(remaining, "The items must stay in the dispenser");
+        Assertions.assertEquals(3, remaining.getAmount(), "Nothing must have been consumed");
+    }
+
+    @Test
     @DisplayName("A Slimefun block is placed with its Slimefun identity")
     void testSlimefunPlaceDefault() {
         Block placer = placePlacer(400, 400);

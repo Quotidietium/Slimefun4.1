@@ -142,7 +142,21 @@ public class BlockPlacer extends SlimefunItem {
         }
 
         // Get the corresponding OfflinePlayer
-        OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(owner));
+        UUID ownerId;
+
+        try {
+            ownerId = UUID.fromString(owner);
+        } catch (IllegalArgumentException x) {
+            /*
+             * The stored owner is not a valid UUID (corrupted BlockStorage data).
+             * Fail closed just like a missing owner: an exception here would escape
+             * before the dispense event is cancelled, degrading the Block Placer to
+             * a vanilla dispenser and losing the item as a projectile.
+             */
+            return false;
+        }
+
+        OfflinePlayer player = Bukkit.getOfflinePlayer(ownerId);
         return Slimefun.getProtectionManager().hasPermission(player, target, Interaction.PLACE_BLOCK);
     }
 
