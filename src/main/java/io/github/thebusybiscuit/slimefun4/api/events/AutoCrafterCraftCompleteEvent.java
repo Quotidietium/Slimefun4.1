@@ -40,7 +40,8 @@ public class AutoCrafterCraftCompleteEvent extends Event {
 
     public AutoCrafterCraftCompleteEvent(@Nonnull AbstractAutoCrafter crafter, @Nonnull Block block, @Nonnull Inventory inventory, @Nonnull AbstractRecipe recipe) {
 
-        // Fired from the async ticker thread (machine/network tick) - report the actual context
+        // The AutoCrafter ticks synchronously (isSynchronized = true), so this fires on the main
+        // thread. The adaptive declaration reports the actual context regardless.
         super(!Bukkit.isPrimaryThread());
         Validate.notNull(crafter, "The AutoCrafter must not be null");
         Validate.notNull(block, "The Block must not be null");
