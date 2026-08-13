@@ -293,9 +293,9 @@ public class Research implements Keyed {
      *
      * <p>
      * If the player's {@link PlayerProfile} is not currently cached (e.g. they are offline
-     * and the profile was unloaded) this returns {@code true} so the unlock path never
-     * hard-fails due to a transiently unavailable profile - matching the lenient behaviour
-     * of the rest of the research system.
+     * and the profile was unloaded) this returns {@code false}: prerequisite satisfaction
+     * cannot be verified without the profile, so the check fails closed rather than
+     * potentially letting an unlock slip through while the profile is unavailable.
      * </p>
      *
      * @param player
