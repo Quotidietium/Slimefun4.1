@@ -90,13 +90,21 @@ public class WoodcutterAndroid extends ProgrammableAndroid {
 
             // An addon may have adjusted what the chopped log drops
             for (ItemStack drop : event.getDrops()) {
-                menu.pushItem(drop, getOutputSlots());
+                ItemStack leftover = menu.pushItem(drop, getOutputSlots());
+
+                if (leftover != null) {
+                    log.getWorld().dropItemNaturally(log.getLocation(), leftover);
+                }
             }
         } else {
             ItemStack drop = new ItemStack(log.getType());
 
-            // We try to push the log into the android's inventory, but nothing happens if it does not fit
-            menu.pushItem(drop, getOutputSlots());
+            // We try to push the log into the android's inventory; drop the excess instead of voiding it
+            ItemStack leftover = menu.pushItem(drop, getOutputSlots());
+
+            if (leftover != null) {
+                log.getWorld().dropItemNaturally(log.getLocation(), leftover);
+            }
         }
 
         // BlockData is the primary data type of this effect

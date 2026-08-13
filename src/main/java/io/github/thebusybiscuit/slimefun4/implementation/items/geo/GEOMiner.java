@@ -314,7 +314,14 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                     result = completeEvent.getResult();
                 }
 
-                inv.pushItem(result, OUTPUT_SLOTS);
+                ItemStack leftover = inv.pushItem(result, OUTPUT_SLOTS);
+
+                if (leftover != null) {
+                    // The output slots filled between the operation start and completion - drop the
+                    // excess instead of voiding it (mirrors AContainer#tick's leftover handling).
+                    Block finalBlock = b;
+                    Slimefun.runSync(() -> finalBlock.getWorld().dropItemNaturally(finalBlock.getLocation(), leftover));
+                }
 
                 processor.endOperation(b);
             }

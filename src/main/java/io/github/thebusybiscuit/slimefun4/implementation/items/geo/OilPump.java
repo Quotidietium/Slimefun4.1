@@ -136,11 +136,18 @@ public class OilPump extends AContainer implements RecipeDisplayItem {
                     } else {
                         /*
                          * Move the empty bucket to the output slot to prevent this
-                         * from immediately starting all over again (to prevent lag)
+                         * from immediately starting all over again (to prevent lag).
+                         * Only move if it fits; otherwise leave it in place (the pump
+                         * will re-scan next tick, which is harmless and avoids voiding
+                         * the bucket when the output is full).
                          */
                         ItemStack item = inv.getItemInSlot(slot).clone();
-                        inv.replaceExistingItem(slot, null);
-                        inv.pushItem(item, getOutputSlots());
+
+                        if (inv.fits(item, getOutputSlots())) {
+                            inv.replaceExistingItem(slot, null);
+                            inv.pushItem(item, getOutputSlots());
+                        }
+
                         return null;
                     }
                 }
