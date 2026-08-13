@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.implementation.items.electric;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
@@ -16,6 +17,7 @@ import io.github.thebusybiscuit.slimefun4.core.attributes.HologramOwner;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNet;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.handlers.SimpleBlockBreakHandler;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
@@ -82,7 +84,29 @@ public class EnergyRegulator extends SlimefunItem implements HologramOwner {
     }
 
     private void tick(@Nonnull Block b) {
-        EnergyNet network = EnergyNet.getNetworkFromLocationOrCreate(b.getLocation());
+        Location location = b.getLocation();
+        EnergyNet network = null;
+
+        /*
+         * When two networks get joined by a cable, BOTH of them "contain" this
+         * regulator's location. Resolving by location alone may return the foreign
+         * network, whose tick() refuses to settle here (regulator mismatch) while
+         * this regulator's own network is never ticked - both networks stall.
+         * Resolve the network whose regulator IS this block; only fall back to the
+         * location-based lookup when this regulator has no registered network yet
+         * (first tick after placement).
+         */
+        for (EnergyNet candidate : Slimefun.getNetworkManager().getNetworksFromLocation(location, EnergyNet.class)) {
+            if (location.equals(candidate.getRegulator())) {
+                network = candidate;
+                break;
+            }
+        }
+
+        if (network == null) {
+            network = EnergyNet.getNetworkFromLocationOrCreate(location);
+        }
+
         network.tick(b);
     }
 
