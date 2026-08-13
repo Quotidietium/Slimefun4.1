@@ -305,4 +305,37 @@ class TestCargoNetworkTaskItemFlow {
             HandlerList.unregisterAll(voiding);
         }
     }
+
+    @Test
+    @DisplayName("A listener breaking the source container mid-event does not void the returned item")
+    void testBrokenSourceContainerDropsItem() {
+        Route route = createRoute(150, 150, 160, 160, new ItemStack(Material.DIAMOND, 5));
+
+        /*
+         * Break the source chest while the withdraw event is being handled, then break
+         * the output chest too: the withdrawn item has nowhere to return to. The stale
+         * cached Inventory of the broken chest must not silently swallow it.
+         */
+        Listener breaking = new Listener() {
+            @EventHandler
+            public void onWithdraw(CargoItemWithdrawEvent event) {
+                world.getBlockAt(151, 60, 150).setType(Material.AIR);
+                world.getBlockAt(161, 60, 160).setType(Material.AIR);
+            }
+        };
+        server.getPluginManager().registerEvents(breaking, plugin);
+
+        try {
+            route(route);
+
+            long dropped = world.getEntities().stream()
+                .filter(e -> e instanceof org.bukkit.entity.Item item && item.getItemStack().getType() == Material.DIAMOND)
+                .mapToInt(e -> ((org.bukkit.entity.Item) e).getItemStack().getAmount())
+                .sum();
+
+            Assertions.assertEquals(5, dropped, "The withdrawn item must have been dropped on the ground instead of voided");
+        } finally {
+            HandlerList.unregisterAll(breaking);
+        }
+    }
 }

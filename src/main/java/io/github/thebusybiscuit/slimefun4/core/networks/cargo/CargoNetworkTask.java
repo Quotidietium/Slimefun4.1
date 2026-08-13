@@ -37,6 +37,7 @@ import io.github.thebusybiscuit.slimefun4.utils.itemstack.ItemStackWrapper;
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.DirtyChestMenu;
+import me.mrCookieSlime.Slimefun.api.item_transport.ItemTransportFlow;
 
 /**
  * The {@link CargoNetworkTask} is the actual {@link Runnable} responsible for moving {@link ItemStack ItemStacks}
@@ -214,6 +215,14 @@ class CargoNetworkTask implements Runnable {
     private void insertItem(Block inputTarget, int previousSlot, ItemStack item) {
         Inventory inv = inventories.get(inputTarget.getLocation());
 
+        /*
+         * A listener may have broken the container while handling a cargo event:
+         * writing into the cached (now dead) Inventory would silently void the item.
+         */
+        if (inv != null && !CargoUtils.hasInventory(inputTarget)) {
+            inv = null;
+        }
+
         if (inv != null) {
             // Check if the original slot hasn't been occupied in the meantime
             if (inv.getItem(previousSlot) == null) {
@@ -224,7 +233,7 @@ class CargoNetworkTask implements Runnable {
 
                 if (rest != null && !manager.isItemDeletionEnabled()) {
                     // If the item still couldn't be inserted, simply drop it on the ground
-                    SlimefunUtils.spawnItem(inputTarget.getLocation().add(0, 1, 0), rest, ItemSpawnReason.CARGO_OVERFLOW);
+                    dropOverflow(inputTarget, rest);
                 }
             }
         } else {
@@ -234,7 +243,16 @@ class CargoNetworkTask implements Runnable {
                 if (menu.getItemInSlot(previousSlot) == null) {
                     menu.replaceExistingItem(previousSlot, item);
                 } else if (!manager.isItemDeletionEnabled()) {
-                    SlimefunUtils.spawnItem(inputTarget.getLocation().add(0, 1, 0), item, ItemSpawnReason.CARGO_OVERFLOW);
+                    /*
+                     * Symmetric with the vanilla branch above: try the other slots of
+                     * the machine before scattering the item on the ground.
+                     */
+                    int[] slots = menu.getPreset().getSlotsAccessedByItemTransport(menu, ItemTransportFlow.INSERT, ItemStackWrapper.wrap(item));
+                    ItemStack rest = menu.pushItem(item.clone(), slots);
+
+                    if (rest != null) {
+                        dropOverflow(inputTarget, rest);
+                    }
                 }
             } else if (!manager.isItemDeletionEnabled()) {
                 /*
@@ -242,8 +260,22 @@ class CargoNetworkTask implements Runnable {
                  * container was broken mid-tick) - drop the item instead of voiding it.
                  */
                 Slimefun.logger().log(Level.WARNING, "Cargo could not return an item to its source @ {0}, dropping it instead", new BlockPosition(inputTarget.getLocation()));
-                SlimefunUtils.spawnItem(inputTarget.getLocation().add(0, 1, 0), item, ItemSpawnReason.CARGO_OVERFLOW);
+                dropOverflow(inputTarget, item);
             }
+        }
+    }
+
+    /**
+     * Drops an item that could not be returned to any container. A plugin vetoing the
+     * {@link io.github.thebusybiscuit.slimefun4.api.events.SlimefunItemSpawnEvent} must
+     * not void the item, so a veto falls back to a plain drop.
+     */
+    @ParametersAreNonnullByDefault
+    private void dropOverflow(Block inputTarget, ItemStack item) {
+        Location dropLocation = inputTarget.getLocation().add(0, 1, 0);
+
+        if (SlimefunUtils.spawnItem(dropLocation, item, ItemSpawnReason.CARGO_OVERFLOW) == null) {
+            inputTarget.getWorld().dropItemNaturally(dropLocation, item);
         }
     }
 
