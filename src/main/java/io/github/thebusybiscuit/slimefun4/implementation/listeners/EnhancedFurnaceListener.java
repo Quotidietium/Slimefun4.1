@@ -63,9 +63,12 @@ public class EnhancedFurnaceListener implements Listener {
             }
 
             int burnTime = e.getBurnTime();
-            int newBurnTime = event.getFuelEfficiency() * burnTime;
+            // Multiply as a long before clamping: an addon can raise the fuel efficiency via
+            // EnhancedFurnaceBurnEvent#setFuelEfficiency, and an int * int here would overflow
+            // (producing a negative burn time) before the Short.MAX_VALUE clamp could take effect.
+            long newBurnTime = (long) event.getFuelEfficiency() * burnTime;
 
-            e.setBurnTime(Math.min(newBurnTime, Short.MAX_VALUE - 1));
+            e.setBurnTime((int) Math.min(newBurnTime, Short.MAX_VALUE - 1));
         }
     }
 
@@ -110,12 +113,18 @@ public class EnhancedFurnaceListener implements Listener {
 
                         // Read the amount back from the event: a listener may have called
                         // setAmount() to override the fortune roll without cancelling.
+                        // Re-cap it to the space left in the result slot so a listener-set amount
+                        // (which the event only validates as >= 1) cannot overstack the result.
                         // Clone the recipe output so its ItemMeta (display name, lore, ...)
                         // survives - a plain new ItemStack(type, amount) would strip it.
-                        ItemStack newResult = item.clone();
-                        newResult.setAmount(event.getAmount());
+                        int finalAmount = Math.min(item.getMaxStackSize() - previous, event.getAmount());
 
-                        e.setResult(newResult);
+                        if (finalAmount > 0) {
+                            ItemStack newResult = item.clone();
+                            newResult.setAmount(finalAmount);
+
+                            e.setResult(newResult);
+                        }
                     }
                 }
             }

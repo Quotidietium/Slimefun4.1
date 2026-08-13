@@ -209,6 +209,31 @@ class TestEnhancedFurnaceEvents {
         Assertions.assertEquals(1600 * EFFICIENCY, burnEvent.getBurnTime());
     }
 
+    @Test
+    @DisplayName("An addon-raised fuel efficiency cannot overflow the burn time to a wrong value")
+    void testBurnEfficiencyOverflowClamped() {
+        Block b = setupFurnace(80, 80);
+
+        Listener boosting = new Listener() {
+            @EventHandler
+            public void onBurn(EnhancedFurnaceBurnEvent event) {
+                event.setFuelEfficiency(65536);
+            }
+        };
+        server.getPluginManager().registerEvents(boosting, plugin);
+
+        try {
+            // 65536 * 65536 overflows int to 0 (and other factors wrap negative); the long
+            // multiplication must clamp the product to Short.MAX_VALUE - 1 instead.
+            FurnaceBurnEvent burnEvent = new FurnaceBurnEvent(b, new ItemStack(Material.COAL), 65536);
+            server.getPluginManager().callEvent(burnEvent);
+
+            Assertions.assertEquals(Short.MAX_VALUE - 1, burnEvent.getBurnTime(), "An overflowed efficiency product must be clamped, not wrapped");
+        } finally {
+            HandlerList.unregisterAll(boosting);
+        }
+    }
+
     // ---------- EnhancedFurnaceSmeltEvent ----------
 
     @Test
@@ -300,6 +325,32 @@ class TestEnhancedFurnaceEvents {
         server.getPluginManager().callEvent(smeltEvent);
 
         Assertions.assertEquals(1, smeltEvent.getResult().getAmount(), "The bonus output must have been applied");
+    }
+
+    @Test
+    @DisplayName("An addon-raised smelt amount is re-capped to the result's max stack size")
+    void testSmeltAmountOverriddenIsCapped() {
+        FurnaceInventoryMock inv = new FurnaceInventoryMock(null);
+        inv.setSmelting(SMELTING.clone());
+        Block block = mockFurnaceBlock(90, 90, inv);
+
+        Listener overriding = new Listener() {
+            @EventHandler
+            public void onSmelt(EnhancedFurnaceSmeltEvent event) {
+                event.setAmount(100);
+            }
+        };
+        server.getPluginManager().registerEvents(overriding, plugin);
+
+        try {
+            FurnaceSmeltEvent smeltEvent = new FurnaceSmeltEvent(block, SMELTING.clone(), SMELT_RESULT.clone());
+            server.getPluginManager().callEvent(smeltEvent);
+
+            Assertions.assertTrue(smeltEvent.getResult().getAmount() <= SMELT_RESULT.getMaxStackSize(), "An addon-set amount must be re-capped, got: " + smeltEvent.getResult().getAmount());
+            Assertions.assertEquals(SMELT_RESULT.getMaxStackSize(), smeltEvent.getResult().getAmount(), "With an empty result slot the capped amount must equal the max stack size");
+        } finally {
+            HandlerList.unregisterAll(overriding);
+        }
     }
 
     @Test
