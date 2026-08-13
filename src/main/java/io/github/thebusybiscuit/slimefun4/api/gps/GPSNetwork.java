@@ -396,6 +396,15 @@ public class GPSNetwork {
                      */
                     String id = ChatColor.stripColor(ChatColors.color(event.getName())).toUpperCase(Locale.ROOT).replace(' ', '_').replace('.', '_');
 
+                    if (id.isEmpty()) {
+                        /*
+                         * A name consisting only of color codes or other stripped characters
+                         * sanitizes to an empty string, which is not a usable YAML key.
+                         */
+                        Slimefun.getLocalization().sendMessage(p, "gps.waypoint.invalid-name", true);
+                        return;
+                    }
+
                     for (Waypoint wp : profile.getWaypoints()) {
                         if (wp.getId().equals(id)) {
                             Slimefun.getLocalization().sendMessage(p, "gps.waypoint.duplicate", true, msg -> msg.replace("%waypoint%", event.getName()));

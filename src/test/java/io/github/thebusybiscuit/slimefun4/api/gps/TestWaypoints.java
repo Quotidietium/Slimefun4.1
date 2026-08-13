@@ -118,6 +118,19 @@ class TestWaypoints {
     }
 
     @Test
+    @DisplayName("A name that sanitizes to an empty id (color codes only) is rejected")
+    void testColorCodeOnlyNameRejected() throws InterruptedException {
+        GPSNetwork network = new GPSNetwork(plugin);
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+
+        // "&k" is a valid chat input but strips down to an empty waypoint id
+        network.addWaypoint(player, "&k", player.getLocation());
+
+        Assertions.assertTrue(profile.getWaypoints().isEmpty(), "A waypoint with an empty sanitized id must not be stored");
+    }
+
+    @Test
     @DisplayName("Test equal Waypoints being equal")
     void testWaypointComparison() throws InterruptedException {
         Player player = server.addPlayer();

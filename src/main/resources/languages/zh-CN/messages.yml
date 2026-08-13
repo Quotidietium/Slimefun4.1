@@ -338,6 +338,7 @@ gps:
     added: '&a成功添加了新的传送点'
     max: '&4你已到达设置传送点个数的最大上限'
     duplicate: '&4已经有相同名字的传送点了: &f%waypoint%'
+    invalid-name: '&4该名字无效，请换一个名字'
   insufficient-complexity:
     - '&4GPS 网络复杂度不足: &c%complexity%'
     - '&4a) 你还没有设置一个 GPS 网络'
