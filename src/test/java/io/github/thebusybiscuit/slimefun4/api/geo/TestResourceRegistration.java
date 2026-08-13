@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Biome;
 import org.bukkit.inventory.ItemStack;
@@ -18,22 +19,28 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import io.github.thebusybiscuit.slimefun4.api.geo.ResourceManager;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.implementation.resources.GEOResourcesSetup;
+import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import be.seeseemelk.mockbukkit.MockBukkit;
+import be.seeseemelk.mockbukkit.ServerMock;
 
 @TestMethodOrder(value = OrderAnnotation.class)
 class TestResourceRegistration {
 
     private static Slimefun plugin;
+    private static ServerMock server;
+    private static World world;
 
     @BeforeAll
     public static void load() {
-        MockBukkit.mock();
+        server = MockBukkit.mock();
         plugin = MockBukkit.load(Slimefun.class);
+        world = TestUtilities.createWorld(server);
     }
 
     @AfterAll
@@ -119,5 +126,28 @@ class TestResourceRegistration {
         Assertions.assertTrue(resource.getDefaultSupply(Environment.NORMAL, Biome.BEACH) > 10);
         Assertions.assertTrue(resource.getDefaultSupply(Environment.NORMAL, Biome.OCEAN) > 10);
         Assertions.assertTrue(resource.getDefaultSupply(Environment.NORMAL, Biome.SWAMP) > 10);
+    }
+
+    @Test
+    @DisplayName("ResourceManager validates supply writes and round-trips values")
+    void testResourceManagerSupplies() {
+        ResourceManager manager = Slimefun.getGPSNetwork().getResourceManager();
+        GEOResource resource = testResource(new NamespacedKey(plugin, "salt"), "Salt", SlimefunItems.SALT.item(), true, 18);
+
+        // A valid supply round-trips through the chunk storage
+        manager.setSupplies(resource, world, 0, 0, 7);
+        Assertions.assertEquals(7, manager.getSupplies(resource, world, 0, 0).getAsInt());
+
+        // A depleted chunk stores 0 (miners then idle for it)
+        manager.setSupplies(resource, world, 1, 1, 0);
+        Assertions.assertEquals(0, manager.getSupplies(resource, world, 1, 1).getAsInt());
+
+        // A negative supply is rejected at the write side (would otherwise create a corrupt,
+        // un-mineable chunk and is never produced by any internal caller)
+        Assertions.assertThrows(IllegalArgumentException.class, () -> manager.setSupplies(resource, world, 2, 2, -1));
+
+        // Corrupted (non-numeric) stored data is tolerated as "no supplies" rather than crashing
+        me.mrCookieSlime.Slimefun.api.BlockStorage.setChunkInfo(world, 3, 3, resource.getKey().toString().replace(':', '-'), "not-a-number");
+        Assertions.assertFalse(manager.getSupplies(resource, world, 3, 3).isPresent());
     }
 }

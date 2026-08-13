@@ -143,6 +143,7 @@ public class ResourceManager {
     public void setSupplies(@Nonnull GEOResource resource, @Nonnull World world, int x, int z, int value) {
         Validate.notNull(resource, "Cannot set supplies for null");
         Validate.notNull(world, "World cannot be null");
+        Validate.isTrue(value >= 0, "The supply value must not be negative");
 
         String key = resource.getKey().toString().replace(':', '-');
         BlockStorage.setChunkInfo(world, x, z, key, String.valueOf(value));
