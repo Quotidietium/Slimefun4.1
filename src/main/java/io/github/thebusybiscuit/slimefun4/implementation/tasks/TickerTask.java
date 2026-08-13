@@ -510,6 +510,24 @@ public class TickerTask implements Runnable {
     }
 
     /**
+     * This method checks if the given {@link Location} has been reserved
+     * as the <strong>source</strong> of a queued move: its data is still present
+     * but will leave upon the next tick. Moving another block into this Location
+     * before the move is processed would make the deferred queue overwrite the
+     * arriving data with the departing one.
+     *
+     * @param l
+     *            The {@link Location} to check
+     *
+     * @return Whether this {@link Location}'s data will move away on the next tick
+     */
+    public boolean isMovingFrom(@Nonnull Location l) {
+        Validate.notNull(l, "Null is not a valid Location!");
+
+        return movingQueue.containsKey(l);
+    }
+
+    /**
      * This method checks if a given {@link Location} will be deleted on the next tick.
      * 
      * @param l

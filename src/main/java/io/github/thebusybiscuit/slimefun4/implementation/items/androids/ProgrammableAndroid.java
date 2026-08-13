@@ -728,6 +728,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             return;
         }
 
+        if (Slimefun.getTickerTask().isOccupiedSoon(b.getLocation())) {
+            /*
+             * Another android's data move into this Location is still queued: the head
+             * we see belongs to that android, not to the data at this Location. Ticking
+             * now would execute a foreign script and, on GO_FORWARD, physically delete
+             * the incoming android's head. Wait for the queue to be processed.
+             */
+            return;
+        }
+
         if ("false".equals(data.getString("paused"))) {
             BlockMenu menu = BlockStorage.getInventory(b);
 
@@ -739,6 +749,11 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             } else {
                 try {
                     fuel = Float.parseFloat(fuelData);
+
+                    if (!Float.isFinite(fuel)) {
+                        // "NaN" and "Infinity" parse fine but must not become infinite fuel
+                        fuel = 0;
+                    }
                 } catch (NumberFormatException x) {
                     fuel = 0;
                 }
@@ -762,7 +777,8 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                     }
                 }
 
-                if (index >= script.length) {
+                if (index < 0 || index >= script.length) {
+                    // A negative index is possible through integer overflow of a corrupted entry
                     index = 0;
                 }
 
@@ -771,6 +787,8 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
 
                 if (instruction == null) {
                     Slimefun.instance().getLogger().log(Level.WARNING, "Failed to parse Android instruction: {0}, maybe your server is out of date?", script[index]);
+                    // Skip the unknown token instead of stalling on it forever (fuel drain + log spam)
+                    BlockStorage.addBlockInfo(b, "index", String.valueOf(index));
                     return;
                 }
 
@@ -817,6 +835,14 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                     instruction.execute(this, b, inv, face);
                     break;
             }
+        } else {
+            /*
+             * This instruction requires a different android type (reachable via setScript()
+             * or tampered data - the editor never produces such scripts). Skip the token
+             * instead of stalling on it forever while burning fuel every tick.
+             */
+            Slimefun.instance().getLogger().log(Level.WARNING, "Android at {0} cannot execute instruction {1} (requires {2}), skipping it", new Object[] { b.getLocation(), instruction, instruction.getRequiredType() });
+            BlockStorage.addBlockInfo(b, "index", String.valueOf(index));
         }
     }
 
@@ -970,7 +996,12 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                     menu.consumeItem(43);
 
                     if (getFuelSource() == AndroidFuelSource.LIQUID) {
-                        menu.pushItem(new ItemStack(Material.BUCKET), getOutputSlots());
+                        ItemStack rest = menu.pushItem(new ItemStack(Material.BUCKET), getOutputSlots());
+
+                        if (rest != null) {
+                            // The output slots are full: drop the empty bucket instead of voiding it
+                            b.getWorld().dropItemNaturally(b.getLocation(), rest);
+                        }
                     }
 
                     BlockStorage.addBlockInfo(b, "fuel", String.valueOf(fuelLevel));
@@ -997,9 +1028,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
 
         BlockMenu inv = BlockStorage.getInventory(b);
 
-        if (inv != null) {
-            for (ItemStack item : items) {
-                inv.pushItem(item, getOutputSlots());
+        for (ItemStack item : items) {
+            ItemStack rest = inv != null ? inv.pushItem(item, getOutputSlots()) : item;
+
+            if (rest != null) {
+                /*
+                 * The android's inventory is gone (it moved or was broken in the meantime)
+                 * or the output slots are full: drop the surplus at the android instead
+                 * of voiding it silently.
+                 */
+                b.getWorld().dropItemNaturally(b.getLocation(), rest);
             }
         }
     }
@@ -1031,6 +1069,16 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
     @ParametersAreNonnullByDefault
     protected void move(Block b, BlockFace face, Block block) {
         if (block.getY() > block.getWorld().getMinHeight() && block.getY() < block.getWorld().getMaxHeight() && block.isEmpty()) {
+
+            /*
+             * The destination must not be part of a queued data move: moving into a Location
+             * whose data has not left yet (or is about to receive another android's data)
+             * makes the deferred queue overwrite one android with the other - destroying
+             * items and transferring inventories across owners. Wait one tick instead.
+             */
+            if (Slimefun.getTickerTask().isOccupiedSoon(block.getLocation()) || Slimefun.getTickerTask().isMovingFrom(block.getLocation())) {
+                return;
+            }
 
             if (!block.getWorld().getWorldBorder().isInside(block.getLocation())) {
                 return;
