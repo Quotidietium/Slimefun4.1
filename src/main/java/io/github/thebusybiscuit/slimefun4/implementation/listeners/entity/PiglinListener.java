@@ -37,6 +37,13 @@ import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
  */
 public class PiglinListener implements Listener {
 
+    /**
+     * Tracks which misconfigured barter items have already been warned about, so a piglin
+     * barter farm (which fires {@link EntityDropItemEvent} frequently) does not flood the log
+     * with the same "chance must be between 1-99%" warning on every single barter.
+     */
+    private static final Set<String> warnedInvalidBarterChances = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     public PiglinListener(@Nonnull Slimefun plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
@@ -115,7 +122,11 @@ public class PiglinListener implements Listener {
                     int chance = piglinBarterDrop.getBarteringLootChance();
 
                     if (chance < 1 || chance >= 100) {
-                        sfi.warn("The Piglin Bartering chance must be between 1-99% on item: " + sfi.getId());
+                        // Warn at most once per misconfigured item: barter farms fire this event
+                        // frequently, so re-warning on every barter would flood the log.
+                        if (warnedInvalidBarterChances.add(sfi.getId())) {
+                            sfi.warn("The Piglin Bartering chance must be between 1-99% on item: " + sfi.getId());
+                        }
                     } else if (chance > ThreadLocalRandom.current().nextInt(100)) {
                         PiglinBarterDropEvent event = new PiglinBarterDropEvent((Piglin) e.getEntity(), e.getItemDrop(), sfi, chance);
                         Bukkit.getPluginManager().callEvent(event);
