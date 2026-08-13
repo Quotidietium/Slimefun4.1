@@ -221,7 +221,15 @@ public class EnergyNet extends Network implements HologramOwner {
         if (connectorNodes.isEmpty() && terminusNodes.isEmpty()) {
             updateHologram(b, "&4No Energy Network found");
         } else {
-            int generatorsSupply = tickAllGenerators(timestamp::getAndAdd);
+            /*
+             * Generators whose stored charge was NOT folded into the supply this tick
+             * (EnergyGenerateEvent cancelled, or the generator threw) must keep that
+             * stored charge - storeRemainingEnergy would otherwise rewrite them to
+             * the remaining share (or zero), destroying charge that never entered
+             * the network, contrary to the EnergyGenerateEvent contract.
+             */
+            Set<Location> unpooledGenerators = new HashSet<>();
+            int generatorsSupply = tickAllGenerators(timestamp::getAndAdd, unpooledGenerators);
             int capacitorsSupply = tickAllCapacitors();
             int supply = NumberUtils.flowSafeAddition(generatorsSupply, capacitorsSupply);
             int remainingEnergy = supply;
@@ -270,7 +278,7 @@ public class EnergyNet extends Network implements HologramOwner {
                 }
             }
 
-            storeRemainingEnergy(remainingEnergy);
+            storeRemainingEnergy(remainingEnergy, unpooledGenerators);
             updateHologram(b, supply, demand);
 
             // On-demand telemetry hook: expose the settled supply/demand. Zero-cost when no
@@ -284,7 +292,7 @@ public class EnergyNet extends Network implements HologramOwner {
         Slimefun.getProfiler().closeEntry(b.getLocation(), SlimefunItems.ENERGY_REGULATOR.getItem(), timestamp.get());
     }
 
-    private void storeRemainingEnergy(int remainingEnergy) {
+    private void storeRemainingEnergy(int remainingEnergy, @Nonnull Set<Location> unpooledGenerators) {
         for (Map.Entry<Location, EnergyNetComponent> entry : capacitors.entrySet()) {
             Location loc = entry.getKey();
             EnergyNetComponent component = entry.getValue();
@@ -317,6 +325,15 @@ public class EnergyNet extends Network implements HologramOwner {
             Location loc = entry.getKey();
             EnergyNetProvider component = entry.getValue();
 
+            /*
+             * This generator's stored charge never entered the supply this tick
+             * (its EnergyGenerateEvent was cancelled or it threw) - rewriting it
+             * here would destroy charge the network never received.
+             */
+            if (unpooledGenerators.contains(loc)) {
+                continue;
+            }
+
             try {
                 Config data = BlockStorage.getLocationInfo(loc);
                 int capacity = component.getCapacity();
@@ -340,7 +357,7 @@ public class EnergyNet extends Network implements HologramOwner {
         }
     }
 
-    private int tickAllGenerators(@Nonnull LongConsumer timings) {
+    private int tickAllGenerators(@Nonnull LongConsumer timings, @Nonnull Set<Location> unpooledGenerators) {
         Set<Location> explodedBlocks = new HashSet<>();
         int supply = 0;
 
@@ -385,6 +402,16 @@ public class EnergyNet extends Network implements HologramOwner {
                         EnergyGenerateEvent generateEvent = new EnergyGenerateEvent(provider, loc, contributed);
                         Bukkit.getPluginManager().callEvent(generateEvent);
                         contributed = generateEvent.isCancelled() ? 0 : generateEvent.getEnergy();
+
+                        if (generateEvent.isCancelled() && provider.isChargeable()) {
+                            /*
+                             * The stored charge was folded into the value shown to the
+                             * event, but a cancelled event contributes nothing - per the
+                             * EnergyGenerateEvent contract ("its stored charge is
+                             * unaffected") it must stay untouched this tick.
+                             */
+                            unpooledGenerators.add(loc);
+                        }
                     }
 
                     supply = NumberUtils.flowSafeAddition(supply, contributed);
@@ -396,8 +423,11 @@ public class EnergyNet extends Network implements HologramOwner {
                 /*
                  * Keep the generator registered so it heals itself once the
                  * underlying problem is fixed (removing it was permanent until a
-                 * rebuild), but let it contribute no energy this tick.
+                 * rebuild), but let it contribute no energy this tick. Its stored
+                 * charge was never pooled into the supply either, so it must be
+                 * excluded from the settlement rewrite.
                  */
+                unpooledGenerators.add(loc);
                 reportComponentFailure(throwable, loc, item);
             }
 
