@@ -140,8 +140,11 @@ public class DirtyChestMenu extends ChestMenu {
                     }
 
                     if (ItemUtils.canStack(wrapper, stack)) {
-                        amount -= (maxStackSize - stack.getAmount());
-                        stack.setAmount(Math.min(stack.getAmount() + item.getAmount(), maxStackSize));
+                        // Only subtract what was actually merged - otherwise the input
+                        // stack could be mutated to a negative amount
+                        int added = Math.min(amount, maxStackSize - stack.getAmount());
+                        stack.setAmount(stack.getAmount() + added);
+                        amount -= added;
                         item.setAmount(amount);
                     }
                 }
