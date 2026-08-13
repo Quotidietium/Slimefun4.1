@@ -70,6 +70,18 @@ public class AutoAnvil extends AContainer {
                         repairedItem = event.getResult();
                     }
 
+                    int otherSlot = slot == getInputSlots()[0] ? getInputSlots()[1] : getInputSlots()[0];
+                    ItemStack liveItem = menu.getItemInSlot(slot);
+                    ItemStack liveTape = menu.getItemInSlot(otherSlot);
+
+                    // Re-validate: this machine ticks asynchronously while players interact with
+                    // its menu, so the item/duct-tape read above could have been taken or swapped
+                    // in the meantime. Consuming without re-checking could repair for free (slot
+                    // emptied) or consume the wrong item (slot swapped). Mirrors AContainer#scanForRecipe.
+                    if (liveItem == null || liveTape == null || !SlimefunUtils.isItemSimilar(liveItem, item, true) || !SlimefunUtils.isItemSimilar(liveTape, ductTape, true)) {
+                        return null;
+                    }
+
                     for (int inputSlot : getInputSlots()) {
                         menu.consumeItem(inputSlot);
                     }

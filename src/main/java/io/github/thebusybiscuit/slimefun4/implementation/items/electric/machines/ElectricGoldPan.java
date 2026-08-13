@@ -19,6 +19,7 @@ import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.implementation.items.tools.GoldPan;
 import io.github.thebusybiscuit.slimefun4.implementation.items.tools.NetherGoldPan;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.AContainer;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineRecipe;
@@ -106,6 +107,20 @@ public class ElectricGoldPan extends AContainer implements RecipeDisplayItem {
             }
 
             if (output != null && output.getType() != Material.AIR && menu.fits(output, getOutputSlots())) {
+                /*
+                 * Re-validate the live input slot before consuming: this machine ticks
+                 * asynchronously while players interact with its menu, so the item matched
+                 * above (read via getItemInSlot) could have been taken or swapped in the
+                 * meantime. Consuming without re-checking could produce the output for free
+                 * (slot emptied) or consume the wrong item (slot swapped). This mirrors the
+                 * guard AContainer#scanForRecipe applies for its own async machines.
+                 */
+                ItemStack live = menu.getItemInSlot(slot);
+
+                if (live == null || live.getAmount() < 1 || !SlimefunUtils.isItemSimilar(live, item, true)) {
+                    continue;
+                }
+
                 if (ElectricGoldPanProcessEvent.getHandlerList().getRegisteredListeners().length > 0) {
                     ElectricGoldPanProcessEvent event = new ElectricGoldPanProcessEvent(this, menu.getBlock().getLocation(), item, output);
                     Bukkit.getPluginManager().callEvent(event);

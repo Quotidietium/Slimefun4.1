@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.Repairable;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoDisenchanterProcessEvent;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoEnchantmentSelectEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AutoDisenchantEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
@@ -148,6 +149,17 @@ public class AutoDisenchanter extends AbstractEnchantmentMachine {
             MachineRecipe recipe = new MachineRecipe(90 * enchantments.size() / this.getSpeed(), new ItemStack[] { book, item }, new ItemStack[] { disenchantedItem, enchantedBook });
 
             if (!InvUtils.fitAll(menu.toInventory(), recipe.getOutput(), getOutputSlots())) {
+                return null;
+            }
+
+            ItemStack liveA = menu.getItemInSlot(getInputSlots()[0]);
+            ItemStack liveB = menu.getItemInSlot(getInputSlots()[1]);
+
+            // Re-validate: this machine ticks asynchronously while players interact with its menu,
+            // and disenchant() runs two addon events + enchantment math between the original match
+            // and this consume, so the item/book could have been taken or swapped. Consuming without
+            // re-checking could disenchant for free or consume the wrong item. Mirrors AContainer#scanForRecipe.
+            if (liveA == null || liveB == null || !((SlimefunUtils.isItemSimilar(liveA, item, true) && SlimefunUtils.isItemSimilar(liveB, book, true)) || (SlimefunUtils.isItemSimilar(liveA, book, true) && SlimefunUtils.isItemSimilar(liveB, item, true)))) {
                 return null;
             }
 

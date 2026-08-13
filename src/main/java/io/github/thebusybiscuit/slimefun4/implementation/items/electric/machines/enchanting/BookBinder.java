@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.BookBindEvent;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemSetting;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -101,6 +102,17 @@ public class BookBinder extends AContainer {
                     }
 
                     MachineRecipe recipe = new MachineRecipe(25 * (enchantments.size() / this.getSpeed()), new ItemStack[] { target, item }, new ItemStack[] { book });
+
+                    int otherSlot = slot == getInputSlots()[0] ? getInputSlots()[1] : getInputSlots()[0];
+                    ItemStack liveItem = menu.getItemInSlot(slot);
+                    ItemStack liveTarget = menu.getItemInSlot(otherSlot);
+
+                    // Re-validate: this machine ticks asynchronously while players interact with
+                    // its menu, so the books read above could have been taken or swapped. Consuming
+                    // without re-checking could bind for free or consume the wrong item. Mirrors AContainer#scanForRecipe.
+                    if (liveItem == null || liveTarget == null || !SlimefunUtils.isItemSimilar(liveItem, item, true) || !SlimefunUtils.isItemSimilar(liveTarget, target, true)) {
+                        return null;
+                    }
 
                     for (int inputSlot : getInputSlots()) {
                         menu.consumeItem(inputSlot);

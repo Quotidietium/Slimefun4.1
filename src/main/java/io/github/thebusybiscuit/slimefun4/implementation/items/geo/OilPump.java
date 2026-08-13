@@ -120,6 +120,16 @@ public class OilPump extends AContainer implements RecipeDisplayItem {
 
                         MachineRecipe recipe = new MachineRecipe(26, new ItemStack[] { emptyBucket }, new ItemStack[] { SlimefunItems.OIL_BUCKET.item() });
 
+                        ItemStack liveBucket = inv.getItemInSlot(slot);
+
+                        // Re-validate the live slot: this machine ticks asynchronously while players
+                        // interact with its menu, so the bucket matched above could have been taken
+                        // or swapped. Consuming without re-checking could pump oil for free or consume
+                        // the wrong item. Mirrors AContainer#scanForRecipe.
+                        if (liveBucket == null || !SlimefunUtils.isItemSimilar(liveBucket, emptyBucket, true, false)) {
+                            return null;
+                        }
+
                         inv.consumeItem(slot);
                         Slimefun.getGPSNetwork().getResourceManager().setSupplies(oil, b.getWorld(), b.getX() >> 4, b.getZ() >> 4, supplies.getAsInt() - suppliesCost);
                         return recipe;

@@ -14,6 +14,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoEnchanterProcessEvent;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AsyncAutoEnchantmentSelectEvent;
 import io.github.thebusybiscuit.slimefun4.api.events.AutoEnchantEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
@@ -156,6 +157,17 @@ public class AutoEnchanter extends AbstractEnchantmentMachine {
             MachineRecipe recipe = new MachineRecipe(75 * enchantments.size() / getSpeed(), new ItemStack[] { target, enchantedBook }, new ItemStack[] { enchantedItem, new ItemStack(Material.BOOK) });
 
             if (!InvUtils.fitAll(menu.toInventory(), recipe.getOutput(), getOutputSlots())) {
+                return null;
+            }
+
+            ItemStack liveA = menu.getItemInSlot(getInputSlots()[0]);
+            ItemStack liveB = menu.getItemInSlot(getInputSlots()[1]);
+
+            // Re-validate: this machine ticks asynchronously while players interact with its menu,
+            // and enchant() runs two addon events + enchantment math between the original match and
+            // this consume, so the target/book could have been taken or swapped. Consuming without
+            // re-checking could enchant for free or consume the wrong item. Mirrors AContainer#scanForRecipe.
+            if (liveA == null || liveB == null || !((SlimefunUtils.isItemSimilar(liveA, target, true) && SlimefunUtils.isItemSimilar(liveB, enchantedBook, true)) || (SlimefunUtils.isItemSimilar(liveA, enchantedBook, true) && SlimefunUtils.isItemSimilar(liveB, target, true)))) {
                 return null;
             }
 

@@ -58,6 +58,16 @@ public class ElectricDustWasher extends AContainer {
                 recipe = new MachineRecipe(4 / getSpeed(), new ItemStack[] { SlimefunItems.SIFTED_ORE.item() }, new ItemStack[] { oreWasher.getRandomDust() });
 
                 if (!legacyMode || menu.fits(recipe.getOutput()[0], getOutputSlots())) {
+                    ItemStack live = menu.getItemInSlot(slot);
+
+                    // Re-validate the live slot: this machine ticks asynchronously while players
+                    // interact with its menu, so the input read above could have been taken or
+                    // swapped. Consuming without re-checking could wash for free or consume the
+                    // wrong item. Mirrors AContainer#scanForRecipe.
+                    if (live == null || !SlimefunUtils.isItemSimilar(live, input, true)) {
+                        return null;
+                    }
+
                     menu.consumeItem(slot);
                     return recipe;
                 }
@@ -83,6 +93,13 @@ public class ElectricDustWasher extends AContainer {
                     if (!result.equals(output)) {
                         recipe = new MachineRecipe(4 / getSpeed(), new ItemStack[] { input }, new ItemStack[] { result });
                     }
+                }
+
+                ItemStack live = menu.getItemInSlot(slot);
+
+                // Re-validate the live slot before consuming (async tick vs player interaction).
+                if (live == null || !SlimefunUtils.isItemSimilar(live, input, true)) {
+                    return null;
                 }
 
                 menu.consumeItem(slot);

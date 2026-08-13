@@ -18,6 +18,7 @@ import org.bukkit.potion.PotionType;
 
 import io.github.bakedlibs.dough.inventory.InvUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.AutoBrewEvent;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
@@ -108,6 +109,16 @@ public class AutoBrewer extends AContainer implements NotHopperable {
                 }
 
                 output = event.getResult();
+            }
+
+            ItemStack live1 = menu.getItemInSlot(getInputSlots()[0]);
+            ItemStack live2 = menu.getItemInSlot(getInputSlots()[1]);
+
+            // Re-validate: this machine ticks asynchronously while players interact with its menu,
+            // so the potion/ingredient read above could have been taken or swapped. Consuming
+            // without re-checking could brew for free or consume the wrong item. Mirrors AContainer#scanForRecipe.
+            if (live1 == null || live2 == null || !SlimefunUtils.isItemSimilar(live1, input1, true) || !SlimefunUtils.isItemSimilar(live2, input2, true)) {
+                return null;
             }
 
             for (int slot : getInputSlots()) {
