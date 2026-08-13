@@ -186,6 +186,34 @@ class TestResearchCostEvent {
     }
 
     @Test
+    @DisplayName("A surcharge above the player's level refuses the unlock without deducting anything")
+    void testSurchargeAboveLevelRefusesUnlock() throws InterruptedException {
+        Player player = server.addPlayer();
+        player.setLevel(100);
+        Research research = prepare(player, 40, 50);
+
+        Listener surcharging = new Listener() {
+            @EventHandler
+            public void onCost(ResearchCostEvent event) {
+                // The base-cost gate passed (100 >= 50), but the surcharge exceeds the player's level
+                event.setCost(150);
+            }
+        };
+        server.getPluginManager().registerEvents(surcharging, plugin);
+
+        try {
+            guide().unlockItem(player, SlimefunItem.getById("RESEARCH_COST_ITEM_40"), pl -> {
+            });
+
+            Assertions.assertEquals(100, player.getLevel(), "An unaffordable surcharge must not deduct any levels");
+            PlayerProfile profile = TestUtilities.awaitProfile(player);
+            Assertions.assertFalse(profile.hasUnlocked(research), "An unaffordable surcharge must refuse the unlock");
+        } finally {
+            HandlerList.unregisterAll(surcharging);
+        }
+    }
+
+    @Test
     @DisplayName("Setting the cost to zero is equivalent to cancelling")
     void testSetCostZero() throws InterruptedException {
         Player player = server.addPlayer();

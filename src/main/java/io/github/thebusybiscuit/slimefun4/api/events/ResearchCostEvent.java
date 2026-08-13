@@ -70,6 +70,13 @@ public class ResearchCostEvent extends PlayerEvent implements Cancellable {
     /**
      * This sets the level cost that will be deducted. A cost of zero makes the unlock
      * free of charge, equivalent to cancelling this event.
+     * <p>
+     * Note that the {@link Research#canUnlock(org.bukkit.entity.Player)} gate is
+     * evaluated against the research's base cost <em>before</em> this event fires, so
+     * lowering the cost cannot let a player in below the base cost. Raising the cost
+     * (a surcharge) does further restrict the unlock: it is re-checked against the
+     * player's current level at deduction time and the unlock is refused when they
+     * cannot afford it.
      *
      * @param cost
      *            The new level cost, must not be negative

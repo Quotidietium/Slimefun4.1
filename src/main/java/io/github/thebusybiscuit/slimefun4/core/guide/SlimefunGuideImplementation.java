@@ -87,6 +87,17 @@ public interface SlimefunGuideImplementation {
             }
 
             if (cost > 0) {
+                if (cost > p.getLevel()) {
+                    /*
+                     * The ResearchCostEvent may have raised the cost (surcharge).
+                     * canUnlock() gates on the base cost only, so re-check here:
+                     * deducting more levels than the player has would drive their
+                     * level negative (or wipe it entirely, depending on the server).
+                     */
+                    Slimefun.getLocalization().sendMessage(p, "messages.not-enough-xp", true);
+                    return;
+                }
+
                 p.setLevel(p.getLevel() - cost);
             }
 
