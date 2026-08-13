@@ -46,7 +46,19 @@ public class KnowledgeFlask extends SimpleSlimefunItem<ItemUseHandler> {
                     return;
                 }
 
-                p.setLevel(p.getLevel() - event.getLevelCost());
+                int levelCost = event.getLevelCost();
+
+                if (levelCost > p.getLevel()) {
+                    /*
+                     * The event may have raised the cost above what the player has:
+                     * deducting it would drive their level negative. Fail closed -
+                     * nothing is consumed and nothing is produced.
+                     */
+                    Slimefun.getLocalization().sendMessage(p, "messages.not-enough-xp", true);
+                    return;
+                }
+
+                p.setLevel(p.getLevel() - levelCost);
 
                 ItemStack item = event.getResult();
 

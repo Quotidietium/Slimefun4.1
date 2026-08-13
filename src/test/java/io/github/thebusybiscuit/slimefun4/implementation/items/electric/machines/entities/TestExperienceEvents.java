@@ -452,6 +452,36 @@ class TestExperienceEvents {
     }
 
     @Test
+    @DisplayName("A level cost above the player's level refuses the fill without consuming anything")
+    void testFlaskFillCostAboveLevelRefused() {
+        PlayerMock player = server.addPlayer();
+        player.setLevel(5);
+        ItemStack held = flask.getItem().clone();
+        player.getInventory().setItemInMainHand(held);
+
+        Listener surcharging = new Listener() {
+            @EventHandler
+            public void onFill(KnowledgeFlaskFillEvent event) {
+                // Raising the cost above the player's level must fail closed,
+                // not drive the level negative
+                event.setLevelCost(10);
+            }
+        };
+        server.getPluginManager().registerEvents(surcharging, plugin);
+
+        try {
+            PlayerInteractEvent interactEvent = new PlayerInteractEvent(player, Action.RIGHT_CLICK_AIR, held, null, BlockFace.UP, EquipmentSlot.HAND);
+            server.getPluginManager().callEvent(interactEvent);
+
+            Assertions.assertEquals(5, player.getLevel(), "An unaffordable cost must not deduct any levels");
+            Assertions.assertFalse(player.getInventory().containsAtLeast(SlimefunItems.FILLED_FLASK_OF_KNOWLEDGE.item(), 1), "An unaffordable cost must not produce a filled flask");
+            Assertions.assertEquals(1, held.getAmount(), "An unaffordable cost must not consume the empty flask");
+        } finally {
+            HandlerList.unregisterAll(surcharging);
+        }
+    }
+
+    @Test
     @DisplayName("A player without a level fires no KnowledgeFlaskFillEvent")
     void testFlaskFillWithoutLevelFiresNoEvent() {
         PlayerMock player = server.addPlayer();

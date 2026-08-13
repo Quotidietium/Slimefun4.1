@@ -82,6 +82,10 @@ public class KnowledgeFlaskFillEvent extends PlayerEvent implements Cancellable 
 
     /**
      * This sets the experience level cost that will be deducted.
+     * <p>
+     * The adjusted cost is re-checked against the player's current level at
+     * deduction time: when it exceeds what the player has, the fill is refused
+     * (nothing is consumed and nothing is produced).
      *
      * @param levelCost
      *            The new level cost, must be at least 0
