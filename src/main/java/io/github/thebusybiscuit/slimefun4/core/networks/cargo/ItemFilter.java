@@ -131,7 +131,23 @@ class ItemFilter implements Predicate<ItemStack> {
 
                     this.items.clear();
                     this.checkLore = Objects.equals(blockData.getString("filter-lore"), "true");
-                    this.rejectOnMatch = !Objects.equals(blockData.getString("filter-type"), "whitelist");
+
+                    String filterType = blockData.getString("filter-type");
+
+                    if (filterType == null || "blacklist".equals(filterType)) {
+                        // Unconfigured nodes default to blacklist mode (historical behavior)
+                        this.rejectOnMatch = true;
+                    } else if ("whitelist".equals(filterType)) {
+                        this.rejectOnMatch = false;
+                    } else {
+                        /*
+                         * Corrupted filter type: fail closed via the catch below instead of
+                         * silently flipping e.g. a whitelist into a blacklist, which would
+                         * reroute items to destinations they were never meant to reach
+                         * (potentially a trash can).
+                         */
+                        throw new IllegalStateException("Invalid filter-type: " + filterType);
+                    }
 
                     for (int slot : slots) {
                         ItemStack stack = menu.getItemInSlot(slot);
