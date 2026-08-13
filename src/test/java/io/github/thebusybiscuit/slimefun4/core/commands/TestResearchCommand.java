@@ -21,6 +21,7 @@ class TestResearchCommand {
     private static ServerMock server;
     private static Research research;
     private static Research research2;
+    private static Research dependent;
 
     @BeforeAll
     public static void load() {
@@ -32,6 +33,10 @@ class TestResearchCommand {
 
         research2 = new Research(new NamespacedKey(plugin, "command_test_two"), 1000, "Test Two", 10);
         research2.register();
+
+        dependent = new Research(new NamespacedKey(plugin, "command_test_dependent"), 1001, "Test Dependent", 10);
+        dependent.register();
+        dependent.addDependency(research2);
     }
 
     @AfterAll
@@ -50,6 +55,7 @@ class TestResearchCommand {
 
         Assertions.assertTrue(profile.hasUnlocked(research));
         Assertions.assertTrue(profile.hasUnlocked(research2));
+        Assertions.assertTrue(profile.hasUnlocked(dependent), "Researches with dependencies must be unlocked too (in dependency order)");
     }
 
     @Test
