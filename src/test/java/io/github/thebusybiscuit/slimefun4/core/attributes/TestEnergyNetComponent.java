@@ -115,6 +115,63 @@ class TestEnergyNetComponent {
         Assertions.assertEquals(50, item.getCharge(l, data));
     }
 
+    @Test
+    @DisplayName("Test getCharge fails closed on a corrupted negative charge")
+    void testGetChargeClampsNegative() {
+        Location l = new Location(world, 5, 0, 0);
+        BlockStorage.addBlockInfo(l, "id", item.getId(), false);
+        BlockStorage.addBlockInfo(l, "energy-charge", "-5000000", false);
+
+        Assertions.assertEquals(0, item.getCharge(l),
+            "A negative charge would poison the whole network settlement (negative supply wipes every capacitor) - it must read as 0");
+    }
+
+    @Test
+    @DisplayName("Test getCharge clamps an over-capacity charge to the capacity")
+    void testGetChargeClampsToCapacity() {
+        Location l = new Location(world, 6, 0, 0);
+        BlockStorage.addBlockInfo(l, "id", item.getId(), false);
+        BlockStorage.addBlockInfo(l, "energy-charge", "999999999", false);
+
+        Assertions.assertEquals(128, item.getCharge(l),
+            "An over-capacity charge would inject free energy for one tick - it must read as the capacity");
+    }
+
+    @Test
+    @DisplayName("Test setCharge never creates a ghost record for a deleted block")
+    void testSetChargeSkipsDeletedBlock() {
+        Location l = new Location(world, 7, 0, 0);
+
+        // No block data at all (the block was broken mid-tick): writing here would
+        // resurrect a record without an id - invisible to the network, never cleaned up.
+        item.setCharge(l, 50);
+
+        Assertions.assertFalse(BlockStorage.hasBlockInfo(l), "setCharge must not create data for a location without a Slimefun block");
+        Assertions.assertNull(BlockStorage.getLocationInfo(l, "energy-charge"));
+    }
+
+    @Test
+    @DisplayName("Test addCharge never creates a ghost record for a deleted block")
+    void testAddChargeSkipsDeletedBlock() {
+        Location l = new Location(world, 8, 0, 0);
+
+        item.addCharge(l, 10);
+
+        Assertions.assertFalse(BlockStorage.hasBlockInfo(l), "addCharge must not create data for a location without a Slimefun block");
+        Assertions.assertNull(BlockStorage.getLocationInfo(l, "energy-charge"));
+    }
+
+    @Test
+    @DisplayName("Test removeCharge never creates a ghost record for a deleted block")
+    void testRemoveChargeSkipsDeletedBlock() {
+        Location l = new Location(world, 9, 0, 0);
+
+        item.removeCharge(l, 10);
+
+        Assertions.assertFalse(BlockStorage.hasBlockInfo(l), "removeCharge must not create data for a location without a Slimefun block");
+        Assertions.assertNull(BlockStorage.getLocationInfo(l, "energy-charge"));
+    }
+
     /**
      * Minimal {@link EnergyNetComponent} {@link SlimefunItem} for testing the charge API.
      */
