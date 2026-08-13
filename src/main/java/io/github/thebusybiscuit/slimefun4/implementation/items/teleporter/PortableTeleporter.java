@@ -46,8 +46,17 @@ public class PortableTeleporter extends SimpleSlimefunItem<ItemUseHandler> imple
             ItemStack item = e.getItem();
             e.cancel();
 
+            Player p = e.getPlayer();
+
+            /*
+             * Check BEFORE consuming the charge: while a teleportation is in progress
+             * the GUI refuses to open, so charging first would burn energy for nothing.
+             */
+            if (Slimefun.getGPSNetwork().getTeleportationManager().isTeleporting(p.getUniqueId())) {
+                return;
+            }
+
             if (removeItemCharge(item, cost.getValue())) {
-                Player p = e.getPlayer();
                 Slimefun.getGPSNetwork().getTeleportationManager().openTeleporterGUI(p, p.getUniqueId(), p.getLocation().getBlock().getRelative(BlockFace.DOWN));
             }
         };
