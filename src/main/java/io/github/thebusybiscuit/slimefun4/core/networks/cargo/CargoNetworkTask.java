@@ -178,6 +178,15 @@ class CargoNetworkTask implements Runnable {
 
             // Read back the (possibly modified) item for distribution.
             stack = event.getItem();
+
+            /*
+             * A listener replacing the item with air (or an empty stack) means
+             * "destroy this item". Normalizing it here keeps the semantics identical
+             * no matter which inventory backend the item would have landed in.
+             */
+            if (stack.getType().isAir() || stack.getAmount() <= 0) {
+                return;
+            }
         }
 
         try {
@@ -297,6 +306,15 @@ class CargoNetworkTask implements Runnable {
 
                         // Read back the (possibly modified) item for insertion.
                         item = insertEvent.getItem();
+
+                        /*
+                         * A listener replacing the item with air (or an empty stack) means
+                         * "destroy this item": treat it as fully distributed so it is neither
+                         * inserted nor returned to the source container.
+                         */
+                        if (item.getType().isAir() || item.getAmount() <= 0) {
+                            return null;
+                        }
                     }
 
                     try {

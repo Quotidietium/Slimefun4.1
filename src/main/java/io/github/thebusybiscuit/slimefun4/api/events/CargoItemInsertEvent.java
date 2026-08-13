@@ -119,6 +119,9 @@ public class CargoItemInsertEvent extends Event implements Cancellable {
      * overriding the item in transit. The replacement is inserted in place of the
      * original; any remainder after insertion becomes the new in-transit stack for
      * subsequent output nodes.
+     * <p>
+     * Setting an air or otherwise empty {@link ItemStack} destroys the item in transit:
+     * it is neither inserted nor returned to the source container.
      *
      * @param item
      *            The replacement {@link ItemStack}, must not be null

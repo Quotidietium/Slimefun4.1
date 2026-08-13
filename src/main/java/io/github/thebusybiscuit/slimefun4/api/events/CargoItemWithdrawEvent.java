@@ -110,6 +110,9 @@ public class CargoItemWithdrawEvent extends Event implements Cancellable {
      * This sets the {@link ItemStack} that will be distributed to the output nodes,
      * overriding the originally withdrawn item. The replacement is distributed as-is;
      * the source container's slot was already emptied.
+     * <p>
+     * Setting an air or otherwise empty {@link ItemStack} destroys the withdrawn item:
+     * it is neither distributed nor returned to the source container.
      *
      * @param item
      *            The replacement {@link ItemStack}, must not be null
