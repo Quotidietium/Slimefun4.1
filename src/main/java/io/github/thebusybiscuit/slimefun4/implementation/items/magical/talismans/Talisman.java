@@ -196,7 +196,11 @@ public class Talisman extends SlimefunItem {
 
             EnderTalisman enderTalisman = enderTalismanItem.getItem(EnderTalisman.class);
             if (enderTalisman != null && SlimefunUtils.containsSimilarItem(p.getEnderChest(), enderTalismanItem.item(), true)) {
-                if (talisman.canUse(p, true)) {
+                // Gate on the Ender Talisman's own research/permission (it carries the
+                // "ender_talismans" research), not the base talisman's - otherwise a player who
+                // can use the base variant but not the ender variant could use an Ender Talisman
+                // placed in their ender chest.
+                if (enderTalisman.canUse(p, true)) {
                     activateTalisman(e, p, p.getEnderChest(), enderTalisman, enderTalismanItem.item(), sendMessage);
                     return true;
                 } else {
@@ -333,8 +337,8 @@ public class Talisman extends SlimefunItem {
             return blockDropItemEvent.getPlayer();
         } else if (e instanceof PlayerEvent playerEvent) {
             return playerEvent.getPlayer();
-        } else if (e instanceof EntityEvent entityEvent) {
-            return (Player) entityEvent.getEntity();
+        } else if (e instanceof EntityEvent entityEvent && entityEvent.getEntity() instanceof Player player) {
+            return player;
         } else if (e instanceof EnchantItemEvent enchantItemEvent) {
             return enchantItemEvent.getEnchanter();
         }

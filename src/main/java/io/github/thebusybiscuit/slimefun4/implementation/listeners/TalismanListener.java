@@ -229,32 +229,34 @@ public class TalismanListener implements Listener {
 
     @EventHandler
     public void onItemBreak(PlayerItemBreakEvent e) {
-        if (Talisman.trigger(e, SlimefunItems.TALISMAN_ANVIL)) {
-            PlayerInventory inv = e.getPlayer().getInventory();
+        PlayerInventory inv = e.getPlayer().getInventory();
+        ItemStack brokenItem = e.getBrokenItem();
 
-            ItemStack brokenItem = e.getBrokenItem();
+        int slot = -1;
 
-            int slot = -1;
-
-            // Did the tool in our hand break or was it an armor piece?
-            if (brokenItem.equals(inv.getItemInMainHand())) {
-                slot = inv.getHeldItemSlot();
-            } else if (brokenItem.equals(inv.getItemInOffHand())) {
-                slot = 40;
-            } else {
-                for (int s : armorSlots) {
-                    if (e.getBrokenItem().equals(inv.getItem(s))) {
-                        slot = s;
-                        break;
-                    }
+        // Did the tool in our hand break or was it an armor piece?
+        if (brokenItem.equals(inv.getItemInMainHand())) {
+            slot = inv.getHeldItemSlot();
+        } else if (brokenItem.equals(inv.getItemInOffHand())) {
+            slot = 40;
+        } else {
+            for (int s : armorSlots) {
+                if (e.getBrokenItem().equals(inv.getItem(s))) {
+                    slot = s;
+                    break;
                 }
             }
+        }
 
-            // No item found, just return.
-            if (slot < 0) {
-                return;
-            }
+        // Locate the slot BEFORE triggering the talisman. Otherwise the talisman would be
+        // consumed (inside Talisman.trigger) even when the broken item can't be matched back to
+        // a slot - e.g. strict .equals() misses under meta divergence or non-standard break
+        // sources - wasting it without repairing anything.
+        if (slot < 0) {
+            return;
+        }
 
+        if (Talisman.trigger(e, SlimefunItems.TALISMAN_ANVIL)) {
             ItemStack item = e.getBrokenItem().clone();
             ItemMeta meta = item.getItemMeta();
 
@@ -266,8 +268,16 @@ public class TalismanListener implements Listener {
 
             int itemSlot = slot;
 
-            // Update the item forcefully
-            Slimefun.runSync(() -> inv.setItem(itemSlot, item), 1L);
+            // Restore the repaired item one tick later (vanilla clears the broken item after the
+            // event). Re-check that the slot is still empty first: if the player placed something
+            // else there in the meantime, overwriting it would silently void that item.
+            Slimefun.runSync(() -> {
+                ItemStack current = inv.getItem(itemSlot);
+
+                if (current == null || current.getType() == Material.AIR) {
+                    inv.setItem(itemSlot, item);
+                }
+            }, 1L);
         }
     }
 
@@ -340,20 +350,18 @@ public class TalismanListener implements Listener {
             Material type = e.getBlockState().getType();
 
             // Handle double drops for Miner Talisman
-            doubleTalismanDrops(e, SlimefunItems.TALISMAN_MINER, SlimefunTag.MINER_TALISMAN_TRIGGERS, type, meta);
+            doubleTalismanDrops(e, SlimefunItems.TALISMAN_MINER, SlimefunTag.MINER_TALISMAN_TRIGGERS, type);
 
             // Handle double drops for Farmer Talisman
-            doubleTalismanDrops(e, SlimefunItems.TALISMAN_FARMER, SlimefunTag.FARMER_TALISMAN_TRIGGERS, type, meta);
+            doubleTalismanDrops(e, SlimefunItems.TALISMAN_FARMER, SlimefunTag.FARMER_TALISMAN_TRIGGERS, type);
         }
     }
 
-    private void doubleTalismanDrops(BlockDropItemEvent e, SlimefunItemStack talismanItemStack, SlimefunTag tag, Material type, ItemMeta meta) {
+    private void doubleTalismanDrops(BlockDropItemEvent e, SlimefunItemStack talismanItemStack, SlimefunTag tag, Material type) {
         if (tag.isTagged(type)) {
             Collection<Item> drops = e.getItems();
 
             if (Talisman.trigger(e, talismanItemStack, false)) {
-                int dropAmount = getAmountWithFortune(type, meta.getEnchantLevel(VersionedEnchantment.FORTUNE));
-
                 // Keep track of whether we actually doubled the drops or not
                 boolean doubledDrops = false;
 
@@ -363,7 +371,16 @@ public class TalismanListener implements Listener {
 
                     // We do not want to dupe blocks
                     if (!droppedItem.getType().isBlock()) {
-                        int amount = Math.max(1, (dropAmount * 2) - droppedItem.getAmount());
+                        /*
+                         * The drops from BlockDropItemEvent already include the player's Fortune
+                         * level, so doubling means dropping a second copy of exactly what was
+                         * already dropped. The previous formula re-rolled Fortune independently
+                         * via getAmountWithFortune and subtracted the real amount
+                         * (max(1, dropAmount*2 - realAmount)), which produced anywhere from 2x
+                         * to 8x the real drop instead of a consistent double (Miner/Farmer
+                         * Talismans are non-consumable, so this was a permanent faucet).
+                         */
+                        int amount = droppedItem.getAmount();
                         e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), CustomItemStack.create(droppedItem, amount));
                         doubledDrops = true;
                     }
@@ -386,18 +403,6 @@ public class TalismanListener implements Listener {
     public void onBlockBreak(BlockBreakEvent e) {
         if (SlimefunTag.CAVEMAN_TALISMAN_TRIGGERS.isTagged(e.getBlock().getType())) {
             Talisman.trigger(e, SlimefunItems.TALISMAN_CAVEMAN);
-        }
-    }
-
-    private int getAmountWithFortune(@Nonnull Material type, int fortuneLevel) {
-        if (fortuneLevel > 0) {
-            Random random = ThreadLocalRandom.current();
-            int amount = random.nextInt(fortuneLevel + 2) - 1;
-            amount = Math.max(amount, 1);
-            amount = (type == Material.LAPIS_ORE ? 4 + random.nextInt(5) : 1) * (amount + 1);
-            return amount;
-        } else {
-            return 1;
         }
     }
 }

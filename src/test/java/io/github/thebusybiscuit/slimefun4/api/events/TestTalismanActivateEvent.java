@@ -171,4 +171,30 @@ class TestTalismanActivateEvent {
         });
         server.getPluginManager().clearEvents();
     }
+
+    @Test
+    @DisplayName("A consumable talisman is actually removed from the inventory on activation")
+    void testConsumableTalismanIsConsumed() {
+        player.getInventory().clear();
+        player.getEnderChest().clear();
+        server.getPluginManager().clearEvents();
+
+        ItemStack talismanItem = talisman.getItem();
+        player.getInventory().setItem(9, talismanItem);
+        Assertions.assertNotNull(player.getInventory().getItem(9), "The talisman must start in slot 9");
+
+        ItemStack breakableItem = new ItemStack(Material.IRON_PICKAXE);
+        player.getInventory().setItemInMainHand(breakableItem);
+
+        server.getPluginManager().callEvent(new PlayerItemBreakEvent(player, breakableItem));
+
+        // Verifies that consumeItem()'s mutation of the Inventory#getContents() snapshot element
+        // actually persists to the live inventory (live mirror, not a detached clone) - without
+        // this, a consumable talisman would apply its effect yet stay in the inventory (dup).
+        // MockBukkit leaves a 0-amount ghost here that real CraftBukkit collapses to AIR
+        // (isEmpty -> AIR on read, skipped on save), so amount <= 0 is the correct "consumed"
+        // check across both environments.
+        ItemStack remaining = player.getInventory().getItem(9);
+        Assertions.assertTrue(remaining == null || remaining.getType() == Material.AIR || remaining.getAmount() <= 0, "The consumable talisman must be consumed on activation, but slot 9 still holds: " + remaining);
+    }
 }
