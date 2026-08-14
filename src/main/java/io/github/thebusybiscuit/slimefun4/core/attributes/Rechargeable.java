@@ -134,14 +134,17 @@ public interface Rechargeable extends ItemAttribute {
 
         ItemMeta meta = item.getItemMeta();
         float currentCharge = ChargeUtils.getCharge(meta);
+        float maximum = getMaxItemCharge(item);
 
         // If the item does not have enough charge, we abort
         if (currentCharge < charge) {
             return false;
         }
 
-        float newCharge = Math.max(currentCharge - charge, 0);
-        ChargeUtils.setCharge(meta, newCharge, getMaxItemCharge(item));
+        // Clamp to the capacity as well: a crafted persistent-data value can exceed the
+        // item's actual capacity, and writing it back via setCharge would throw.
+        float newCharge = Math.min(Math.max(currentCharge - charge, 0), maximum);
+        ChargeUtils.setCharge(meta, newCharge, maximum);
 
         item.setItemMeta(meta);
         return true;

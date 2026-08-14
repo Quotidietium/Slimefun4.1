@@ -120,6 +120,33 @@ class TestRechargeableItems {
         Assertions.assertFalse(rechargeable.removeItemCharge(item, 1));
     }
 
+    @Test
+    void testCraftedPersistentDataCannotBreakChargeOperations() {
+        Rechargeable rechargeable = mock("CHARGING_CRAFTED_TEST", 10);
+        ItemStack item = CustomItemStack.create(Material.REDSTONE_BLOCK, "&4Crafted charge item");
+
+        // Simulate a modified client writing an over-capacity charge into the persistent data.
+        // Discharging must clamp to the capacity instead of throwing (which would surface as
+        // an error-spamming or machine-destroying exception inside async ticks).
+        item.editMeta(meta -> meta.getPersistentDataContainer().set(Slimefun.getRegistry().getItemChargeDataKey(), org.bukkit.persistence.PersistentDataType.FLOAT, 1.0E30F));
+
+        Assertions.assertDoesNotThrow(() -> Assertions.assertTrue(rechargeable.removeItemCharge(item, 5)));
+        Assertions.assertEquals(10, rechargeable.getItemCharge(item), "The discharge must clamp to the capacity, not throw");
+
+        // Charging an over-capacity item simply aborts (already fully charged)
+        Assertions.assertFalse(rechargeable.addItemCharge(item, 1));
+
+        // A negative crafted charge reads as uncharged: discharge fails, charge succeeds
+        ItemStack negative = CustomItemStack.create(Material.REDSTONE_BLOCK, "&4Negative crafted charge");
+        negative.editMeta(meta -> meta.getPersistentDataContainer().set(Slimefun.getRegistry().getItemChargeDataKey(), org.bukkit.persistence.PersistentDataType.FLOAT, -100.0F));
+
+        Assertions.assertDoesNotThrow(() -> {
+            Assertions.assertFalse(rechargeable.removeItemCharge(negative, 1));
+            Assertions.assertTrue(rechargeable.addItemCharge(negative, 5));
+        });
+        Assertions.assertEquals(5, rechargeable.getItemCharge(negative), 0.001);
+    }
+
     private RechargeableMock mock(String id, float capacity) {
         ItemGroup itemGroup = TestUtilities.getItemGroup(plugin, "rechargeable");
         return new RechargeableMock(itemGroup, new SlimefunItemStack(id, CustomItemStack.create(Material.REDSTONE_LAMP, "&3" + id)), capacity);

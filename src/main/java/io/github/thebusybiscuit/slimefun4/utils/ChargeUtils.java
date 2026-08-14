@@ -70,9 +70,13 @@ public final class ChargeUtils {
         PersistentDataContainer container = meta.getPersistentDataContainer();
         Float value = container.get(key, PersistentDataType.FLOAT);
 
-        // If persistent data is available, we just return this value
+        // If persistent data is available, we just return this value.
+        // A modified client or corrupted data can place a negative, NaN or infinite value
+        // here; passing it through would make setCharge(...) throw downstream (e.g. inside
+        // an async machine tick, which can destroy the machine via the ticker error limit).
+        // Treat any such value as "uncharged" instead.
         if (value != null) {
-            return value;
+            return value >= 0 && Float.isFinite(value) ? value : 0;
         }
 
         // If no persistent data exists, we will just fall back to the lore
@@ -83,8 +87,16 @@ public final class ChargeUtils {
 
                     try {
                         float loreValue = Float.parseFloat(data);
-                        container.set(key, PersistentDataType.FLOAT, loreValue);
-                        return loreValue;
+
+                        // Same sanitization as above: the regex allows arbitrarily long
+                        // digit strings, which Float.parseFloat saturates to Infinity
+                        // without throwing. Never persist a non-finite or negative value.
+                        if (loreValue >= 0 && Float.isFinite(loreValue)) {
+                            container.set(key, PersistentDataType.FLOAT, loreValue);
+                            return loreValue;
+                        }
+
+                        return 0;
                     } catch (NumberFormatException x) {
                         // Corrupted lore that matches the regex but isn't a valid number.
                         return 0;

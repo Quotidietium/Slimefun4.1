@@ -88,4 +88,49 @@ class TestChargeUtils {
         // Test exceptions
         Assertions.assertThrows(IllegalArgumentException.class, () -> ChargeUtils.getCharge(null));
     }
+
+    @Test
+    @DisplayName("Crafted or corrupted persistent-data charge values are sanitized to uncharged")
+    void testGetChargeSanitizesCraftedPersistentData() {
+        // A modified client can place arbitrary floats in the item's persistent data.
+        // Negative, NaN and infinite values must read back as 0 instead of flowing into
+        // setCharge (which would throw inside async machine ticks and can destroy machines
+        // via the ticker error limit).
+        ItemStack negative = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta negativeMeta = negative.getItemMeta();
+        PersistentDataAPI.setFloat(negativeMeta, Slimefun.getRegistry().getItemChargeDataKey(), -5.0f);
+        Assertions.assertEquals(0.0f, ChargeUtils.getCharge(negativeMeta), "A negative crafted charge must read as 0");
+
+        ItemStack nan = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta nanMeta = nan.getItemMeta();
+        PersistentDataAPI.setFloat(nanMeta, Slimefun.getRegistry().getItemChargeDataKey(), Float.NaN);
+        Assertions.assertEquals(0.0f, ChargeUtils.getCharge(nanMeta), "A NaN crafted charge must read as 0");
+
+        ItemStack infinite = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta infiniteMeta = infinite.getItemMeta();
+        PersistentDataAPI.setFloat(infiniteMeta, Slimefun.getRegistry().getItemChargeDataKey(), Float.POSITIVE_INFINITY);
+        Assertions.assertEquals(0.0f, ChargeUtils.getCharge(infiniteMeta), "An infinite crafted charge must read as 0");
+    }
+
+    @Test
+    @DisplayName("Crafted lore with a saturated number neither returns nor persists a non-finite charge")
+    void testGetChargeSanitizesCraftedLore() {
+        // The lore regex allows arbitrarily long digit strings; Float.parseFloat saturates
+        // those to Infinity WITHOUT throwing. Such lore must read as 0 and must not write
+        // the non-finite value into the persistent data container.
+        ItemStack saturated = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta saturatedMeta = saturated.getItemMeta();
+        saturatedMeta.setLore(Collections.singletonList(("&8⇨ &e⚡ &7" + "9".repeat(400) + " / 100.5 J").replace('&', ChatColor.COLOR_CHAR)));
+
+        Assertions.assertEquals(0.0f, ChargeUtils.getCharge(saturatedMeta), "A saturated lore number must read as 0");
+        Assertions.assertFalse(PersistentDataAPI.hasFloat(saturatedMeta, Slimefun.getRegistry().getItemChargeDataKey()), "The non-finite lore value must not be persisted");
+
+        // A negative number cannot be produced by the regex ([0-9.]+), but a decimal like
+        // "1.2.3" must still fall back to 0 instead of throwing.
+        ItemStack malformed = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta malformedMeta = malformed.getItemMeta();
+        malformedMeta.setLore(Collections.singletonList("&8⇨ &e⚡ &71.2.3 / 100.5 J".replace('&', ChatColor.COLOR_CHAR)));
+
+        Assertions.assertEquals(0.0f, ChargeUtils.getCharge(malformedMeta), "A malformed lore number must read as 0");
+    }
 }
