@@ -37,6 +37,14 @@ public class SlimefunItemSpawnEvent extends Event implements Cancellable {
 
     @ParametersAreNonnullByDefault
     public SlimefunItemSpawnEvent(@Nullable Player player, Location location, ItemStack itemStack, ItemSpawnReason itemSpawnReason) {
+        // Enforce the same invariants as the setters so the @Nonnull getLocation()/getItemStack()
+        // contract cannot be bypassed via the constructor. Without this, a null/air item would flow
+        // straight into World#dropItem(...) and surface as an opaque NPE there instead of failing
+        // fast at the event boundary.
+        Validate.notNull(location, "The Location cannot be null!");
+        Validate.notNull(itemStack, "Cannot drop null.");
+        Validate.isTrue(!itemStack.getType().isAir(), "Cannot drop air.");
+
         this.location = location;
         this.itemStack = itemStack;
         this.itemSpawnReason = itemSpawnReason;
