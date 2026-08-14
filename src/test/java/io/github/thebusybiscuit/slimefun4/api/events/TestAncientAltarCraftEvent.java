@@ -76,6 +76,16 @@ class TestAncientAltarCraftEvent {
     }
 
     @Test
+    @DisplayName("The constructor enforces the same null/air rejection as the setter")
+    void testConstructorValidation() {
+        Player player = server.addPlayer();
+        Block altar = Mockito.mock(Block.class);
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new AncientAltarCraftEvent(null, altar, player));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new AncientAltarCraftEvent(new ItemStack(Material.AIR), altar, player));
+    }
+
+    @Test
     @DisplayName("Cancelling AncientAltarCraftEvent suppresses the dropped output")
     void testCancellationAndDispatch() {
         Player player = server.addPlayer();

@@ -80,6 +80,18 @@ class TestGEOResourceGenerationEvent {
     }
 
     @Test
+    @DisplayName("The constructor enforces the same non-negative and non-null invariants as the setter")
+    void testConstructorValidation() {
+        World world = Mockito.mock(World.class);
+        GEOResource resource = Mockito.mock(GEOResource.class);
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new GEOResourceGenerationEvent(world, Biome.PLAINS, 0, 0, resource, -1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new GEOResourceGenerationEvent(null, Biome.PLAINS, 0, 0, resource, 5));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new GEOResourceGenerationEvent(world, null, 0, 0, resource, 5));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new GEOResourceGenerationEvent(world, Biome.PLAINS, 0, 0, null, 5));
+    }
+
+    @Test
     @DisplayName("GEOResourceGenerationEvent is dispatchable and the value survives the round-trip")
     void testDispatch() {
         World world = Mockito.mock(World.class);

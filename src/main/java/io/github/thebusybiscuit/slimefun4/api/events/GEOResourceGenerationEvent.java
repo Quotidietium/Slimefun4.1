@@ -3,6 +3,7 @@ package io.github.thebusybiscuit.slimefun4.api.events;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -47,6 +48,17 @@ public class GEOResourceGenerationEvent extends Event {
 
         // Fired from the async ticker thread (machine/network tick) - report the actual context
         super(!Bukkit.isPrimaryThread());
+
+        // Mirror the setter invariant (setValue): a negative supply is not storable and
+        // must fail fast here instead of flowing into the chunk supply map.
+        if (value < 0) {
+            throw new IllegalArgumentException("You cannot set a GEO-Resource supply to a negative value.");
+        }
+
+        Validate.notNull(world, "The World cannot be null");
+        Validate.notNull(biome, "The Biome cannot be null");
+        Validate.notNull(resource, "The GEOResource cannot be null");
+
         this.world = world;
         this.biome = biome;
         this.resource = resource;

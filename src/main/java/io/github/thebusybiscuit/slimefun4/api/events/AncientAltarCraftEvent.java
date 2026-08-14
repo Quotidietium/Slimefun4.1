@@ -45,6 +45,12 @@ public class AncientAltarCraftEvent extends PlayerEvent implements Cancellable {
     public AncientAltarCraftEvent(ItemStack output, Block block, Player player) {
         super(player);
 
+        // Mirror the setter invariant (setItem): the altar cannot drop a null or air item,
+        // and the @Nonnull getItem() contract must not be bypassable via the constructor.
+        if (output == null || output.getType() == Material.AIR) {
+            throw new IllegalArgumentException("An Ancient Altar cannot drop 'null' items");
+        }
+
         this.block = block;
         this.output = output;
     }
