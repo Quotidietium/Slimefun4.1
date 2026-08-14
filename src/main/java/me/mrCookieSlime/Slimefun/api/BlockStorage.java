@@ -527,6 +527,14 @@ public class BlockStorage {
 
         try {
             /*
+             * The parent directory may be missing (external cleanup of data-storage
+             * mid-session): Files.write does not create parents, and a missing parent
+             * would make every save of this block file fail forever. See the same fix
+             * in LegacyStorage#saveAtomically.
+             */
+            Files.createDirectories(target.getParentFile().toPath());
+
+            /*
              * Write via Files.write instead of Config#save: Config#save swallows any
              * IOException, so a half-written tmp (disk full, I/O error) would pass the
              * exists() check below and atomically replace a perfectly good file with a

@@ -173,6 +173,22 @@ abstract class GitHubConnector {
         try (FileOutputStream output = new FileOutputStream(file)) {
             output.write(node.toString().getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
+            /*
+             * The cache directory may be missing (external cleanup mid-session): a
+             * FileOutputStream cannot create it, so the cache would never repopulate
+             * and every hourly cycle would warn again. Recreate it once, then retry.
+             */
+            File parent = file.getParentFile();
+            if (parent != null && !parent.exists() && parent.mkdirs()) {
+                try (FileOutputStream output = new FileOutputStream(file)) {
+                    output.write(node.toString().getBytes(StandardCharsets.UTF_8));
+                    return;
+                } catch (IOException retry) {
+                    Slimefun.logger().log(Level.WARNING, "Failed to populate GitHub cache after recreating the directory: {0} - {1}", new Object[] { retry.getClass().getSimpleName(), retry.getMessage() });
+                    return;
+                }
+            }
+
             Slimefun.logger().log(Level.WARNING, "Failed to populate GitHub cache: {0} - {1}", new Object[] { e.getClass().getSimpleName(), e.getMessage() });
         }
     }

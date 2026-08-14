@@ -46,8 +46,17 @@ public class BackupService implements Runnable {
 
     @Override
     public void run() {
-        // Make sure that the directory exists.
-        if (directory.exists()) {
+        /*
+         * Make sure that the directory exists. It is created on startup, but an external
+         * cleanup of data-storage mid-session would otherwise silently disable backups
+         * (the old exists() gate just returned forever without creating anything).
+         */
+        if (!directory.exists() && !directory.mkdirs()) {
+            Slimefun.logger().log(Level.WARNING, "Could not create backup directory: {0}", directory.getName());
+            return;
+        }
+
+        {
             File[] files = directory.listFiles();
 
             if (files == null) {
