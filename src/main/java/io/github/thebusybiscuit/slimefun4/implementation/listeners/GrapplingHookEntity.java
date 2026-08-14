@@ -19,6 +19,8 @@ final class GrapplingHookEntity {
     private final Arrow arrow;
     private final Entity leashTarget;
 
+    private boolean handled = false;
+
     @ParametersAreNonnullByDefault
     GrapplingHookEntity(Player p, Arrow arrow, Entity leashTarget, boolean dropItem, boolean wasConsumed) {
         this.arrow = arrow;
@@ -30,6 +32,30 @@ final class GrapplingHookEntity {
     @Nonnull
     public Arrow getArrow() {
         return arrow;
+    }
+
+    /**
+     * Atomically claims this grappling hook so its landing is processed exactly once.
+     * <p>
+     * A single hook arrow can raise several Bukkit events when it lands - for example an
+     * arrow that strikes an entity typically fires both {@code EntityDamageByEntityEvent}
+     * and {@code ProjectileHitEvent}, and one that clips a painting or item frame also
+     * raises {@code HangingBreakByEntityEvent}. Without a guard, every one of those
+     * handlers would re-enter the landing logic and re-drop the hook item (a duplication).
+     * The current reliance on {@code Arrow#isValid()} turning false after {@link #remove()}
+     * is timing-sensitive and Bukkit-version dependent, so this compare-and-set makes the
+     * "land exactly once" guarantee explicit and robust under high-frequency use.
+     *
+     * @return {@code true} if this caller is the first to handle the landing, {@code false}
+     *         for every subsequent caller
+     */
+    public boolean markHandled() {
+        if (handled) {
+            return false;
+        }
+
+        handled = true;
+        return true;
     }
 
     public void drop(@Nonnull Location l) {

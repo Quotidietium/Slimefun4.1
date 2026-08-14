@@ -158,7 +158,10 @@ public class GrapplingHookListener implements Listener {
         if (arrow != null && arrow.isValid() && arrow.getShooter() instanceof Player player) {
             GrapplingHookEntity hook = activeHooks.get(player.getUniqueId());
 
-            if (hook != null) {
+            // The same arrow can raise several landing events (damage + projectile-hit +
+            // hanging-break + portal). markHandled() guarantees only the first one drives
+            // the drop/pull/cleanup, preventing a hook-item duplication.
+            if (hook != null && hook.markHandled()) {
                 Location target = arrow.getLocation();
                 hook.drop(target);
 
@@ -205,6 +208,14 @@ public class GrapplingHookListener implements Listener {
                     }
 
                     player.setVelocity(velocity);
+
+                    // The upward pull can cause fall damage on the way back down. Grant a
+                    // one-shot fall-damage immunity (consumed by onFallDamage) so a
+                    // successful grapple does not punish the player for the resulting
+                    // landing. This was the original intent of the invulnerability set,
+                    // but the entry was never added, leaving the fall-damage cancellation
+                    // as dead code.
+                    invulnerability.add(player.getUniqueId());
                 }
 
                 hook.remove();
