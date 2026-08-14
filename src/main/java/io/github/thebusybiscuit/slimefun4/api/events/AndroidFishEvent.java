@@ -45,6 +45,12 @@ public class AndroidFishEvent extends Event implements Cancellable {
 
         // Fired from the async ticker thread (machine/network tick) - report the actual context
         super(!Bukkit.isPrimaryThread());
+
+        // Mirror the setter invariant: the @Nonnull getDrop() contract must not be bypassable
+        // via the constructor.
+        Validate.notNull(android, "The AndroidInstance must not be null");
+        Validate.notNull(drop, "The drop must not be null");
+
         this.android = android;
         this.drop = drop;
     }

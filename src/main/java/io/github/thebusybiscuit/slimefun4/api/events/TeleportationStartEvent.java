@@ -52,6 +52,14 @@ public class TeleportationStartEvent extends Event implements Cancellable {
     public TeleportationStartEvent(@Nonnull UUID uuid, int complexity, @Nonnull Location source, @Nonnull Location destination, boolean resistance) {
         super(!Bukkit.isPrimaryThread());
 
+        // Mirror the setter invariant (setDestination): a destination without a World or with
+        // non-finite coordinates would break the teleport computation downstream.
+        Validate.notNull(uuid, "The UUID must not be null");
+        Validate.notNull(source, "The source must not be null");
+        Validate.notNull(destination, "The destination must not be null");
+        Validate.notNull(destination.getWorld(), "The destination must have a World");
+        Validate.isTrue(Double.isFinite(destination.getX()) && Double.isFinite(destination.getY()) && Double.isFinite(destination.getZ()), "The destination must have finite coordinates, received: " + destination);
+
         this.uuid = uuid;
         this.complexity = complexity;
         this.source = source;

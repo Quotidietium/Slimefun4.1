@@ -39,7 +39,10 @@ public class ElevatorTeleportEvent extends PlayerEvent implements Cancellable {
     public ElevatorTeleportEvent(@Nonnull Player player, @Nonnull ElevatorFloor floor) {
         super(player);
 
+        // Mirror the setter invariants (setFloor): a null floor or a floor in a different
+        // World than the player must be rejected here as well.
         Validate.notNull(floor, "The floor must not be null");
+        Validate.isTrue(floor.getLocation().getWorld().equals(player.getWorld()), "The floor must be in the same World as the player");
         this.floor = floor;
     }
 

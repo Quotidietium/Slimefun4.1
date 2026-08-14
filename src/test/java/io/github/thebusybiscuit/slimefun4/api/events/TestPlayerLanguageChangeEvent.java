@@ -56,7 +56,10 @@ class TestPlayerLanguageChangeEvent {
     @DisplayName("PlayerLanguageChangeEvent exposes its fields and starts uncancelled")
     void testEventFields() {
         Player player = server.addPlayer();
-        Language from = Slimefun.getLocalization().getDefaultLanguage();
+        // A non-null Language instance: in the unit-test environment getDefaultLanguage()
+        // returns null (languages are not loaded), while the production firing point
+        // (PlayerLanguageOption) always passes the player's loaded, non-null language.
+        Language from = new Language("en", TEXTURE);
         Language to = new Language("de", TEXTURE);
 
         PlayerLanguageChangeEvent event = new PlayerLanguageChangeEvent(player, from, to);
@@ -71,7 +74,10 @@ class TestPlayerLanguageChangeEvent {
     @DisplayName("setNewLanguage redirects the pending language change")
     void testSetNewLanguageRedirects() {
         Player player = server.addPlayer();
-        Language from = Slimefun.getLocalization().getDefaultLanguage();
+        // A non-null Language instance: in the unit-test environment getDefaultLanguage()
+        // returns null (languages are not loaded), while the production firing point
+        // (PlayerLanguageOption) always passes the player's loaded, non-null language.
+        Language from = new Language("en", TEXTURE);
         Language picked = new Language("de", TEXTURE);
         Language forced = new Language("fr", TEXTURE);
 
@@ -89,7 +95,10 @@ class TestPlayerLanguageChangeEvent {
     @DisplayName("PlayerLanguageChangeEvent is cancellable")
     void testCancellation() {
         Player player = server.addPlayer();
-        Language from = Slimefun.getLocalization().getDefaultLanguage();
+        // A non-null Language instance: in the unit-test environment getDefaultLanguage()
+        // returns null (languages are not loaded), while the production firing point
+        // (PlayerLanguageOption) always passes the player's loaded, non-null language.
+        Language from = new Language("en", TEXTURE);
         Language to = new Language("de", TEXTURE);
 
         PlayerLanguageChangeEvent event = new PlayerLanguageChangeEvent(player, from, to);
@@ -106,7 +115,10 @@ class TestPlayerLanguageChangeEvent {
     @DisplayName("A registered listener sees the dispatched event")
     void testDispatchReachesListeners() {
         Player player = server.addPlayer();
-        Language from = Slimefun.getLocalization().getDefaultLanguage();
+        // A non-null Language instance: in the unit-test environment getDefaultLanguage()
+        // returns null (languages are not loaded), while the production firing point
+        // (PlayerLanguageOption) always passes the player's loaded, non-null language.
+        Language from = new Language("en", TEXTURE);
         Language to = new Language("de", TEXTURE);
 
         boolean[] seen = { false };

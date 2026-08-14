@@ -37,6 +37,12 @@ public class PlayerLanguageChangeEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     public PlayerLanguageChangeEvent(@Nonnull Player p, @Nonnull Language from, @Nonnull Language to) {
+        // Mirror the setter invariant (setNewLanguage): the @Nonnull getters' contract must
+        // not be bypassable via the constructor.
+        Validate.notNull(p, "The Player must not be null");
+        Validate.notNull(from, "The previous Language must not be null");
+        Validate.notNull(to, "The new Language must not be null");
+
         player = p;
         this.from = from;
         this.to = to;

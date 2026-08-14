@@ -48,6 +48,10 @@ public class BlockPlacerPlaceEvent extends BlockEvent implements Cancellable {
     public BlockPlacerPlaceEvent(Block blockPlacer, ItemStack placedItem, Block block) {
         super(block);
 
+        // Mirror the setter invariant: the @Nonnull getItemStack() contract must not be
+        // bypassable via the constructor.
+        Validate.notNull(placedItem, "The ItemStack must not be null!");
+
         this.placedItem = placedItem;
         this.blockPlacer = blockPlacer;
     }
