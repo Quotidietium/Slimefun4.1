@@ -258,6 +258,16 @@ public class LegacyStorage implements Storage {
 
         try {
             /*
+             * The parent directory may legitimately not exist: the Players/ and waypoints/
+             * folders are created on the first successful Config construction, but they can
+             * be missing later (external cleanup of data-storage, or a world whose storage
+             * was never touched this session). Files.write does NOT create parents, and a
+             * missing parent would make EVERY save cycle fail forever with a retried
+             * SEVERE log - so make sure the directory exists first.
+             */
+            Files.createDirectories(target.getParentFile().toPath());
+
+            /*
              * Write via Files.write instead of Config#save: Config#save swallows any
              * IOException, so a half-written tmp (disk full, I/O error) would pass the
              * exists() check below and atomically replace a perfectly good file with a
