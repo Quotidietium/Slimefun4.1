@@ -113,6 +113,24 @@ class TestPiglinBarterDropEvent {
         return itemDrop;
     }
 
+    /**
+     * The listener only replaces a drop when its (valid 1-99%) chance roll wins, so a single
+     * barter can legitimately keep the vanilla drop. The event is stateless, so we simply
+     * retry until the roll won: with the test items' 99% chance, an all-miss across 200
+     * attempts is astronomically improbable (0.01^200) - the tests stay deterministic.
+     */
+    private ItemEntityMock dropVanillaBarterUntil(java.util.function.Predicate<ItemEntityMock> rollWon) {
+        for (int attempt = 0; attempt < 200; attempt++) {
+            ItemEntityMock itemDrop = dropVanillaBarter();
+
+            if (rollWon.test(itemDrop)) {
+                return itemDrop;
+            }
+        }
+
+        throw new AssertionError("The barter chance roll did not win within 200 attempts");
+    }
+
     private boolean isTestBarterDrop(ItemStack stack) {
         SlimefunItem sfItem = SlimefunItem.getByItem(stack);
         return sfItem != null && barterItems.contains(sfItem);
@@ -165,7 +183,7 @@ class TestPiglinBarterDropEvent {
         server.getPluginManager().registerEvents(watcher, plugin);
 
         try {
-            ItemEntityMock itemDrop = dropVanillaBarter();
+            ItemEntityMock itemDrop = dropVanillaBarterUntil(d -> seen[0]);
 
             Assertions.assertTrue(seen[0], "PiglinBarterDropEvent was not fired");
             Assertions.assertTrue(isTestBarterDrop(itemDrop.getItemStack()), "The vanilla drop must have been replaced with a barter drop");
@@ -187,7 +205,7 @@ class TestPiglinBarterDropEvent {
         server.getPluginManager().registerEvents(redirecting, plugin);
 
         try {
-            ItemEntityMock itemDrop = dropVanillaBarter();
+            ItemEntityMock itemDrop = dropVanillaBarterUntil(d -> d.getItemStack().getType() == Material.DIAMOND);
 
             Assertions.assertEquals(Material.DIAMOND, itemDrop.getItemStack().getType(), "The drop must have been replaced with the custom stack");
             Assertions.assertEquals(3, itemDrop.getItemStack().getAmount(), "The replacement's amount must be kept");
@@ -210,7 +228,7 @@ class TestPiglinBarterDropEvent {
         server.getPluginManager().registerEvents(cancelling, plugin);
 
         try {
-            ItemEntityMock itemDrop = dropVanillaBarter();
+            ItemEntityMock itemDrop = dropVanillaBarterUntil(d -> seen.get());
 
             Assertions.assertTrue(seen.get(), "PiglinBarterDropEvent was not fired");
             Assertions.assertEquals(Material.GOLD_INGOT, itemDrop.getItemStack().getType(), "A cancelled barter must keep the vanilla drop");
@@ -223,7 +241,7 @@ class TestPiglinBarterDropEvent {
     @Test
     @DisplayName("A barter drop without listeners is still replaced, preserving the old behavior")
     void testBarterWithoutListenersStillReplaces() {
-        ItemEntityMock itemDrop = dropVanillaBarter();
+        ItemEntityMock itemDrop = dropVanillaBarterUntil(d -> isTestBarterDrop(d.getItemStack()));
 
         Assertions.assertTrue(isTestBarterDrop(itemDrop.getItemStack()), "The vanilla drop must have been replaced with a barter drop");
     }
