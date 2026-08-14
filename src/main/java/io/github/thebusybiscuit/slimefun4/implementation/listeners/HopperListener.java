@@ -36,9 +36,18 @@ public class HopperListener implements Listener {
     @EventHandler
     public void onHopperInsert(InventoryMoveItemEvent e) {
         Location loc = e.getDestination().getLocation();
+
+        // Null-check BEFORE BlockStorage.check(loc): Inventory#getLocation() is @Nullable
+        // (other plugins can also fire synthetic InventoryMoveItemEvents with virtual
+        // inventories), and getLocationInfo would NPE on a null Location. The previous
+        // ordering called check() first, making the null-check dead code.
+        if (loc == null) {
+            return;
+        }
+
         SlimefunItem item = BlockStorage.check(loc);
 
-        if (loc != null && e.getSource().getType() == InventoryType.HOPPER && item instanceof NotHopperable) {
+        if (e.getSource().getType() == InventoryType.HOPPER && item instanceof NotHopperable) {
             if (isPreventionVetoed(item, e)) {
                 return;
             }
