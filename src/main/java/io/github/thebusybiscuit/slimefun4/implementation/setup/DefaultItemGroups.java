@@ -58,7 +58,7 @@ class DefaultItemGroups {
     protected final LockedItemGroup gps = new LockedItemGroup(new NamespacedKey(Slimefun.instance(), "gps"), CustomItemStack.create(SlimefunItems.GPS_TRANSMITTER.item(), "&b基于 GPS 的机器"), 4, basicMachines.getKey());
 
     // Seasonal Item Groups
-    protected final SeasonalItemGroup christmas = new SeasonalItemGroup(new NamespacedKey(Slimefun.instance(), "christmas"), Month.DECEMBER, 1, CustomItemStack.create(SlimefunUtils.getCustomHead("215ba31cde2671b8f176de6a9ffd008035f0590d63ee240be6e8921cd2037a45"), ChatUtils.christmas("Christmas") + " &7(December only)"));
+    protected final SeasonalItemGroup christmas = new SeasonalItemGroup(new NamespacedKey(Slimefun.instance(), "christmas"), Month.DECEMBER, 1, CustomItemStack.create(SlimefunUtils.getCustomHead("215ba31cde2671b8f176de6a9ffd008035f0590d63ee240be6e8921cd2037a45"), ChatUtils.christmas("圣诞节") + " &7（仅 12 月）"));
     protected final SeasonalItemGroup valentinesDay = new SeasonalItemGroup(new NamespacedKey(Slimefun.instance(), "valentines_day"), Month.FEBRUARY, 2, CustomItemStack.create(SlimefunUtils.getCustomHead("55d89431d14bfef2060461b4a3565614dc51115c001fae2508e8684bc0ae6a80"), "&d情人节" + " &7(14th February)"));
     protected final SeasonalItemGroup easter = new SeasonalItemGroup(new NamespacedKey(Slimefun.instance(), "easter"), Month.APRIL, 2, CustomItemStack.create(HeadTexture.EASTER_EGG.getAsItemStack(), "&6复活节" + " &7(April)"));
     protected final SeasonalItemGroup birthday = new SeasonalItemGroup(new NamespacedKey(Slimefun.instance(), "birthday"), Month.OCTOBER, 1, CustomItemStack.create(Material.FIREWORK_ROCKET, "&a&lTheBusyBiscuit 的生日 &7（10 月 26 日）"));

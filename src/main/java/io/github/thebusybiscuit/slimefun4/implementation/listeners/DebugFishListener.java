@@ -141,9 +141,9 @@ public class DebugFishListener implements Listener {
 
             // Check if the skull is a wall skull, and if so use Directional instead of Rotatable.
             if (b.getType() == Material.PLAYER_WALL_HEAD) {
-                p.sendMessage(ChatColors.color("  &dFacing: &e" + ((Directional) b.getBlockData()).getFacing().toString()));
+                p.sendMessage(ChatColors.color("  &d朝向： &e" + ((Directional) b.getBlockData()).getFacing().toString()));
             } else {
-                p.sendMessage(ChatColors.color("  &dRotation: &e" + ((Rotatable) b.getBlockData()).getRotation().toString()));
+                p.sendMessage(ChatColors.color("  &d旋转： &e" + ((Rotatable) b.getBlockData()).getRotation().toString()));
             }
         }
 
@@ -163,9 +163,9 @@ public class DebugFishListener implements Listener {
         }
 
         if (Slimefun.getProfiler().hasTimings(b)) {
-            p.sendMessage(ChatColors.color("  &dTimings: &e" + Slimefun.getProfiler().getTime(b)));
-            p.sendMessage(ChatColors.color("  &dTotal Timings: &e" + Slimefun.getProfiler().getTime(item)));
-            p.sendMessage(ChatColors.color("  &dChunk Timings: &e" + Slimefun.getProfiler().getTime(b.getChunk())));
+            p.sendMessage(ChatColors.color("  &d耗时： &e" + Slimefun.getProfiler().getTime(b)));
+            p.sendMessage(ChatColors.color("  &d总耗时： &e" + Slimefun.getProfiler().getTime(item)));
+            p.sendMessage(ChatColors.color("  &d区块耗时： &e" + Slimefun.getProfiler().getTime(b.getChunk())));
         }
 
         if (item instanceof EnergyNetComponent component) {
