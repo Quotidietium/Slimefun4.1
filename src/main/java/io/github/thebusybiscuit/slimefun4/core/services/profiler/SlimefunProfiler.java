@@ -265,7 +265,7 @@ public class SlimefunProfiler {
                     Iterator<PerformanceInspector> iterator = requests.iterator();
 
                     while (iterator.hasNext()) {
-                        iterator.next().sendMessage("Your timings report has timed out, we were still waiting for " + queued.get() + " samples to be collected :/");
+                        iterator.next().sendMessage("你的性能报告已超时，仍有 " + queued.get() + " 个样本未能采集 :/");
                         iterator.remove();
                     }
 

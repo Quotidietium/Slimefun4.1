@@ -53,13 +53,13 @@ class PerformanceSummary {
 
     public void send(@Nonnull PerformanceInspector sender) {
         sender.sendMessage("");
-        sender.sendMessage(ChatColor.GREEN + "===== Slimefun Lag Profiler =====");
-        sender.sendMessage(ChatColor.GOLD + "Total time: " + ChatColor.YELLOW + NumberUtils.getAsMillis(totalElapsedTime));
-        sender.sendMessage(ChatColor.GOLD + "Running every: " + ChatColor.YELLOW + NumberUtils.roundDecimalNumber(tickRate / 20.0) + "s (" + tickRate + " ticks)");
-        sender.sendMessage(ChatColor.GOLD + "Performance: " + getPerformanceRating());
+        sender.sendMessage(ChatColor.GREEN + "===== Slimefun 卡顿分析器 =====");
+        sender.sendMessage(ChatColor.GOLD + "总耗时： " + ChatColor.YELLOW + NumberUtils.getAsMillis(totalElapsedTime));
+        sender.sendMessage(ChatColor.GOLD + "运行频率： " + ChatColor.YELLOW + NumberUtils.roundDecimalNumber(tickRate / 20.0) + "秒（" + tickRate + " ticks）");
+        sender.sendMessage(ChatColor.GOLD + "性能评级： " + getPerformanceRating());
         sender.sendMessage("");
 
-        summarizeTimings(totalTickedBlocks, "block", sender, items, entry -> {
+        summarizeTimings(totalTickedBlocks, "个已 tick 方块", sender, items, entry -> {
             int count = profiler.getBlocksOfId(entry.getKey());
             String time = NumberUtils.getAsMillis(entry.getValue());
             String message = entry.getKey() +  " - " + count + "x (%s)";
@@ -71,24 +71,24 @@ class PerformanceSummary {
             String average = NumberUtils.getAsMillis(entry.getValue() / count);
 
             if (sender.getOrderType() == SummaryOrderType.AVERAGE) {
-                return String.format(message, average + " | total: " + time);
+                return String.format(message, average + " | 总计： " + time);
             } else {
-                return String.format(message, time + " | avg: " + average);
+                return String.format(message, time + " | 平均： " + average);
             }
         });
 
-        summarizeTimings(chunks.size(), "chunk", sender, chunks, entry -> {
+        summarizeTimings(chunks.size(), "个区块", sender, chunks, entry -> {
             int count = profiler.getBlocksInChunk(entry.getKey());
             String time = NumberUtils.getAsMillis(entry.getValue());
 
-            return entry.getKey() + " - " + count + " block" + (count != 1 ? 's' : "") + " (" + time + ")";
+            return entry.getKey() + " - " + count + " 个方块 (" + time + ")";
         });
 
-        summarizeTimings(plugins.size(), "plugin", sender, plugins, entry -> {
+        summarizeTimings(plugins.size(), "个插件", sender, plugins, entry -> {
             int count = profiler.getBlocksFromPlugin(entry.getKey());
             String time = NumberUtils.getAsMillis(entry.getValue());
 
-            return entry.getKey() + " - " + count + " block" + (count != 1 ? 's' : "") + " (" + time + ")";
+            return entry.getKey() + " - " + count + " 个方块 (" + time + ")";
         });
     }
 
@@ -96,7 +96,7 @@ class PerformanceSummary {
     private void summarizeTimings(int count, String name, PerformanceInspector inspector, Map<String, Long> map, Function<Map.Entry<String, Long>, String> formatter) {
         Set<Entry<String, Long>> entrySet = map.entrySet();
         List<Entry<String, Long>> results = inspector.getOrderType().sort(profiler, entrySet);
-        String prefix = count + " " + name + (count != 1 ? 's' : "");
+        String prefix = count + " " + name;
 
         if (inspector instanceof PlayerPerformanceInspector playerPerformanceInspector) {
             TextComponent component = summarizeAsTextComponent(count, prefix, results, formatter);
@@ -114,7 +114,7 @@ class PerformanceSummary {
         component.setColor(ChatColor.YELLOW);
 
         if (count > 0) {
-            TextComponent hoverComponent = new TextComponent("  (Hover for details)");
+            TextComponent hoverComponent = new TextComponent("  （悬停查看详情）");
             hoverComponent.setColor(ChatColor.GRAY);
             StringBuilder builder = new StringBuilder();
 
@@ -131,7 +131,7 @@ class PerformanceSummary {
             }
 
             if (hiddenEntries > 0) {
-                builder.append("\n\n&c+ &6").append(hiddenEntries).append(" more");
+                builder.append("\n\n&c+ &6").append(hiddenEntries).append(" 条更多");
             }
 
             Content content = new Text(TextComponent.fromLegacyText(ChatColors.color(builder.toString())));
@@ -166,7 +166,7 @@ class PerformanceSummary {
             }
 
             if (hiddenEntries > 0) {
-                builder.append("\n+ ").append(hiddenEntries).append(" more...");
+                builder.append("\n+ ").append(hiddenEntries).append(" 条更多...");
             }
         }
 

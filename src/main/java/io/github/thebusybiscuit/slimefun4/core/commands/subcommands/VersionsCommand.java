@@ -42,7 +42,7 @@ class VersionsCommand extends SubCommand {
      * This is the notice that will be displayed when an
      * older version of Java is detected.
      */
-    private static final String JAVA_VERSION_NOTICE = "As of Minecraft 1.17 Java 16 will be required!";
+    private static final String JAVA_VERSION_NOTICE = "自 Minecraft 1.17 起需要 Java 16！";
 
     @ParametersAreNonnullByDefault
     VersionsCommand(Slimefun plugin, SlimefunCommand cmd) {
@@ -60,7 +60,7 @@ class VersionsCommand extends SubCommand {
             ComponentBuilder builder = new ComponentBuilder();
 
             // @formatter:off
-            builder.append("This Server uses the following setup of Slimefun:\n")
+            builder.append("本服务器使用以下 Slimefun 环境：\n")
                 .color(ChatColor.GRAY)
                 .append(serverSoftware)
                 .color(ChatColor.GREEN)
@@ -94,8 +94,8 @@ class VersionsCommand extends SubCommand {
             // @formatter:off
             builder.append("Java " + version).color(ChatColor.RED)
                 .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(
-                    "Your Java version is out of date!\n!" +
-                    "You should use Java " + RECOMMENDED_JAVA_VERSION + " or higher.\n" +
+                    "你的 Java 版本过旧！\n" +
+                    "你应该使用 Java " + RECOMMENDED_JAVA_VERSION + " 或更高版本。\n" +
                     JAVA_VERSION_NOTICE
                 )))
                 .append("\n")
@@ -110,11 +110,11 @@ class VersionsCommand extends SubCommand {
         Collection<Plugin> addons = Slimefun.getInstalledAddons();
 
         if (addons.isEmpty()) {
-            builder.append("No Addons installed").color(ChatColor.GRAY).italic(true);
+            builder.append("未安装任何附属插件").color(ChatColor.GRAY).italic(true);
             return;
         }
 
-        builder.append("Installed Addons: ").color(ChatColor.GRAY).append("(" + addons.size() + ")").color(ChatColor.DARK_GRAY);
+        builder.append("已安装附属插件： ").color(ChatColor.GRAY).append("(" + addons.size() + ")").color(ChatColor.DARK_GRAY);
 
         for (Plugin plugin : addons) {
             String version = plugin.getDescription().getVersion();
@@ -132,10 +132,10 @@ class VersionsCommand extends SubCommand {
                 if (plugin instanceof SlimefunAddon addon && addon.getBugTrackerURL() != null) {
                     // @formatter:off
                     hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder()
-                        .append("Author(s): ")
+                        .append("作者： ")
                         .append(authors)
                         .color(ChatColor.YELLOW)
-                        .append("\n> Click here to go to their issues tracker")
+                        .append("\n> 点击此处前往其问题反馈页面")
                         .color(ChatColor.GOLD)
                         .create()
                     ));
@@ -145,7 +145,7 @@ class VersionsCommand extends SubCommand {
                 } else {
                     // @formatter:off
                     hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder()
-                        .append("Author(s): ")
+                        .append("作者： ")
                         .append(authors)
                         .color(ChatColor.YELLOW)
                         .create()
@@ -159,7 +159,7 @@ class VersionsCommand extends SubCommand {
                 if (plugin instanceof SlimefunAddon addon && addon.getBugTrackerURL() != null) {
                     // @formatter:off
                     hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder()
-                        .append("This plugin is disabled.\nCheck the console for an error message.")
+                        .append("该插件已被禁用。\n请查看控制台中的错误信息。")
                         .color(ChatColor.RED)
                         .append("\n> Click here to report on their issues tracker")
                         .color(ChatColor.DARK_RED)
@@ -171,7 +171,7 @@ class VersionsCommand extends SubCommand {
                         clickEvent = new ClickEvent(ClickEvent.Action.OPEN_URL, addon.getBugTrackerURL());
                     }
                 } else {
-                    hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Plugin is disabled. Check the console for an error and report on their issues tracker."));
+                    hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("插件已禁用。请查看控制台错误并到其问题反馈页面报告。"));
                 }
             }
 
