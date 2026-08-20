@@ -171,7 +171,7 @@ public class EnergyNet extends Network implements HologramOwner {
         AtomicLong timestamp = new AtomicLong(Slimefun.getProfiler().newEntry());
 
         if (!regulator.equals(b.getLocation())) {
-            updateHologram(b, "&4Multiple Energy Regulators connected");
+            updateHologram(b, "&4连接了多个能量调节器");
             Slimefun.getProfiler().closeEntry(b.getLocation(), SlimefunItems.ENERGY_REGULATOR.getItem(), timestamp.get());
             return;
         }
@@ -199,7 +199,7 @@ public class EnergyNet extends Network implements HologramOwner {
             }
 
             if (!regulator.equals(primary)) {
-                updateHologram(b, "&4Multiple Energy Regulators connected");
+                updateHologram(b, "&4连接了多个能量调节器");
                 Slimefun.getProfiler().closeEntry(b.getLocation(), SlimefunItems.ENERGY_REGULATOR.getItem(), timestamp.get());
                 return;
             }
@@ -219,7 +219,7 @@ public class EnergyNet extends Network implements HologramOwner {
         }
 
         if (connectorNodes.isEmpty() && terminusNodes.isEmpty()) {
-            updateHologram(b, "&4No Energy Network found");
+            updateHologram(b, "&4未找到能量网络");
         } else {
             /*
              * Generators whose stored charge was NOT folded into the supply this tick

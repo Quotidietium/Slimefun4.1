@@ -78,7 +78,7 @@ public class ReactorAccessPort extends SlimefunItem {
                 BlockMenu reactor = getReactor(b.getLocation());
 
                 if (reactor != null) {
-                    menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.GREEN_WOOL, "&7Reactor", "", "&6Detected", "", "&7> Click to view Reactor"));
+                    menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.GREEN_WOOL, "&7反应堆", "", "&6已检测到", "", "&7> 点击查看反应堆"));
                     menu.addMenuClickHandler(INFO_SLOT, (p, slot, item, action) -> {
                         if (reactor != null) {
                             reactor.open(p);
@@ -89,7 +89,7 @@ public class ReactorAccessPort extends SlimefunItem {
                         return false;
                     });
                 } else {
-                    menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7Reactor", "", "&cNot detected", "", "&7Reactor must be", "&7placed 3 blocks below", "&7the access port!"));
+                    menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7反应堆", "", "&c未检测到", "", "&7反应堆必须放置在", "&7接入端口下方 3 格处", "&7（接入端口上方需为反应堆！）"));
                     menu.addMenuClickHandler(INFO_SLOT, (p, slot, item, action) -> {
                         newInstance(menu, b);
                         return false;
@@ -158,9 +158,9 @@ public class ReactorAccessPort extends SlimefunItem {
         preset.drawBackground(CustomItemStack.create(Material.CYAN_STAINED_GLASS_PANE, " "), inputBorder);
         preset.drawBackground(CustomItemStack.create(Material.GREEN_STAINED_GLASS_PANE, " "), outputBorder);
 
-        preset.addItem(1, CustomItemStack.create(SlimefunItems.URANIUM.item(), "&7Fuel Slot", "", "&rThis Slot accepts radioactive Fuel such as:", "&2Uranium &ror &aNeptunium"), ChestMenuUtils.getEmptyClickHandler());
-        preset.addItem(22, CustomItemStack.create(SlimefunItems.PLUTONIUM.item(), "&7Byproduct Slot", "", "&rThis Slot contains the Reactor's Byproduct", "&rsuch as &aNeptunium &ror &7Plutonium"), ChestMenuUtils.getEmptyClickHandler());
-        preset.addItem(7, CustomItemStack.create(SlimefunItems.REACTOR_COOLANT_CELL.item(), "&bCoolant Slot", "", "&rThis Slot accepts Coolant Cells", "&4Without any Coolant Cells, your Reactor", "&4will explode"), ChestMenuUtils.getEmptyClickHandler());
+        preset.addItem(1, CustomItemStack.create(SlimefunItems.URANIUM.item(), "&7燃料槽", "", "&r此槽位接受放射性燃料，例如：", "&2Uranium &ror &aNeptunium"), ChestMenuUtils.getEmptyClickHandler());
+        preset.addItem(22, CustomItemStack.create(SlimefunItems.PLUTONIUM.item(), "&7副产物槽", "", "&r此槽位存放反应堆的副产物", "&r例如 &a镎 &r或 &7钚"), ChestMenuUtils.getEmptyClickHandler());
+        preset.addItem(7, CustomItemStack.create(SlimefunItems.REACTOR_COOLANT_CELL.item(), "&b冷却槽", "", "&r此槽位接受冷却单元", "&4如果没有供给冷却单元，", "&4您的反应堆将会爆炸"), ChestMenuUtils.getEmptyClickHandler());
     }
 
     @Nonnull

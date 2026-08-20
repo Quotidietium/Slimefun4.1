@@ -166,7 +166,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
 
         switch (mode) {
             case GENERATOR:
-                menu.replaceExistingItem(4, CustomItemStack.create(SlimefunItems.NUCLEAR_REACTOR.item(), "&7Focus: &eElectricity", "", "&6Your Reactor will focus on Power Generation", "&6If your Energy Network doesn't need Power", "&6it will not produce any either", "", "&7\u21E8 Click to change the Focus to &eProduction"));
+                menu.replaceExistingItem(4, CustomItemStack.create(SlimefunItems.NUCLEAR_REACTOR.item(), "&7聚焦： &e发电", "", "&6您的反应堆将专注于发电", "&6如果您的能量网络不需要电力", "&6它也不会产出任何电力", "", "&7\u21E8 \u70B9\u51FB\u5C06\u805A\u7126\u5207\u6362\u4E3A &e\u751F\u4EA7"));
                 menu.addMenuClickHandler(4, (p, slot, item, action) -> {
                     if (applyModeChange(p, b, ReactorMode.PRODUCTION)) {
                         updateInventory(menu, b);
@@ -176,7 +176,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
                 });
                 break;
             case PRODUCTION:
-                menu.replaceExistingItem(4, CustomItemStack.create(SlimefunItems.PLUTONIUM.item(), "&7Focus: &eProduction", "", "&6Your Reactor will focus on producing goods", "&6If your Energy Network doesn't need Power", "&6it will continue to run and simply will", "&6not generate any Power in the mean time", "", "&7\u21E8 Click to change the Focus to &ePower Generation"));
+                menu.replaceExistingItem(4, CustomItemStack.create(SlimefunItems.PLUTONIUM.item(), "&7聚焦： &e生产", "", "&6您的反应堆将专注于生产产物", "&6如果您的能量网络不需要电力", "&6它将继续运转，只是", "&6在此期间不会产生任何电力", "", "&7\u21E8 \u70B9\u51FB\u5C06\u805A\u7126\u5207\u6362\u4E3A &e\u53D1\u7535"));
                 menu.addMenuClickHandler(4, (p, slot, item, action) -> {
                     if (applyModeChange(p, b, ReactorMode.GENERATOR)) {
                         updateInventory(menu, b);
@@ -192,7 +192,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         BlockMenu port = getAccessPort(b.getLocation());
 
         if (port != null) {
-            menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.GREEN_WOOL, "&7Access Port", "", "&6Detected", "", "&7> Click to view Access Port"));
+            menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.GREEN_WOOL, "&7接入端口", "", "&6已检测到", "", "&7> 点击查看接入端口"));
             menu.addMenuClickHandler(INFO_SLOT, (p, slot, item, action) -> {
                 port.open(p);
                 updateInventory(menu, b);
@@ -200,7 +200,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
                 return false;
             });
         } else {
-            menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7Access Port", "", "&cNot detected", "", "&7Access Port must be", "&7placed 3 blocks above", "&7a reactor!"));
+            menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7接入端口", "", "&c未检测到", "", "&7接入端口必须放置在", "&7反应堆上方 3 格处", "&7（接入端口下方需为反应堆！）"));
             menu.addMenuClickHandler(INFO_SLOT, (p, slot, item, action) -> {
                 updateInventory(menu, b);
                 menu.open(p);
@@ -254,19 +254,19 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
 
         preset.addItem(22, CustomItemStack.create(Material.BLACK_STAINED_GLASS_PANE, " "), ChestMenuUtils.getEmptyClickHandler());
 
-        preset.addItem(1, CustomItemStack.create(getFuelIcon(), "&7Fuel Slot", "", "&fThis Slot accepts radioactive Fuel such as:", "&2Uranium &for &aNeptunium"), ChestMenuUtils.getEmptyClickHandler());
+        preset.addItem(1, CustomItemStack.create(getFuelIcon(), "&7燃料槽", "", "&f此槽位接受放射性燃料，例如：", "&2铀 &f或 &a镎"), ChestMenuUtils.getEmptyClickHandler());
 
         for (int i : border_2) {
             preset.addItem(i, CustomItemStack.create(Material.CYAN_STAINED_GLASS_PANE, " "), ChestMenuUtils.getEmptyClickHandler());
         }
 
         if (needsCooling()) {
-            preset.addItem(7, CustomItemStack.create(getCoolant(), "&bCoolant Slot", "", "&fThis Slot accepts Coolant Cells", "&4Without any Coolant Cells, your Reactor", "&4will explode"));
+            preset.addItem(7, CustomItemStack.create(getCoolant(), "&b冷却槽", "", "&f此槽位接受冷却单元", "&4如果没有供给冷却单元，", "&4您的反应堆将会爆炸"));
         } else {
-            preset.addItem(7, CustomItemStack.create(Material.BARRIER, "&bCoolant Slot", "", "&fThis Slot accepts Coolant Cells"));
+            preset.addItem(7, CustomItemStack.create(Material.BARRIER, "&b冷却槽", "", "&f此槽位接受冷却单元"));
 
             for (int i : border_4) {
-                preset.addItem(i, CustomItemStack.create(Material.BARRIER, "&cNo Coolant Required"), ChestMenuUtils.getEmptyClickHandler());
+                preset.addItem(i, CustomItemStack.create(Material.BARRIER, "&c无需冷却"), ChestMenuUtils.getEmptyClickHandler());
             }
         }
     }

@@ -193,7 +193,7 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
 
             @Override
             public void onPlayerPlace(BlockPlaceEvent e) {
-                updateHologram(e.getBlock(), "&7Idling...");
+                updateHologram(e.getBlock(), "&7待机中...");
             }
         };
     }
@@ -326,7 +326,7 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                 processor.endOperation(b);
             }
         } else if (!BlockStorage.hasChunkInfo(b.getWorld(), b.getX() >> 4, b.getZ() >> 4)) {
-            updateHologram(b, "&4GEO-Scan required!");
+            updateHologram(b, "&4需要先进行 GEO 扫描！");
         } else {
             start(b, inv);
         }
@@ -338,7 +338,7 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                 OptionalInt optional = Slimefun.getGPSNetwork().getResourceManager().getSupplies(resource, b.getWorld(), b.getX() >> 4, b.getZ() >> 4);
 
                 if (!optional.isPresent()) {
-                    updateHologram(b, "&4GEO-Scan required!");
+                    updateHologram(b, "&4需要先进行 GEO 扫描！");
                     return;
                 }
 
@@ -364,13 +364,13 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
 
                     processor.startOperation(b, new GEOMiningOperation(resource, PROCESSING_TIME, consumedSupplies));
                     Slimefun.getGPSNetwork().getResourceManager().setSupplies(resource, b.getWorld(), b.getX() >> 4, b.getZ() >> 4, supplies - consumedSupplies);
-                    updateHologram(b, "&7Mining: &r" + resource.getName());
+                    updateHologram(b, "&7开采中： &r" + resource.getName());
                     return;
                 }
             }
         }
 
-        updateHologram(b, "&7Finished");
+        updateHologram(b, "&7已完成");
     }
 
 }
