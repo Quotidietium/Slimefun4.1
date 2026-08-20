@@ -5,7 +5,7 @@ version: ${project.version}
 # Project metadata
 author: The Slimefun 4 Community
 website: https://github.com/Slimefun
-description: Slimefun basically turns your entire Server into a FTB modpack without installing a single mod
+description: Slimefun 无需安装任何模组即可将你的整个服务器变成一个 FTB 模组包
 
 # Technical settings
 main: io.github.thebusybiscuit.slimefun4.implementation.Slimefun
@@ -24,49 +24,49 @@ softdepend:
 commands:
   slimefun:
     aliases: sf
-    description: Slimefun base command
-    usage: The Slimefun version you have installed does not seem to be compatible with your server setup. Check your console for more detailed info.
+    description: Slimefun 基础命令
+    usage: 你安装的 Slimefun 版本似乎与服务器环境不兼容。请查看控制台获取详细信息。
 
 # Default permissions
 permissions:
   slimefun.command.guide:
-    description: Allows you to obtain the Slimefun guide book
+    description: 允许你获取 Slimefun 指南书
     default: true
   slimefun.command.search:
-    description: Allows you to do /sf search
+    description: 允许你使用 /sf search
     default: true
   slimefun.command.open_guide:
-    description: Allows you to open the SF guide without the book
+    description: 允许你无需指南书直接打开 Slimefun 指南
     default: op
   slimefun.cheat.items:
-    description: Allows you to cheat Items
+    description: 允许你作弊获取物品
     default: op
   slimefun.cheat.researches:
-    description: Allows you to cheat Researches
+    description: 允许你作弊解锁研究
     default: op
   slimefun.stats.others:
-    description: Allows you to see the Stats from other Players
+    description: 允许你查看其他玩家的统计数据
     default: op
   slimefun.android.upload-script:
-    description: Allows you to upload an Android Script
+    description: 允许你上传机器人脚本
     default: op
   slimefun.command.timings:
-    description: Allows you to do /sf timings
+    description: 允许你使用 /sf timings
     default: op
   slimefun.command.teleporter:
-    description: Allows you to do /sf teleporter
+    description: 允许你使用 /sf teleporter
     default: op
   slimefun.command.versions:
-    description: Allows you to do /sf versions
+    description: 允许你使用 /sf versions
     default: op
   slimefun.command.backpack:
-    description: Allows you to do /sf backpack
+    description: 允许你使用 /sf backpack
     default: op
   slimefun.command.charge:
-    description: Allows you to do /sf charge
+    description: 允许你使用 /sf charge
     default: op
   slimefun.command.debug:
-    description: Allows you to do /sf debug
+    description: 允许你使用 /sf debug
     default: op
   slimefun.android.bypass:
     description: Allows you to edit other Players Androids
