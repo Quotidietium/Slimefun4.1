@@ -27,16 +27,16 @@ class TestNumberUtils {
         LocalDateTime current = LocalDateTime.now();
 
         LocalDateTime a = current.minusDays(1);
-        Assertions.assertEquals("1d", NumberUtils.getElapsedTime(current, a));
+        Assertions.assertEquals("1天", NumberUtils.getElapsedTime(current, a));
 
         LocalDateTime b = current.minusHours(25);
-        Assertions.assertEquals("1d 1h", NumberUtils.getElapsedTime(current, b));
+        Assertions.assertEquals("1天 1小时", NumberUtils.getElapsedTime(current, b));
 
         LocalDateTime c = current.minusHours(1);
-        Assertions.assertEquals("1h", NumberUtils.getElapsedTime(current, c));
+        Assertions.assertEquals("1小时", NumberUtils.getElapsedTime(current, c));
 
         LocalDateTime d = current.minusMinutes(12);
-        Assertions.assertEquals("< 1h", NumberUtils.getElapsedTime(current, d));
+        Assertions.assertEquals("< 1小时", NumberUtils.getElapsedTime(current, d));
     }
 
     @Test
