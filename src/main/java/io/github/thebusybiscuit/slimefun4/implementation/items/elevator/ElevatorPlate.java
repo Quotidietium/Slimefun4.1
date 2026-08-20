@@ -239,7 +239,7 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
         ChestMenu menu = new ChestMenu(Slimefun.getLocalization().getMessage(p, "machines.ELEVATOR.editor-title"));
 
         String currentName = BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY);
-        menu.addItem(4, CustomItemStack.create(Material.NAME_TAG, "&7楼层名称 &e（点击编辑）", "", ChatColor.WHITE + ChatColors.color(currentName != null ? currentName : "Floor #0")));
+        menu.addItem(4, CustomItemStack.create(Material.NAME_TAG, "&7楼层名称 &e（点击编辑）", "", ChatColor.WHITE + ChatColors.color(currentName != null ? currentName : "楼层 0")));
         menu.addMenuClickHandler(4, (pl, slot, item, action) -> {
             pl.closeInventory();
             pl.sendMessage("");
