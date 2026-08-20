@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -165,11 +166,32 @@ public class RecipeType implements Keyed {
     @ParametersAreNonnullByDefault
     private static void registerMobDrop(ItemStack[] recipe, ItemStack output) {
         String mob = ChatColor.stripColor(recipe[4].getItemMeta().getDisplayName()).toUpperCase(Locale.ROOT).replace(' ', '_');
-        EntityType entity = EntityType.valueOf(mob);
+        EntityType entity = resolveEntityType(mob);
 
         // computeIfAbsent is atomic on the (now concurrent) mobDrops map. The previous
         // getOrDefault + put sequence could lose a concurrently-registered drop set entirely.
         Slimefun.getRegistry().getMobDrops().computeIfAbsent(entity, e -> new HashSet<>()).add(output);
+    }
+
+    /**
+     * Localized display-name aliases for mob-drop recipe icons. The icon name is parsed back into an
+     * {@link EntityType} by {@link #registerMobDrop(ItemStack[], ItemStack)}; these aliases allow the
+     * icon to be displayed in Chinese while remaining resolvable.
+     */
+    private static final Map<String, EntityType> ENTITY_NAME_ALIASES = Map.of("铁傀儡", EntityType.IRON_GOLEM, "猪灵", EntityType.PIGLIN);
+
+    private static @Nonnull EntityType resolveEntityType(@Nonnull String name) {
+        try {
+            return EntityType.valueOf(name);
+        } catch (IllegalArgumentException x) {
+            EntityType alias = ENTITY_NAME_ALIASES.get(name);
+
+            if (alias != null) {
+                return alias;
+            }
+
+            throw x;
+        }
     }
 
     public static List<ItemStack> getRecipeInputs(MultiBlockMachine machine) {
