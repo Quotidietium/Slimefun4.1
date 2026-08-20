@@ -203,7 +203,7 @@ messages:
     anvil: '&a&o你的护身符使你的工具免于损坏'
     miner: '&a&o你的护身符使矿物双倍掉落了'
     farmer: '&a&o你的护身符使掉落物翻倍了'
-    hunter: '&a&o你的护身符使掉落物双倍掉落了'
+    hunter: '&a&o你的护身符使掉落物翻倍了'
     lava: '&a&o你的护身符将你从岩浆中救了出来'
     water: '&a&o你的护身符使你免于溺水'
     angel: '&a&o你的护身符使你在信仰之跃时不受伤害'
@@ -305,7 +305,7 @@ machines:
     not-connected: '&4未连接！'
   INDUSTRIAL_MINER:
     no-fuel: '&c你的工业矿机没有燃料了! 将燃料放入它上面的箱子里.'
-    piston-facing: '&c你的工业矿机需要放置一个向上的活塞!'
+    piston-facing: '&c你的工业矿机需要活塞朝上放置!'
     piston-space: '&c两个活塞的上方需要没有方块阻挡!'
     destroyed: '&c你的工业矿机被拆除了.'
     already-running: '&c这个工业矿机正在运行!'
@@ -335,7 +335,7 @@ gps:
   status-online: '在线'
   status-offline: '离线'
   waypoint:
-    new: '&e给你的路径点起个名字吧 &7(支持彩色代码!)'
+    new: '&e给你的传送点起个名字吧 &7(支持彩色代码!)'
     added: '&a成功添加了新的传送点'
     max: '&4你已到达设置传送点个数的最大上限'
     duplicate: '&4已经有相同名字的传送点了: &f%waypoint%'
@@ -345,7 +345,7 @@ gps:
     - '&4a) 你还没有设置一个 GPS 网络'
     - '&4b) 你的 GPS 网络复杂度不够, 多放置几个 GPS 信号发射机'
   geo:
-    scan-required: '&4需要先进行自然资源扫描! &c请先使用自然资源扫描器!'
+    scan-required: '&4需要先进行 GEO 扫描! &c请先用 GEO 扫描仪扫描此区块!'
 inventory:
   no-access: '&4你没有权限使用这个方块'
 android:
@@ -380,8 +380,8 @@ android:
       FARM_DOWN: '&b自动采收并补种下面的作物'
       FARM_EXOTIC_FORWARD: '&b自动采收并补种所有作物'
       FARM_EXOTIC_DOWN: '&b自动采收并补种下面的所有作物'
-      INTERFACE_ITEMS: '&9将物品栏里的物品放入面前的容器'
-      INTERFACE_FUEL: '&c从面前的容器中拿出燃料'
+      INTERFACE_ITEMS: '&9将物品栏里的物品推入面前的机器人接口'
+      INTERFACE_FUEL: '&c从面前的机器人接口中拿取燃料'
     enter-name:
       - ''
       - '&e给你的脚本起个名字吧'
