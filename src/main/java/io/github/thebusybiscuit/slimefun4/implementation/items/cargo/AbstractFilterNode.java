@@ -86,7 +86,7 @@ abstract class AbstractFilterNode extends AbstractCargoNode {
             preset.addItem(i, CustomItemStack.create(Material.CYAN_STAINED_GLASS_PANE, " "), ChestMenuUtils.getEmptyClickHandler());
         }
 
-        preset.addItem(2, CustomItemStack.create(Material.PAPER, "&3Items", "", "&bPut in all Items you want to", "&bblacklist/whitelist"), ChestMenuUtils.getEmptyClickHandler());
+        preset.addItem(2, CustomItemStack.create(Material.PAPER, "&3物品", "", "&b将所有你想要加入", "&b黑名单/白名单的物品放入"), ChestMenuUtils.getEmptyClickHandler());
     }
 
     @Override
@@ -95,7 +95,7 @@ abstract class AbstractFilterNode extends AbstractCargoNode {
         String filterType = BlockStorage.getLocationInfo(loc, FILTER_TYPE);
 
         if (!BlockStorage.hasBlockInfo(b) || filterType == null || filterType.equals("whitelist")) {
-            menu.replaceExistingItem(15, CustomItemStack.create(Material.WHITE_WOOL, "&7Type: &rWhitelist", "", "&e> Click to change it to Blacklist"));
+            menu.replaceExistingItem(15, CustomItemStack.create(Material.WHITE_WOOL, "&7类型： &r白名单", "", "&e> 点击切换为黑名单"));
             menu.addMenuClickHandler(15, (p, slot, item, action) -> {
                 if (applyFilterChange(p, b, FILTER_TYPE, CargoNodeFilterChangeEvent.Reason.FILTER_TYPE, false)) {
                     updateBlockMenu(menu, b);
@@ -104,7 +104,7 @@ abstract class AbstractFilterNode extends AbstractCargoNode {
                 return false;
             });
         } else {
-            menu.replaceExistingItem(15, CustomItemStack.create(Material.BLACK_WOOL, "&7Type: &8Blacklist", "", "&e> Click to change it to Whitelist"));
+            menu.replaceExistingItem(15, CustomItemStack.create(Material.BLACK_WOOL, "&7类型： &8黑名单", "", "&e> 点击切换为白名单"));
             menu.addMenuClickHandler(15, (p, slot, item, action) -> {
                 if (applyFilterChange(p, b, FILTER_TYPE, CargoNodeFilterChangeEvent.Reason.FILTER_TYPE, true)) {
                     updateBlockMenu(menu, b);
@@ -117,7 +117,7 @@ abstract class AbstractFilterNode extends AbstractCargoNode {
         String lore = BlockStorage.getLocationInfo(b.getLocation(), FILTER_LORE);
 
         if (!BlockStorage.hasBlockInfo(b) || lore == null || lore.equals(String.valueOf(true))) {
-            menu.replaceExistingItem(25, CustomItemStack.create(Material.MAP, "&7Include Lore: &2\u2714", "", "&e> Click to toggle whether the Lore has to match"));
+            menu.replaceExistingItem(25, CustomItemStack.create(Material.MAP, "&7比较时包含 Lore： &2\u2714", "", "&e> 点击切换是否要求 Lore 完全匹配"));
             menu.addMenuClickHandler(25, (p, slot, item, action) -> {
                 if (applyFilterChange(p, b, FILTER_LORE, CargoNodeFilterChangeEvent.Reason.LORE_MATCHING, false)) {
                     updateBlockMenu(menu, b);
@@ -126,7 +126,7 @@ abstract class AbstractFilterNode extends AbstractCargoNode {
                 return false;
             });
         } else {
-            menu.replaceExistingItem(25, CustomItemStack.create(Material.MAP, "&7Include Lore: &4\u2718", "", "&e> Click to toggle whether the Lore has to match"));
+            menu.replaceExistingItem(25, CustomItemStack.create(Material.MAP, "&7比较时包含 Lore： &4\u2718", "", "&e> 点击切换是否要求 Lore 完全匹配"));
             menu.addMenuClickHandler(25, (p, slot, item, action) -> {
                 if (applyFilterChange(p, b, FILTER_LORE, CargoNodeFilterChangeEvent.Reason.LORE_MATCHING, true)) {
                     updateBlockMenu(menu, b);

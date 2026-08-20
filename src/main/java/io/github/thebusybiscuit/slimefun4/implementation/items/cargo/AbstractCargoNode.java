@@ -93,7 +93,7 @@ abstract class AbstractCargoNode extends SimpleSlimefunItem<BlockPlaceHandler> i
     protected void addChannelSelector(Block b, BlockMenu menu, int slotPrev, int slotCurrent, int slotNext) {
         int channel = getSelectedChannel(b);
 
-        menu.replaceExistingItem(slotPrev, CustomItemStack.create(HeadTexture.CARGO_ARROW_LEFT.getAsItemStack(), "&bPrevious Channel", "", "&e> Click to decrease the Channel ID by 1"));
+        menu.replaceExistingItem(slotPrev, CustomItemStack.create(HeadTexture.CARGO_ARROW_LEFT.getAsItemStack(), "&b上一频道", "", "&e> 点击将频道编号减 1"));
         menu.addMenuClickHandler(slotPrev, (p, slot, item, action) -> {
             int newChannel = channel - 1;
 
@@ -109,14 +109,14 @@ abstract class AbstractCargoNode extends SimpleSlimefunItem<BlockPlaceHandler> i
         });
 
         if (channel == 16) {
-            menu.replaceExistingItem(slotCurrent, CustomItemStack.create(HeadTexture.CHEST_TERMINAL.getAsItemStack(), "&bChannel ID: &3" + (channel + 1)));
+            menu.replaceExistingItem(slotCurrent, CustomItemStack.create(HeadTexture.CHEST_TERMINAL.getAsItemStack(), "&b频道编号： &3" + (channel + 1)));
             menu.addMenuClickHandler(slotCurrent, ChestMenuUtils.getEmptyClickHandler());
         } else {
-            menu.replaceExistingItem(slotCurrent, CustomItemStack.create(ColoredMaterial.WOOL.get(channel), "&bChannel ID: &3" + (channel + 1)));
+            menu.replaceExistingItem(slotCurrent, CustomItemStack.create(ColoredMaterial.WOOL.get(channel), "&b频道编号： &3" + (channel + 1)));
             menu.addMenuClickHandler(slotCurrent, ChestMenuUtils.getEmptyClickHandler());
         }
 
-        menu.replaceExistingItem(slotNext, CustomItemStack.create(HeadTexture.CARGO_ARROW_RIGHT.getAsItemStack(), "&bNext Channel", "", "&e> Click to increase the Channel ID by 1"));
+        menu.replaceExistingItem(slotNext, CustomItemStack.create(HeadTexture.CARGO_ARROW_RIGHT.getAsItemStack(), "&b下一频道", "", "&e> 点击将频道编号加 1"));
         menu.addMenuClickHandler(slotNext, (p, slot, item, action) -> {
             int newChannel = channel + 1;
 

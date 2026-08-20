@@ -50,7 +50,7 @@ public class CargoInputNode extends AbstractFilterNode {
 
         String roundRobinMode = BlockStorage.getLocationInfo(b.getLocation(), ROUND_ROBIN_MODE);
         if (!BlockStorage.hasBlockInfo(b) || roundRobinMode == null || roundRobinMode.equals(String.valueOf(false))) {
-            menu.replaceExistingItem(24, CustomItemStack.create(HeadTexture.ENERGY_REGULATOR.getAsItemStack(), "&7Round-Robin Mode: &4\u2718", "", "&e> Click to enable Round Robin Mode", "&e(Items will be equally distributed on the Channel)"));
+            menu.replaceExistingItem(24, CustomItemStack.create(HeadTexture.ENERGY_REGULATOR.getAsItemStack(), "&7轮询模式： &4\u2718", "", "&e> 点击开启轮询模式", "&e（物品将在该频道上平均分配）"));
             menu.addMenuClickHandler(24, (p, slot, item, action) -> {
                 if (applyDistributionChange(p, b, ROUND_ROBIN_MODE, CargoNodeDistributionModeEvent.Reason.ROUND_ROBIN, true)) {
                     updateBlockMenu(menu, b);
@@ -59,7 +59,7 @@ public class CargoInputNode extends AbstractFilterNode {
                 return false;
             });
         } else {
-            menu.replaceExistingItem(24, CustomItemStack.create(HeadTexture.ENERGY_REGULATOR.getAsItemStack(), "&7Round-Robin Mode: &2\u2714", "", "&e> Click to disable Round Robin Mode", "&e(Items will be equally distributed on the Channel)"));
+            menu.replaceExistingItem(24, CustomItemStack.create(HeadTexture.ENERGY_REGULATOR.getAsItemStack(), "&7轮询模式： &2\u2714", "", "&e> 点击关闭轮询模式", "&e（物品将在该频道上平均分配）"));
             menu.addMenuClickHandler(24, (p, slot, item, action) -> {
                 if (applyDistributionChange(p, b, ROUND_ROBIN_MODE, CargoNodeDistributionModeEvent.Reason.ROUND_ROBIN, false)) {
                     updateBlockMenu(menu, b);
@@ -71,7 +71,7 @@ public class CargoInputNode extends AbstractFilterNode {
 
         String smartFillNode = BlockStorage.getLocationInfo(b.getLocation(), SMART_FILL_MODE);
         if (!BlockStorage.hasBlockInfo(b) || smartFillNode == null || smartFillNode.equals(String.valueOf(false))) {
-            menu.replaceExistingItem(16, CustomItemStack.create(Material.WRITABLE_BOOK, "&7\"Smart-Filling\" Mode: &4\u2718", "", "&e> Click to enable \"Smart-Filling\" Mode", "", "&fIn this mode, the Cargo node will attempt", "&fto keep a constant amount of items", "&fin the inventory. This is not perfect", "&fand will still fill in empty slots that", "&fcome before a stack of a configured item."));
+            menu.replaceExistingItem(16, CustomItemStack.create(Material.WRITABLE_BOOK, "&7\"智能填充\"模式： &4\u2718", "", "&e> 点击开启\"智能填充\"模式", "", "&f在此模式下，货运节点会尝试", "&f维持库存中物品数量的", "&f恒定。这并非完美方案，", "&f对于排在已配置物品堆之前的", "&f空槽位，仍会将其填满。"));
             menu.addMenuClickHandler(16, (p, slot, item, action) -> {
                 if (applyDistributionChange(p, b, SMART_FILL_MODE, CargoNodeDistributionModeEvent.Reason.SMART_FILL, true)) {
                     updateBlockMenu(menu, b);
@@ -80,7 +80,7 @@ public class CargoInputNode extends AbstractFilterNode {
                 return false;
             });
         } else {
-            menu.replaceExistingItem(16, CustomItemStack.create(Material.WRITTEN_BOOK, "&7\"Smart-Filling\" Mode: &2\u2714", "", "&e> Click to disable \"Smart-Filling\" Mode", "", "&fIn this mode, the Cargo node will attempt", "&fto keep a constant amount of items", "&fin the inventory. This is not perfect", "&fand will still fill in empty slots that", "&fcome before a stack of a configured item."));
+            menu.replaceExistingItem(16, CustomItemStack.create(Material.WRITTEN_BOOK, "&7\"智能填充\"模式： &2\u2714", "", "&e> 点击关闭\"智能填充\"模式", "", "&f在此模式下，货运节点会尝试", "&f维持库存中物品数量的", "&f恒定。这并非完美方案，", "&f对于排在已配置物品堆之前的", "&f空槽位，仍会将其填满。"));
             menu.addMenuClickHandler(16, (p, slot, item, action) -> {
                 if (applyDistributionChange(p, b, SMART_FILL_MODE, CargoNodeDistributionModeEvent.Reason.SMART_FILL, false)) {
                     updateBlockMenu(menu, b);
