@@ -27,6 +27,11 @@ public final class PatternUtils {
     public static final Pattern MINECRAFT_TAG = Pattern.compile("#minecraft:[a-z_]+");
     public static final Pattern SLIMEFUN_TAG = Pattern.compile("#slimefun:[a-z_]+");
 
-    public static final Pattern USES_LEFT_LORE = Pattern.compile(ChatColor.YELLOW + "[0-9]+ Uses? " + ChatColor.GRAY + "left");
+    /**
+     * Matches the "uses left" lore line written by {@link LoreBuilder#usesLeft(int)}.
+     * Accepts both the legacy English form ("&lt;N&gt; Use(s) left") and the localized
+     * Chinese form ("&lt;N&gt; 次 剩余") so items saved before localization keep updating.
+     */
+    public static final Pattern USES_LEFT_LORE = Pattern.compile(ChatColor.YELLOW + "[0-9]+ (" + "Uses? " + ChatColor.GRAY + "left|" + "次 " + ChatColor.GRAY + "剩余)");
 
 }
