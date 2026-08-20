@@ -65,7 +65,7 @@ public class IndustrialMiner extends MultiBlockMachine {
         // @formatter:off
         super(itemGroup, item, new ItemStack[] {
             null, null, null,
-            CustomItemStack.create(Material.PISTON, "Piston (facing up)"), new ItemStack(Material.CHEST), CustomItemStack.create(Material.PISTON, "Piston (facing up)"),
+            CustomItemStack.create(Material.PISTON, "活塞（朝上）"), new ItemStack(Material.CHEST), CustomItemStack.create(Material.PISTON, "活塞（朝上）"),
             new ItemStack(baseMaterial), new ItemStack(Material.BLAST_FURNACE), new ItemStack(baseMaterial)
         }, BlockFace.UP);
         // @formatter:on

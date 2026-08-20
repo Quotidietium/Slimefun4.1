@@ -106,7 +106,7 @@ public class CargoManager extends SlimefunItem implements HologramOwner {
         }
 
         BlockStorage.addBlockInfo(b, "visualizer", enabled ? null : "disabled");
-        p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cCargo Net Visualizer: " + (enabled ? "&2\u2714" : "&4\u2718")));
+        p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c货运网络可视化： " + (enabled ? "&2\u2714" : "&4\u2718")));
     }
 
 }
