@@ -472,3 +472,5 @@ lore-phrases:
   "Cycles through all Colors of the Rainbow!": "循环显示彩虹的所有颜色！"
   # 放射性（Radioactivity.getLore）
   " Radiation level: ": " 辐射等级： "
+  "Type: ": "类型： "
+  "ID: ": "编号： "
