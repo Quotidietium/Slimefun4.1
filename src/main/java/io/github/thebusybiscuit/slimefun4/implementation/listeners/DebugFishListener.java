@@ -116,7 +116,7 @@ public class DebugFishListener implements Listener {
 
             if (!tags.isEmpty()) {
                 p.sendMessage(" ");
-                p.sendMessage(ChatColors.color("&dSlimefun tags for: &e") + b.getType().name());
+                p.sendMessage(ChatColors.color("&dSlimefun 数据标签： &e") + b.getType().name());
 
                 for (SlimefunTag tag : tags) {
                     p.sendMessage(ChatColors.color("&d* &e") + tag.name());
@@ -133,11 +133,11 @@ public class DebugFishListener implements Listener {
 
         p.sendMessage(" ");
         p.sendMessage(ChatColors.color("&d" + b.getType() + " &e@ X: " + b.getX() + " Y: " + b.getY() + " Z: " + b.getZ()));
-        p.sendMessage(ChatColors.color("&dId: " + "&e" + item.getId()));
-        p.sendMessage(ChatColors.color("&dPlugin: " + "&e" + item.getAddon().getName()));
+        p.sendMessage(ChatColors.color("&dID： " + "&e" + item.getId()));
+        p.sendMessage(ChatColors.color("&d所属插件： " + "&e" + item.getAddon().getName()));
 
         if (b.getState() instanceof Skull) {
-            p.sendMessage(ChatColors.color("&dSkull: " + greenCheckmark));
+            p.sendMessage(ChatColors.color("&d头颅： " + greenCheckmark));
 
             // Check if the skull is a wall skull, and if so use Directional instead of Rotatable.
             if (b.getType() == Material.PLAYER_WALL_HEAD) {
@@ -148,18 +148,18 @@ public class DebugFishListener implements Listener {
         }
 
         if (BlockStorage.getStorage(b.getWorld()).hasInventory(b.getLocation())) {
-            p.sendMessage(ChatColors.color("&dInventory: " + greenCheckmark));
+            p.sendMessage(ChatColors.color("&d库存： " + greenCheckmark));
         } else {
-            p.sendMessage(ChatColors.color("&dInventory: " + redCross));
+            p.sendMessage(ChatColors.color("&d库存： " + redCross));
         }
 
         if (item.isTicking()) {
-            p.sendMessage(ChatColors.color("&dTicking: " + greenCheckmark));
+            p.sendMessage(ChatColors.color("&dTick 状态： " + greenCheckmark));
             p.sendMessage(ChatColors.color("  &dAsync: &e" + (item.getBlockTicker().isSynchronized() ? redCross : greenCheckmark)));
         } else if (item instanceof EnergyNetProvider) {
-            p.sendMessage(ChatColors.color("&dTicking: &3Indirect (Generator)"));
+            p.sendMessage(ChatColors.color("&dTick 状态： &3间接（发电机）"));
         } else {
-            p.sendMessage(ChatColors.color("&dTicking: " + redCross));
+            p.sendMessage(ChatColors.color("&dTick 状态： " + redCross));
         }
 
         if (Slimefun.getProfiler().hasTimings(b)) {
@@ -169,14 +169,14 @@ public class DebugFishListener implements Listener {
         }
 
         if (item instanceof EnergyNetComponent component) {
-            p.sendMessage(ChatColors.color("&dEnergyNet Component"));
+            p.sendMessage(ChatColors.color("&d能量网络组件"));
             p.sendMessage(ChatColors.color("  &dType: &e" + component.getEnergyComponentType()));
 
             if (component.isChargeable()) {
                 p.sendMessage(ChatColors.color("  &dChargeable: " + greenCheckmark));
                 p.sendMessage(ChatColors.color("  &dEnergy: &e" + component.getCharge(b.getLocation()) + " / " + component.getCapacity()));
             } else {
-                p.sendMessage(ChatColors.color("&dChargeable: " + redCross));
+                p.sendMessage(ChatColors.color("&d可充电： " + redCross));
             }
         }
 

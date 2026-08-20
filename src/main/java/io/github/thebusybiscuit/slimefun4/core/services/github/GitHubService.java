@@ -82,11 +82,11 @@ public class GitHubService {
      */
     private void addDefaultContributors() {
         // Artists
-        addContributor("Fuffles_", "&dArtist");
-        addContributor("IMS_Art", "https://github.com/IAmSorryArt", "&dArtist", 0);
+        addContributor("Fuffles_", "&d美术作者");
+        addContributor("IMS_Art", "https://github.com/IAmSorryArt", "&d美术作者", 0);
 
         // Addon Jam winners
-        addContributor("nahkd123", "&aWinner of the 2020 Addon Jam");
+        addContributor("nahkd123", "&a2020 附属插件大赛优胜者");
 
         // Translators
         try {

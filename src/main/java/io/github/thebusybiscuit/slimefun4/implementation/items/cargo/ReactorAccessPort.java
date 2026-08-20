@@ -158,7 +158,7 @@ public class ReactorAccessPort extends SlimefunItem {
         preset.drawBackground(CustomItemStack.create(Material.CYAN_STAINED_GLASS_PANE, " "), inputBorder);
         preset.drawBackground(CustomItemStack.create(Material.GREEN_STAINED_GLASS_PANE, " "), outputBorder);
 
-        preset.addItem(1, CustomItemStack.create(SlimefunItems.URANIUM.item(), "&7燃料槽", "", "&r此槽位接受放射性燃料，例如：", "&2Uranium &ror &aNeptunium"), ChestMenuUtils.getEmptyClickHandler());
+        preset.addItem(1, CustomItemStack.create(SlimefunItems.URANIUM.item(), "&7燃料槽", "", "&r此槽位接受放射性燃料，例如：", "&2铀 &r或 &a镎"), ChestMenuUtils.getEmptyClickHandler());
         preset.addItem(22, CustomItemStack.create(SlimefunItems.PLUTONIUM.item(), "&7副产物槽", "", "&r此槽位存放反应堆的副产物", "&r例如 &a镎 &r或 &7钚"), ChestMenuUtils.getEmptyClickHandler());
         preset.addItem(7, CustomItemStack.create(SlimefunItems.REACTOR_COOLANT_CELL.item(), "&b冷却槽", "", "&r此槽位接受冷却单元", "&4如果没有供给冷却单元，", "&4您的反应堆将会爆炸"), ChestMenuUtils.getEmptyClickHandler());
     }

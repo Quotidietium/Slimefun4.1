@@ -113,8 +113,8 @@ public final class SlimefunGuideSettings {
             ChatColor.GREEN + locale.getMessage(p, "guide.title.versions"),
             "&7&o" + locale.getMessage(p, "guide.tooltips.versions-notice"),
             "",
-            "&fMinecraft: &a" + Bukkit.getBukkitVersion(),
-            "&fSlimefun: &a" + Slimefun.getVersion()),
+            "&fMinecraft： &a" + Bukkit.getBukkitVersion(),
+            "&fSlimefun： &a" + Slimefun.getVersion()),
             ChestMenuUtils.getEmptyClickHandler()
         );
         // @formatter:on
@@ -122,16 +122,16 @@ public final class SlimefunGuideSettings {
         // @formatter:off
         menu.addItem(6, CustomItemStack.create(Material.COMPARATOR,
            "&e" + locale.getMessage(p, "guide.title.source"),
-           "", "&7Last Activity: &a" + NumberUtils.getElapsedTime(github.getLastUpdate()) + " ago",
-           "&7Forks: &e" + github.getForks(),
-           "&7Stars: &e" + github.getStars(),
+           "", "&7最近活动： &a" + NumberUtils.getElapsedTime(github.getLastUpdate()) + "前",
+           "&7Fork 数： &e" + github.getForks(),
+           "&7Star 数： &e" + github.getStars(),
            "",
-           "&7&oSlimefun 4 is a community project,",
-           "&7&othe source code is available on GitHub",
-           "&7&oand if you want to keep this Plugin alive,",
-           "&7&othen please consider contributing to it",
+           "&7&oSlimefun 4 是一个社区项目，",
+           "&7&o源代码在 GitHub 上公开，",
+           "&7&o如果你想保持这个插件的活力，",
+           "&7&o请考虑为它做出贡献",
            "",
-           "&7\u21E8 &eClick to go to GitHub"));
+           "&7\u21E8 &e点击前往 GitHub"));
         // @formatter:on
 
         menu.addMenuClickHandler(6, (pl, slot, item, action) -> {
@@ -143,12 +143,12 @@ public final class SlimefunGuideSettings {
         // @formatter:off
         menu.addItem(8, CustomItemStack.create(Material.KNOWLEDGE_BOOK,
             "&3" + locale.getMessage(p, "guide.title.wiki"),
-            "", "&7Do you need help with an Item or machine?",
-            "&7You cannot figure out what to do?",
-            "&7Check out our community-maintained Wiki",
-            "&7and become one of our Editors!",
+            "", "&7在物品或机器上需要帮助？",
+            "&7不知道接下来该做什么？",
+            "&7来看看社区维护的 Wiki，",
+            "&7成为我们的编辑者吧！",
             "",
-            "&7\u21E8 &eClick to go to the official Slimefun Wiki"));
+            "&7\u21E8 &e点击前往 Slimefun 官方 Wiki"));
         // @formatter:on
 
         menu.addMenuClickHandler(8, (pl, slot, item, action) -> {
@@ -161,13 +161,13 @@ public final class SlimefunGuideSettings {
         menu.addItem(47, CustomItemStack.create(Material.BOOKSHELF,
             "&3" + locale.getMessage(p, "guide.title.addons"),
             "",
-            "&7Slimefun is huge. But its addons are what makes",
-            "&7this plugin truly shine. Go check them out, some",
-            "&7of them may be exactly what you were missing out on!",
+            "&7Slimefun 本身已经很庞大，但真正让它",
+            "&7大放异彩的是各种附属插件。去看看吧，",
+            "&7其中一些可能正是你缺少的东西！",
             "",
-            "&7Installed on this Server: &b" + Slimefun.getInstalledAddons().size(),
+            "&7本服务器已安装： &b" + Slimefun.getInstalledAddons().size(),
             "",
-            "&7\u21E8 &eClick to see all available addons for Slimefun4"));
+            "&7\u21E8 &e点击查看 Slimefun4 的全部可用附属插件"));
         // @formatter:on
 
         menu.addMenuClickHandler(47, (pl, slot, item, action) -> {
@@ -181,12 +181,12 @@ public final class SlimefunGuideSettings {
             menu.addItem(49, CustomItemStack.create(Material.REDSTONE_TORCH,
                 "&4" + locale.getMessage(p, "guide.title.bugs"),
                 "",
-                "&7&oBug reports have to be made in English!",
+                "&7&o问题反馈必须使用英语！",
                 "",
-                "&7Open Issues: &a" + github.getOpenIssues(),
-                "&7Pending Pull Requests: &a" + github.getPendingPullRequests(),
+                "&7待处理 Issue： &a" + github.getOpenIssues(),
+                "&7待处理 PR： &a" + github.getPendingPullRequests(),
                 "",
-                "&7\u21E8 &eClick to go to the Slimefun4 Bug Tracker"));
+                "&7\u21E8 &e点击前往 Slimefun4 问题反馈页面"));
             // @formatter:on
 
             menu.addMenuClickHandler(49, (pl, slot, item, action) -> {

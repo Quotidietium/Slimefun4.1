@@ -63,7 +63,7 @@ public class PermissionsService {
                 String path = item.getId() + ".permission";
 
                 config.setDefaultValue(path, "none");
-                config.setDefaultValue(item.getId() + ".lore", new String[] { "&rYou do not have the permission", "&rto access this item." });
+                config.setDefaultValue(item.getId() + ".lore", new String[] { "&r你没有相应的权限", "&r来使用这个物品。" });
 
                 permissions.put(item.getId(), config.getString(path));
             }

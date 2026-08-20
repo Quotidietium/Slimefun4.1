@@ -41,7 +41,7 @@ import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 public class Talisman extends SlimefunItem {
 
-    protected static final ItemGroup TALISMANS_ITEMGROUP = new ItemGroup(new NamespacedKey(Slimefun.instance(), "talismans"), CustomItemStack.create(SlimefunItems.COMMON_TALISMAN.item(), "&7Talismans - &aTier I"), 2);
+    protected static final ItemGroup TALISMANS_ITEMGROUP = new ItemGroup(new NamespacedKey(Slimefun.instance(), "talismans"), CustomItemStack.create(SlimefunItems.COMMON_TALISMAN.item(), "&7护身符 - &a等级 I"), 2);
     private static final String WIKI_PAGE = "Talismans";
 
     private final SlimefunItemStack enderTalisman;
@@ -79,9 +79,9 @@ public class Talisman extends SlimefunItem {
         addOfficialWikipage(WIKI_PAGE);
 
         if (!(this instanceof EnderTalisman)) {
-            String name = "&5Ender " + ChatColor.stripColor(getItem().getItemMeta().getDisplayName());
+            String name = "&5末影 " + ChatColor.stripColor(getItem().getItemMeta().getDisplayName());
             List<String> lore = new ArrayList<>();
-            lore.add("&7&oEnder Infused");
+            lore.add("&7&o末影注入");
             lore.add("");
 
             for (String line : getItem().getItemMeta().getLore()) {
