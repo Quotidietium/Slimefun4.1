@@ -217,6 +217,6 @@ class TestSlimefunItemInteractListener {
         });
 
         // Assert the message our energy connector sends
-        Assertions.assertEquals(ChatColors.color("&7Connected: " + "&4\u2718"), player.nextMessage());
+        Assertions.assertEquals(ChatColors.color("&7\u672a\u8fde\u63a5\uff1a " + "&4\u2718"), player.nextMessage());
     }
 }
