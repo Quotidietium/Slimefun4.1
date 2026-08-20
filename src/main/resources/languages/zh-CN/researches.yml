@@ -1,23 +1,23 @@
 ---
 slimefun:
-  walking_sticks: 拐杖
-  portable_crafter: 便携工作台
-  fortune_cookie: 幸运曲奇
+  walking_sticks: 手杖
+  portable_crafter: 便携式合成台
+  fortune_cookie: 幸运饼干
   portable_dustbin: 便携垃圾桶
   meat_jerky: 肉干
   armor_forge: 装备制作
   glowstone_armor: 萤石套装
-  lumps: 魔法与因子
+  lumps: 碎块与魔法
   ender_backpack: 末影背包
   ender_armor: 末影套装
   magic_eye_of_ender: 魔法末影之眼
   magic_sugar: 魔法糖
   monster_jerky: 怪物肉干
-  slime_armor: 粘液套装
-  sword_of_beheading: 处决之剑
+  slime_armor: 史莱姆套装
+  sword_of_beheading: 斩首之剑
   basic_circuit_board: 基础电路板
   advanced_circuit_board: 高级电路板
-  smeltery: 冶炼机
+  smeltery: 冶炼炉
   steel: 钢铁时代
   misc_power_items: 与能源有关的物品
   battery: 第一节电池
@@ -26,7 +26,7 @@ slimefun:
   parachute: 降落伞
   grappling_hook: 抓钩
   jetpacks: 喷气背包
-  multitools: 万用工具
+  multitools: 多功能工具
   solar_panel_and_helmet: 太阳能
   elemental_staff: 元素法杖
   grind_stone: 磨石
@@ -40,12 +40,12 @@ slimefun:
   compressor_and_carbon: 碳的制作
   gilded_iron_armor: 镀金铁甲
   synthetic_diamond: 人造钻石
-  pressure_chamber: 压力机
+  pressure_chamber: 压力舱
   synthetic_sapphire: 人造蓝宝石
   damascus_steel: 大马士革钢锭
   damascus_steel_armor: 大马士革钢套装
   reinforced_alloy: 强化合金
-  carbonado: 黑色钻石
+  carbonado: 黑金刚石
   magic_workbench: 魔法工作台
   wind_staff: 风之法杖
   reinforced_armor: 强化套装
@@ -64,7 +64,7 @@ slimefun:
   fire_talisman: 消防员护身符
   caveman_talisman: 穴居人护身符
   wise_talisman: 智者的护身符
-  lava_crystal: 火焰局势
+  lava_crystal: 火热的局面
   magician_talisman: 法师护身符
   traveller_talisman: 旅行者护身符
   warrior_talisman: 战士护身符
@@ -80,13 +80,13 @@ slimefun:
   crushed_ore: 矿物提纯
   redstone_alloy: 红石合金
   carbonado_tools: 顶级机器
-  first_aid: 急救箱
+  first_aid: 急救
   gold_armor: 闪闪发光的套装
   night_vision_googles: 夜视镜
   pickaxe_of_containment: 刷怪笼之镐
   hercules_pickaxe: 赫拉克勒斯之镐
   table_saw: 桌锯
-  slime_steel_armor: 粘性钢套装
+  slime_steel_armor: 史莱姆钢套装
   blade_of_vampires: 吸血鬼之刃
   water_staff: 水之法杖
   24k_gold_block: 黄金城市
@@ -95,7 +95,7 @@ slimefun:
   explosive_tools: 爆破工具
   automated_panning_machine: 自动化淘金
   boots_of_the_stomper: 践踏者之靴
-  pickaxe_of_the_seeker: 寻矿稿
+  pickaxe_of_the_seeker: 寻矿者之镐
   backpacks: 背包
   woven_backpack: 编织背包
   crucible: 坩埚
@@ -117,13 +117,13 @@ slimefun:
   bound_armor: 灵魂绑定装备
   juicer: 可口的饮料
   repaired_spawner: 修复刷怪笼
-  enhanced_furnace: 增强型熔炉
+  enhanced_furnace: 强化熔炉
   more_enhanced_furnaces: 更好的熔炉
   high_tier_enhanced_furnaces: 高级熔炉
   reinforced_furnace: 强化熔炉
-  carbonado_furnace: 黑金刚石镶边熔炉
+  carbonado_furnace: 黑金刚石刃口熔炉
   electric_motor: 热起来吧
-  block_placer: 方块放置机
+  block_placer: 方块放置器
   scroll_of_dimensional_teleposition: 让事物转向
   special_bows: 罗宾汉的弓
   tome_of_knowledge_sharing: 与朋友分享
@@ -147,7 +147,7 @@ slimefun:
   hologram_projector: 全息图像
   capacitors: 一级电容
   high_tier_capacitors: 二级电容
-  even_higher_tier_capacitors: 三级电容器
+  even_higher_tier_capacitors: 三级电容
   solar_generators: 太阳能农场
   electric_furnaces: 电炉
   electric_ore_grinding: 粉碎和研磨
@@ -155,21 +155,21 @@ slimefun:
   coal_generator: 煤炭发电机
   bio_reactor: 生物反应器
   auto_enchanting: 自动附魔和祛魔
-  auto_anvil: 自动化铁砧
+  auto_anvil: 自动铁砧
   multimeter: 能量测量
   gps_setup: 基础 GPS 设备
   gps_emergency_transmitter: GPS 应急传送点
   programmable_androids: 可编程式机器人
   android_interfaces: 机器人接口
-  geo_scanner: 自然资源扫描
-  combustion_reactor: 燃烧反应机
+  geo_scanner: GEO 扫描
+  combustion_reactor: 燃烧反应堆
   teleporter: 传送机基础组件
   teleporter_activation_plates: 传送激活装置
   better_solar_generators: 更好的太阳能发电机
   better_gps_transmitters: 更好的 GPS 信号发射机
   elevator: 电梯
   energized_solar_generator: 全天候太阳能
-  energized_gps_transmitter: 顶级 GPS 信号发射机
+  energized_gps_transmitter: 充能 GPS 发射器
   energy_regulator: 能源网络 101
   energy_connectors: 有线连接
   butcher_androids: 屠夫机器人
@@ -184,15 +184,15 @@ slimefun:
   crop_growth_accelerator: 作物生长加速器
   better_crop_growth_accelerator: 更好的作物生长加速器
   reactor_essentials: 反应堆基础
-  nuclear_reactor: 核电农场
+  nuclear_reactor: 核电站
   freezer: 冰箱先生
   cargo_basics: 基础货运
   cargo_nodes: 货运设施
-  electric_ingot_machines: 电力铸铁
-  medium_tier_electric_ingot_machines: 高速电力铸铁
-  high_tier_electric_ingot_machines: 更好的电力铸铁
+  electric_ingot_machines: 电力铸锭
+  medium_tier_electric_ingot_machines: 高速电力铸锭
+  high_tier_electric_ingot_machines: 超高速电力铸锭
   automated_crafting_chamber: 自动化合成
-  better_food_fabricator: 更好的食品加工
+  better_food_fabricator: 更好的食物制造机
   reactor_access_port: 反应堆交互
   fluid_pump: 流体泵
   better_freezer: 更好的冰箱
@@ -200,12 +200,12 @@ slimefun:
   trash_can: 垃圾桶
   advanced_output_node: 高级输出节点
   carbon_press: 碳压机
-  electric_smeltery: 电力冶炼机
+  electric_smeltery: 电力冶炼炉
   better_electric_furnace: 更好的电炉
   better_carbon_press: 更好的碳压机
-  empowered_android: 可授权机器人
-  empowered_butcher_android: 可授权屠夫机器人
-  empowered_fisherman_android: 可授权渔夫机器人
+  empowered_android: 强化机器人
+  empowered_butcher_android: 强化屠夫机器人
+  empowered_fisherman_android: 强化渔夫机器人
   high_tier_carbon_press: 终极碳压机
   wither_assembler: 自动化击杀凋零
   better_heated_pressure_chamber: 更好的加热压力舱
@@ -213,14 +213,14 @@ slimefun:
   special_elytras: 特殊鞘翅
   trident: 三叉戟
   electric_crucible: 电力坩埚
-  better_electric_crucibles: 更好的坩埚
-  advanced_electric_smeltery: 高级电力冶炼机
+  better_electric_crucibles: 更好的电力坩埚
+  advanced_electric_smeltery: 高级电力冶炼炉
   advanced_farmer_android: 高级农夫机器人
   lava_generator: 岩浆发电机
   nether_ice: 下界冰冷却剂
   nether_star_reactor: 下界之星反应堆
-  blistering_ingots: 辐射法发泡
-  automatic_ignition_chamber: 自动点火机
+  blistering_ingots: 炽热辐射
+  automatic_ignition_chamber: 自动点火室
   output_chest: 基础物品输出箱
   copper_wire: 更好的导体
   radiant_backpack: 金光闪闪的背包
@@ -228,30 +228,30 @@ slimefun:
   diet_cookie: 减肥曲奇
   storm_staff: 雷之法杖
   soulbound_rune: 灵魂绑定符文
-  geo_miner: 自然资源开采机
+  geo_miner: GEO 采矿机
   lightning_rune: 雷电符文
   totem_of_undying: 不死图腾
-  charging_bench: 充电座
+  charging_bench: 充电台
   nether_gold_pan: 下界淘金盘
-  electric_press: 碳压机
+  electric_press: 电动冲压机
   magnesium_generator: 来自镁的能量
-  kelp_cookie: 美味的海藻
-  makeshift_smeltery: 临时冶炼炉
+  kelp_cookie: 美味的海带
+  makeshift_smeltery: 简易冶炼炉
   tree_growth_accelerator: 树木生长加速器
   industrial_miner: 工业采矿
   advanced_industrial_miner: 进阶采矿
   magical_zombie_pills: 去僵尸化
   auto_brewer: 自动化酿造
   climbing_pick: 古块丽影
-  shulker_shell: 人造潜影贝
-  enchantment_rune: 远古附魔法
-  lead_clothing: 强化布料
+  shulker_shell: 合成潜影壳
+  enchantment_rune: 古代附魔
+  lead_clothing: 含铅布料
   tape_measure: 卷尺
   iron_golem_assembler: 自动化铁傀儡生产
   villager_rune: 防奸商神器
   elytra_cap: 无伤落地
-  bee_armor: 蜜蜂服
-  book_binder: 附魔融合
+  bee_armor: 蜜蜂盔甲
+  book_binder: 附魔书装订
   auto_crafting: 自动化合成
   produce_collector: 自动化挤奶
   improved_generators: 改良版发电机
