@@ -22,38 +22,40 @@ public enum Radioactivity {
      * This represents a low level of radiation.
      * It will still cause damage but will take a while before it becomes deadly.
      */
-    LOW(ChatColor.YELLOW, 1),
+    LOW(ChatColor.YELLOW, "低", 1),
 
     /**
      * This represents a medium level of radiation.
      * This can be considered the default.
      */
-    MODERATE(ChatColor.YELLOW, 2),
+    MODERATE(ChatColor.YELLOW, "中等", 2),
 
     /**
      * This is a high level of radiation.
      * It will cause death if the {@link Player} does not act quickly.
      */
-    HIGH(ChatColor.GOLD, 3),
+    HIGH(ChatColor.GOLD, "高", 3),
 
     /**
      * A very high level of radiation will be deadly.
      * The {@link Player} should not take this too lightly...
      */
-    VERY_HIGH(ChatColor.RED, 5),
+    VERY_HIGH(ChatColor.RED, "极高", 5),
 
     /**
      * This is the deadliest level of radiation.
      * The {@link Player} has basically no chance to protect themselves in time.
      * It will cause certain death.
      */
-    VERY_DEADLY(ChatColor.DARK_RED, 10);
+    VERY_DEADLY(ChatColor.DARK_RED, "致命", 10);
 
     private final ChatColor color;
+    private final String displayName;
     private final int exposureModifier;
 
-    Radioactivity(@Nonnull ChatColor color, int exposureModifier) {
+    Radioactivity(@Nonnull ChatColor color, @Nonnull String displayName, int exposureModifier) {
         this.color = color;
+        this.displayName = displayName;
         this.exposureModifier = exposureModifier;
     }
 
@@ -69,7 +71,7 @@ public enum Radioactivity {
     }
 
     public @Nonnull String getLore() {
-        return ChatColor.GREEN + "\u2622" + ChatColor.GRAY + " Radiation level: " + color + toString().replace('_', ' ');
+        return ChatColor.GREEN + "\u2622" + ChatColor.GRAY + " \u8f90\u5c04\u7b49\u7ea7\uff1a " + color + displayName;
     }
 
     /**
