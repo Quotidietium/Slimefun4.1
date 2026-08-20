@@ -366,17 +366,17 @@ BEE_BOOTS:
 
 # 魔法材料
 MAGIC_LUMP_1:
-  name: '&6魔法 lump &7- &eI'
+  name: '&6魔法碎块 &7- &eI'
 MAGIC_LUMP_2:
-  name: '&6魔法 lump &7- &eII'
+  name: '&6魔法碎块 &7- &eII'
 MAGIC_LUMP_3:
-  name: '&6魔法 lump &7- &eIII'
+  name: '&6魔法碎块 &7- &eIII'
 ENDER_LUMP_1:
-  name: '&5末影 lump &7- &eI'
+  name: '&5末影碎块 &7- &eI'
 ENDER_LUMP_2:
-  name: '&5末影 lump &7- &eII'
+  name: '&5末影碎块 &7- &eII'
 ENDER_LUMP_3:
-  name: '&5末影 lump &7- &eIII'
+  name: '&5末影碎块 &7- &eIII'
 MAGICAL_BOOK_COVER:
   name: '&6魔法书封皮'
 MAGICAL_GLASS:
