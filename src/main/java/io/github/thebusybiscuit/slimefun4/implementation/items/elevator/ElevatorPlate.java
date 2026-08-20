@@ -76,7 +76,7 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
             @Override
             public void onPlayerPlace(BlockPlaceEvent e) {
                 Block b = e.getBlock();
-                BlockStorage.addBlockInfo(b, DATA_KEY, ChatColor.WHITE + "Floor #0");
+                BlockStorage.addBlockInfo(b, DATA_KEY, ChatColor.WHITE + "楼层 0");
                 BlockStorage.addBlockInfo(b, "owner", e.getPlayer().getUniqueId().toString());
             }
         };
@@ -101,7 +101,7 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
         for (int y = b.getWorld().getMinHeight(); y < b.getWorld().getMaxHeight(); y++) {
             if (y == b.getY()) {
                 String raw = BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY);
-                String name = ChatColors.color(raw != null ? raw : "Floor #" + index);
+                String name = ChatColors.color(raw != null ? raw : "楼层 " + index);
                 floors.addFirst(new ElevatorFloor(name, index, b));
                 index++;
                 continue;
@@ -111,7 +111,7 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
 
             if (block.getType() == getItem().getType() && BlockStorage.check(block, getId())) {
                 String raw = BlockStorage.getLocationInfo(block.getLocation(), DATA_KEY);
-                String name = ChatColors.color(raw != null ? raw : "Floor #" + index);
+                String name = ChatColors.color(raw != null ? raw : "楼层 " + index);
                 floors.addFirst(new ElevatorFloor(name, index, block));
                 index++;
             }
@@ -239,7 +239,7 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
         ChestMenu menu = new ChestMenu(Slimefun.getLocalization().getMessage(p, "machines.ELEVATOR.editor-title"));
 
         String currentName = BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY);
-        menu.addItem(4, CustomItemStack.create(Material.NAME_TAG, "&7Floor Name &e(Click to edit)", "", ChatColor.WHITE + ChatColors.color(currentName != null ? currentName : "Floor #0")));
+        menu.addItem(4, CustomItemStack.create(Material.NAME_TAG, "&7楼层名称 &e（点击编辑）", "", ChatColor.WHITE + ChatColors.color(currentName != null ? currentName : "Floor #0")));
         menu.addMenuClickHandler(4, (pl, slot, item, action) -> {
             pl.closeInventory();
             pl.sendMessage("");

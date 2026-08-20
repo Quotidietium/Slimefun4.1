@@ -112,7 +112,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
 
             @Override
             public void newInstance(BlockMenu menu, Block b) {
-                menu.replaceExistingItem(15, CustomItemStack.create(HeadTexture.SCRIPT_START.getAsItemStack(), "&aStart/Continue"));
+                menu.replaceExistingItem(15, CustomItemStack.create(HeadTexture.SCRIPT_START.getAsItemStack(), "&a启动/继续"));
                 menu.addMenuClickHandler(15, (p, slot, item, action) -> {
                     Slimefun.getLocalization().sendMessage(p, "android.started", true);
                     BlockStorage.addBlockInfo(b, "paused", "false");
@@ -120,14 +120,14 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                     return false;
                 });
 
-                menu.replaceExistingItem(17, CustomItemStack.create(HeadTexture.SCRIPT_PAUSE.getAsItemStack(), "&4Pause"));
+                menu.replaceExistingItem(17, CustomItemStack.create(HeadTexture.SCRIPT_PAUSE.getAsItemStack(), "&4暂停"));
                 menu.addMenuClickHandler(17, (p, slot, item, action) -> {
                     BlockStorage.addBlockInfo(b, "paused", "true");
                     Slimefun.getLocalization().sendMessage(p, "android.stopped", true);
                     return false;
                 });
 
-                menu.replaceExistingItem(16, CustomItemStack.create(HeadTexture.ENERGY_REGULATOR.getAsItemStack(), "&bMemory Core", "", "&8\u21E8 &7Click to open the Script Editor"));
+                menu.replaceExistingItem(16, CustomItemStack.create(HeadTexture.ENERGY_REGULATOR.getAsItemStack(), "&b内存核心", "", "&8\u21E8 &7点击打开脚本编辑器"));
                 menu.addMenuClickHandler(16, (p, slot, item, action) -> {
                     BlockStorage.addBlockInfo(b, "paused", "true");
                     Slimefun.getLocalization().sendMessage(p, "android.stopped", true);
@@ -246,7 +246,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         ChestMenu menu = new ChestMenu(ChatColor.DARK_AQUA + Slimefun.getLocalization().getMessage(p, "android.scripts.editor"));
         menu.setEmptySlotsClickable(false);
 
-        menu.addItem(0, CustomItemStack.create(Instruction.START.getItem(), Slimefun.getLocalization().getMessage(p, "android.scripts.instructions.START"), "", "&7\u21E8 &eLeft Click &7to return to the Android's interface"));
+        menu.addItem(0, CustomItemStack.create(Instruction.START.getItem(), Slimefun.getLocalization().getMessage(p, "android.scripts.instructions.START"), "", "&7\u21E8 &e左键 &7返回机器人界面"));
         menu.addMenuClickHandler(0, (pl, slot, item, action) -> {
             BlockMenu inv = BlockStorage.getInventory(b);
             // Fixes #2937
@@ -267,7 +267,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                 boolean hasFreeSlot = script.length < 54;
 
                 if (hasFreeSlot) {
-                    menu.addItem(i, CustomItemStack.create(HeadTexture.SCRIPT_NEW.getAsItemStack(), "&7> Add new Command"));
+                    menu.addItem(i, CustomItemStack.create(HeadTexture.SCRIPT_NEW.getAsItemStack(), "&7> 添加新指令"));
                     menu.addMenuClickHandler(i, (pl, slot, item, action) -> {
                         editInstruction(pl, b, script, index);
                         return false;
@@ -275,7 +275,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                 }
 
                 int slot = i + (hasFreeSlot ? 1 : 0);
-                menu.addItem(slot, CustomItemStack.create(Instruction.REPEAT.getItem(), Slimefun.getLocalization().getMessage(p, "android.scripts.instructions.REPEAT"), "", "&7\u21E8 &eLeft Click &7to return to the Android's interface"));
+                menu.addItem(slot, CustomItemStack.create(Instruction.REPEAT.getItem(), Slimefun.getLocalization().getMessage(p, "android.scripts.instructions.REPEAT"), "", "&7\u21E8 &e左键 &7返回机器人界面"));
                 menu.addMenuClickHandler(slot, (pl, s, item, action) -> {
                     BlockMenu inv = BlockStorage.getInventory(b);
                     // Fixes #2937
@@ -295,7 +295,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
                 }
 
                 ItemStack stack = instruction.getItem();
-                menu.addItem(i, CustomItemStack.create(stack, Slimefun.getLocalization().getMessage(p, "android.scripts.instructions." + instruction.name()), "", "&7\u21E8 &eLeft Click &7to edit", "&7\u21E8 &eRight Click &7to delete", "&7\u21E8 &eShift + Right Click &7to duplicate"));
+                menu.addItem(i, CustomItemStack.create(stack, Slimefun.getLocalization().getMessage(p, "android.scripts.instructions." + instruction.name()), "", "&7\u21E8 &e左键 &7编辑", "&7\u21E8 &e右键 &7删除", "&7\u21E8 &eShift + 右键 &7复制"));
                 menu.addMenuClickHandler(i, (pl, slot, item, action) -> {
                     if (action.isRightClicked() && action.isShiftClicked()) {
                         if (script.length == 54) {
@@ -406,7 +406,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             return false;
         });
 
-        menu.addItem(48, CustomItemStack.create(HeadTexture.SCRIPT_UP.getAsItemStack(), "&eUpload a Script", "", "&6Click &7to upload your Android's Script", "&7to the Server's database"));
+        menu.addItem(48, CustomItemStack.create(HeadTexture.SCRIPT_UP.getAsItemStack(), "&e上传脚本", "", "&6点击 &7将你的机器人脚本", "&7上传到服务器数据库"));
         menu.addMenuClickHandler(48, (pl, slot, item, action) -> {
             uploadScript(pl, b, page);
             return false;
@@ -424,7 +424,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             return false;
         });
 
-        menu.addItem(53, CustomItemStack.create(HeadTexture.SCRIPT_LEFT.getAsItemStack(), "&6> Back", "", "&7Return to the Android's interface"));
+        menu.addItem(53, CustomItemStack.create(HeadTexture.SCRIPT_LEFT.getAsItemStack(), "&6> 返回", "", "&7返回机器人界面"));
         menu.addMenuClickHandler(53, (pl, slot, item, action) -> {
             openScriptEditor(pl, b);
             return false;
@@ -503,7 +503,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         ChestMenu menu = new ChestMenu(ChatColor.DARK_AQUA + Slimefun.getLocalization().getMessage(p, "android.scripts.editor"));
         menu.setEmptySlotsClickable(false);
 
-        menu.addItem(1, CustomItemStack.create(HeadTexture.SCRIPT_FORWARD.getAsItemStack(), "&2> Edit Script", "", "&aEdits your current Script"));
+        menu.addItem(1, CustomItemStack.create(HeadTexture.SCRIPT_FORWARD.getAsItemStack(), "&2> 编辑脚本", "", "&a编辑你当前的脚本"));
         menu.addMenuClickHandler(1, (pl, slot, item, action) -> {
             String script = BlockStorage.getLocationInfo(b.getLocation()).getString("script");
             // Fixes #2937
@@ -520,19 +520,19 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             return false;
         });
 
-        menu.addItem(3, CustomItemStack.create(HeadTexture.SCRIPT_NEW.getAsItemStack(), "&4> Create new Script", "", "&cDeletes your current Script", "&cand creates a blank one"));
+        menu.addItem(3, CustomItemStack.create(HeadTexture.SCRIPT_NEW.getAsItemStack(), "&4> 新建脚本", "", "&c删除你当前的脚本", "&c并创建一个空白脚本"));
         menu.addMenuClickHandler(3, (pl, slot, item, action) -> {
             openScript(pl, b, DEFAULT_SCRIPT);
             return false;
         });
 
-        menu.addItem(5, CustomItemStack.create(HeadTexture.SCRIPT_DOWN.getAsItemStack(), "&6> Download a Script", "", "&eDownload a Script from the Server", "&eYou can edit or simply use it"));
+        menu.addItem(5, CustomItemStack.create(HeadTexture.SCRIPT_DOWN.getAsItemStack(), "&6> 下载脚本", "", "&e从服务器下载一个脚本", "&e你可以编辑或直接使用"));
         menu.addMenuClickHandler(5, (pl, slot, item, action) -> {
             openScriptDownloader(pl, b, 1);
             return false;
         });
 
-        menu.addItem(8, CustomItemStack.create(HeadTexture.SCRIPT_LEFT.getAsItemStack(), "&6> Back", "", "&7Return to the Android's interface"));
+        menu.addItem(8, CustomItemStack.create(HeadTexture.SCRIPT_LEFT.getAsItemStack(), "&6> 返回", "", "&7返回机器人界面"));
         menu.addMenuClickHandler(8, (pl, slot, item, action) -> {
             BlockMenu inv = BlockStorage.getInventory(b);
             // Fixes #2937
@@ -569,7 +569,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
         ChestMenuUtils.drawBackground(menu, 0, 1, 2, 3, 4, 5, 6, 7, 8);
 
         menu.setEmptySlotsClickable(false);
-        menu.addItem(9, CustomItemStack.create(HeadTexture.SCRIPT_PAUSE.getAsItemStack(), "&fDo nothing"), (pl, slot, item, action) -> {
+        menu.addItem(9, CustomItemStack.create(HeadTexture.SCRIPT_PAUSE.getAsItemStack(), "&f无操作"), (pl, slot, item, action) -> {
             String code = deleteInstruction(script, index);
 
             if (applyScriptChange(p, b, code)) {
@@ -699,7 +699,7 @@ public class ProgrammableAndroid extends SlimefunItem implements InventoryBlock,
             ItemStack item = fuel.getInput().clone();
             ItemMeta im = item.getItemMeta();
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColors.color("&8\u21E8 &7Lasts " + NumberUtils.getTimeLeft(fuel.getTicks() / 2)));
+            lore.add(ChatColors.color("&8\u21E8 &7剩余 " + NumberUtils.getTimeLeft(fuel.getTicks() / 2)));
             im.setLore(lore);
             item.setItemMeta(im);
             list.add(item);

@@ -138,7 +138,7 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
         ChestMenu menu = new ChestMenu(Slimefun.getLocalization().getMessage(p, "machines.HOLOGRAM_PROJECTOR.inventory-title"));
 
         String text = BlockStorage.getLocationInfo(projector.getLocation(), "text");
-        menu.addItem(0, CustomItemStack.create(Material.NAME_TAG, "&7Text &e(Click to edit)", "", "&f" + ChatColors.color(text != null ? text : "")));
+        menu.addItem(0, CustomItemStack.create(Material.NAME_TAG, "&7文本 &e（点击编辑）", "", "&f" + ChatColors.color(text != null ? text : "")));
         menu.addMenuClickHandler(0, (pl, slot, item, action) -> {
             pl.closeInventory();
             Slimefun.getLocalization().sendMessage(pl, "machines.HOLOGRAM_PROJECTOR.enter-text", true);
@@ -157,7 +157,7 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
             return false;
         });
 
-        menu.addItem(1, CustomItemStack.create(Material.CLOCK, "&7Offset: &e" + NumberUtils.roundDecimalNumber(getOffset(projector) + 1.0D), "", "&fLeft Click: &7+0.1", "&fRight Click: &7-0.1"));
+        menu.addItem(1, CustomItemStack.create(Material.CLOCK, "&7偏移： &e" + NumberUtils.roundDecimalNumber(getOffset(projector) + 1.0D), "", "&f左键： &7+0.1", "&f右键： &7-0.1"));
         menu.addMenuClickHandler(1, (pl, slot, item, action) -> {
             double offset = NumberUtils.reparseDouble(getOffset(projector) + (action.isRightClicked() ? -0.1F : 0.1F));
             updateOffset(pl, projector, offset);
