@@ -64,7 +64,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack MEDICINE = new SlimefunItemStack("MEDICINE", Material.POTION, Color.RED, "&c药品", "", "&a等级 III - 医疗用品", "", "&f恢复 4 颗心", "&f扑灭火焰", "&f治愈中毒/凋零/辐射");
     public static final SlimefunItemStack MAGICAL_ZOMBIE_PILLS = new SlimefunItemStack("MAGICAL_ZOMBIE_PILLS", Material.NETHER_WART, "&6魔法僵尸药丸", "", "&e右键 &7僵尸村民", "&e或 &7僵尸猪灵，", "&7立即治愈其诅咒");
 
-    public static final SlimefunItemStack FLASK_OF_KNOWLEDGE = new SlimefunItemStack("FLASK_OF_KNOWLEDGE", Material.GLASS_BOTTLE, "&c知识之瓶", "", "&f允许你储存部分", "&f将你的经验封入瓶中", "&7花费： &a1 级");
+    public static final SlimefunItemStack FLASK_OF_KNOWLEDGE = new SlimefunItemStack("FLASK_OF_KNOWLEDGE", Material.GLASS_BOTTLE, "&c知识之瓶", "", "&f允许你将部分经验", "&f封存到瓶中", "&7花费： &a1 级");
     public static final SlimefunItemStack FILLED_FLASK_OF_KNOWLEDGE = new SlimefunItemStack("FILLED_FLASK_OF_KNOWLEDGE", Material.EXPERIENCE_BOTTLE, "&a装满的知识之瓶");
 
     /* Backpacks */
@@ -421,7 +421,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack ANCIENT_PEDESTAL = new SlimefunItemStack("ANCIENT_PEDESTAL", Material.DISPENSER, "&d古代基座", "", "&5古代祭坛的组成部分");
     public static final SlimefunItemStack ANCIENT_ALTAR = new SlimefunItemStack("ANCIENT_ALTAR", Material.ENCHANTING_TABLE, "&d古代祭坛", "", "&5用于魔法合成过程的", "&5多方块祭坛");
     public static final SlimefunItemStack COPPER_WIRE = new SlimefunItemStack("COPPER_WIRE", Material.STRING, "&6铜线", "", "&6电力模块中的关键部件");
-    public static final SlimefunItemStack CRAFTING_MOTOR = new SlimefunItemStack("CRAFTING_MOTOR", HeadTexture.CRAFTING_MOTOR, "&6合成马达", "", "&7重要组成部分");
+    public static final SlimefunItemStack CRAFTING_MOTOR = new SlimefunItemStack("CRAFTING_MOTOR", HeadTexture.CRAFTING_MOTOR, "&6合成马达", "", "&7自动合成器的重要组成部分");
 
     /* Rainbow blocks */
     public static final SlimefunItemStack RAINBOW_WOOL = new SlimefunItemStack("RAINBOW_WOOL", Material.WHITE_WOOL, "&5彩虹羊毛", "", LoreBuilder.RAINBOW);
@@ -650,8 +650,8 @@ public final class SlimefunItems {
 
     public static final SlimefunItemStack RAINBOW_RUNE = new SlimefunItemStack("ANCIENT_RUNE_RAINBOW", ColoredFireworkStar.create(Color.FUCHSIA, "&7古代符文 &8&l[&d&l彩虹&8&l]"));
     public static final SlimefunItemStack LIGHTNING_RUNE = new SlimefunItemStack("ANCIENT_RUNE_LIGHTNING", ColoredFireworkStar.create(Color.fromRGB(255, 255, 95), "&7古代符文 &8&l[&e&l闪电&8&l]"));
-    public static final SlimefunItemStack SOULBOUND_RUNE = new SlimefunItemStack("ANCIENT_RUNE_SOULBOUND", ColoredFireworkStar.create(Color.fromRGB(47, 0, 117), "&7古代符文 &8&l[&5&l灵魂绑定&8&l]", "&e将此符文丢到掉落物上，", "&5绑定&f到你的灵魂。", " ", "&e建议仅将此符文用于", "&e&6重要&e的物品上。", " ", "&e灵魂绑定的物品不会在死亡时掉落。"));
-    public static final SlimefunItemStack ENCHANTMENT_RUNE = new SlimefunItemStack("ANCIENT_RUNE_ENCHANTMENT", ColoredFireworkStar.create(Color.fromRGB(255, 217, 25), "&7古代符文 &8&l[&6&l附魔&8&l]", "&e将此符文丢到掉落物上，", "&6附魔&f上随机附魔。"));
+    public static final SlimefunItemStack SOULBOUND_RUNE = new SlimefunItemStack("ANCIENT_RUNE_SOULBOUND", ColoredFireworkStar.create(Color.fromRGB(47, 0, 117), "&7古代符文 &8&l[&5&l灵魂绑定&8&l]", "&e将此符文丢到掉落物上，", "&5将那个物品&f绑定到你的灵魂。", " ", "&e建议仅将此符文用于", "&e&6重要&e的物品上。", " ", "&e灵魂绑定的物品不会在死亡时掉落。"));
+    public static final SlimefunItemStack ENCHANTMENT_RUNE = new SlimefunItemStack("ANCIENT_RUNE_ENCHANTMENT", ColoredFireworkStar.create(Color.fromRGB(255, 217, 25), "&7古代符文 &8&l[&6&l附魔&8&l]", "&e将此符文丢到掉落物上，", "&6为其附上&f随机附魔。"));
     public static final SlimefunItemStack VILLAGER_RUNE = new SlimefunItemStack("ANCIENT_RUNE_VILLAGERS", ColoredFireworkStar.create(Color.fromRGB(160, 20, 5), "&7古代符文 &8&l[&4&l村民&8&l]", "&e右键村民以清除", "&e当前的职业和交易。", "&e该村民会在一段时间后", "&e重新开始寻找", "&e新的工作。"));
 
     /* Electricity */
