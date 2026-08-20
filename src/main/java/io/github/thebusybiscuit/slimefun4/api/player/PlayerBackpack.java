@@ -103,7 +103,7 @@ public class PlayerBackpack {
         cfg.setValue(CONFIG_PREFIX + id + ".size", size);
         markDirty();
 
-        inventory = Bukkit.createInventory(null, size, "Backpack [" + size + " Slots]");
+        inventory = Bukkit.createInventory(null, size, "背包 [" + size + " 格]");
     }
 
     /**
@@ -225,7 +225,7 @@ public class PlayerBackpack {
             }
         }
 
-        Inventory inv = Bukkit.createInventory(null, size, "Backpack [" + size + " Slots]");
+        Inventory inv = Bukkit.createInventory(null, size, "背包 [" + size + " 格]");
 
         /*
          * Copy at most as many slots as the new inventory offers - previously the
@@ -281,7 +281,7 @@ public class PlayerBackpack {
 
     private void setContents(int size, HashMap<Integer, ItemStack> contents) {
         if (this.inventory == null) {
-            this.inventory = Bukkit.createInventory(null, size, "Backpack [" + size + " Slots]");
+            this.inventory = Bukkit.createInventory(null, size, "背包 [" + size + " 格]");
         }
 
         for (int i = 0; i < size; i++) {

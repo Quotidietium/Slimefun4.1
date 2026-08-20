@@ -61,7 +61,7 @@ public class ReactorAccessPort extends SlimefunItem {
         addItemHandler(onBreak());
         addItemHandler(onPlace());
 
-        new BlockMenuPreset(getId(), "&2Reactor Access Port") {
+        new BlockMenuPreset(getId(), "&2反应堆接入端口") {
 
             @Override
             public void init() {
