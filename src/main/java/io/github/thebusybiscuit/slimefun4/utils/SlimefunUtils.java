@@ -73,6 +73,13 @@ public final class SlimefunUtils {
     private static final String NO_PICKUP_METADATA = "no_pickup";
     private static final String SOULBOUND_LORE = ChatColor.GRAY + "Soulbound";
 
+    /**
+     * The localized (Chinese) variant of {@link #SOULBOUND_LORE}. New soulbound items carry this line;
+     * both the English legacy line and this one are honoured when reading (see {@link #isSoulbound(ItemStack, World)}),
+     * so pre-localization saves keep working.
+     */
+    private static final String SOULBOUND_LORE_LOCALIZED = ChatColor.GRAY + "灵魂绑定";
+
     private SlimefunUtils() {}
 
     /**
@@ -148,7 +155,7 @@ public final class SlimefunUtils {
                 } else {
                     return !sfItem.isDisabled();
                 }
-            } else if (meta != null && hasSoulboundFlag(meta) && meta.hasLore() && meta.getLore().contains(SOULBOUND_LORE)) {
+            } else if (meta != null && hasSoulboundFlag(meta) && meta.hasLore() && (meta.getLore().contains(SOULBOUND_LORE) || meta.getLore().contains(SOULBOUND_LORE_LOCALIZED))) {
                 // Legacy soulbound marker. We require BOTH the PDC flag and the lore line:
                 // lore alone is player-forgeable, so honouring lore by itself would let anyone
                 // mark arbitrary items (e.g. shulker boxes) as soulbound and keep them on death.
@@ -207,11 +214,12 @@ public final class SlimefunUtils {
         List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
 
         if (makeSoulbound && !isSoulbound) {
-            lore.add(SOULBOUND_LORE);
+            lore.add(SOULBOUND_LORE_LOCALIZED);
         }
 
         if (!makeSoulbound && isSoulbound) {
             lore.remove(SOULBOUND_LORE);
+            lore.remove(SOULBOUND_LORE_LOCALIZED);
         }
 
         meta.setLore(lore);
