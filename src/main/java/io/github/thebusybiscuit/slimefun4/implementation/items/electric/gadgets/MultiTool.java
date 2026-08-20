@@ -43,8 +43,10 @@ public class MultiTool extends SlimefunItem implements Rechargeable {
     private final float capacity;
 
     private static final NamespacedKey key = new NamespacedKey(Slimefun.instance(), "multitool_mode");
-    private static final String LORE_PREFIX = ChatColors.color("&8\u21E8 &7Mode: ");
-    private static final Pattern REGEX = Pattern.compile(ChatColors.color("(&c&o)?" + LORE_PREFIX) + "(.+)");
+    private static final String LORE_PREFIX = ChatColors.color("&8\u21E8 &7模式： ");
+    private static final String LORE_PREFIX_LEGACY = ChatColors.color("&8\u21E8 &7Mode: ");
+    // Matches both the legacy English prefix (pre-localization saves) and the localized one.
+    private static final Pattern REGEX = Pattern.compile(ChatColors.color("(&c&o)?") + "(?:" + Pattern.quote(LORE_PREFIX_LEGACY) + "|" + Pattern.quote(LORE_PREFIX) + ")" + "(.+)");
 
     @ParametersAreNonnullByDefault
     public MultiTool(ItemGroup itemGroup, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, float capacity, String... items) {
