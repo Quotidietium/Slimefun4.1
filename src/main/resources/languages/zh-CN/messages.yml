@@ -157,7 +157,7 @@ messages:
   usage: '&4用法: &c%usage%'
   not-online: '&4%player% &c不在线'
   invalid-item: '&4%item% &c不是一个有效的物品名!'
-  invalid-amount: '&4%amount% &ci不是一个有效的数字 : 它必须大于 0!'
+  invalid-amount: '&4%amount% &c不是一个有效的数字 : 它必须大于 0!'
   given-item: '&b你获得了 &a%amount% &7"%item%&7"'
   give-item: '&b成功给予玩家 %player% &a%amount% &7"%item%&7"'
   invalid-research: '&4%research% &c不是一个有效的研究名!'
@@ -279,7 +279,7 @@ machines:
     enter-text: '&7请写下想显示在全息文本上的话. &r(支持颜色代码)'
     inventory-title: '全息图像编辑器'
   ELEVATOR:
-    no-destinations: '&4找不到上下楼'
+    no-destinations: '&4未找到其它楼层'
     pick-a-floor: '&3- 选择一个楼层 -'
     current-floor: '&e你现在所在的楼层:'
     click-to-teleport: '&e单击 &7传送至楼层:'
