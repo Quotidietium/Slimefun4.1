@@ -80,7 +80,7 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
     public SurvivalSlimefunGuide(boolean showVanillaRecipes, boolean showHiddenItemGroupsInSearch) {
         this.showVanillaRecipes = showVanillaRecipes;
         this.showHiddenItemGroupsInSearch = showHiddenItemGroupsInSearch;
-        item = new SlimefunGuideItem(this, "&aSlimefun Guide &7(Chest GUI)");
+        item = new SlimefunGuideItem(this, "&aSlimefun 指南 &7(箱界面)");
     }
 
     @Override
@@ -293,7 +293,7 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
             menu.addItem(index, CustomItemStack.create(ChestMenuUtils.getNoPermissionItem(), Slimefun.getLocalization().getDisplayName(p, sfitem), message.toArray(new String[0])));
             menu.addMenuClickHandler(index, ChestMenuUtils.getEmptyClickHandler());
         } else if (isSurvivalMode() && research != null && !profile.hasUnlocked(research)) {
-            menu.addItem(index, CustomItemStack.create(ChestMenuUtils.getNotResearchedItem(), ChatColor.WHITE + Slimefun.getLocalization().getDisplayName(p, sfitem), "&4&l" + Slimefun.getLocalization().getMessage(p, "guide.locked"), "", "&a> Click to unlock", "", "&7Cost: &b" + research.getCost() + " Level(s)"));
+            menu.addItem(index, CustomItemStack.create(ChestMenuUtils.getNotResearchedItem(), ChatColor.WHITE + Slimefun.getLocalization().getDisplayName(p, sfitem), "&4&l" + Slimefun.getLocalization().getMessage(p, "guide.locked"), "", "&a> 点击解锁", "", "&7花费： &b" + research.getCost() + " 级"));
             menu.addMenuClickHandler(index, (pl, slot, item, action) -> {
                 research.unlockFromGuide(this, p, profile, sfitem, itemGroup, page);
                 return false;
@@ -493,7 +493,7 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
             recipeType = new RecipeType(optional.get());
             result = recipe.getResult();
         } else {
-            recipeItems = new ItemStack[] { null, null, null, null, CustomItemStack.create(Material.BARRIER, "&4We are somehow unable to show you this Recipe :/"), null, null, null, null };
+            recipeItems = new ItemStack[] { null, null, null, null, CustomItemStack.create(Material.BARRIER, "&4无法向您展示此配方 :/"), null, null, null, null };
         }
 
         ChestMenu menu = create(p);
@@ -668,7 +668,7 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
         GuideHistory history = profile.getGuideHistory();
 
         if (isSurvivalMode() && history.size() > 1) {
-            menu.addItem(slot, ChestMenuUtils.getBackButton(p, "", "&fLeft Click: &7Go back to previous Page", "&fShift + left Click: &7Go back to Main Menu"));
+            menu.addItem(slot, ChestMenuUtils.getBackButton(p, "", "&f左键： &7返回上一页", "&fShift + 左键： &7返回主菜单"));
 
             menu.addMenuClickHandler(slot, (pl, s, is, action) -> {
                 if (action.isShiftClicked()) {
@@ -697,7 +697,7 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
                 return item;
             }
 
-            String lore = hasPermission(p, slimefunItem) ? "&fNeeds to be unlocked in " + slimefunItem.getItemGroup().getDisplayName(p) : "&fNo Permission";
+            String lore = hasPermission(p, slimefunItem) ? "&f需要先解锁 " + slimefunItem.getItemGroup().getDisplayName(p) + " &f分类" : "&f无权限";
             return slimefunItem.canUse(p, false) ? Slimefun.getLocalization().getLocalizedItem(p, slimefunItem) : CustomItemStack.create(Material.BARRIER, Slimefun.getLocalization().getDisplayName(p, slimefunItem), "&4&l" + Slimefun.getLocalization().getMessage(p, "guide.locked"), "", lore);
         } else {
             return item;
