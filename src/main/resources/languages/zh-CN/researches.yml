@@ -53,7 +53,7 @@ slimefun:
   gold_carats: 炼制纯金
   silicon: 硅谷
   fire_staff: 火之法杖
-  smelters_pickaxe: 熔炉镐
+  smelters_pickaxe: 冶炼工之镐
   common_talisman: 普通护身符
   anvil_talisman: 铁砧护身符
   miner_talisman: 矿工护身符
@@ -83,7 +83,7 @@ slimefun:
   first_aid: 急救
   gold_armor: 闪闪发光的套装
   night_vision_googles: 夜视镜
-  pickaxe_of_containment: 刷怪笼之镐
+  pickaxe_of_containment: 收容之镐
   hercules_pickaxe: 赫拉克勒斯之镐
   table_saw: 桌锯
   slime_steel_armor: 史莱姆钢套装
@@ -120,7 +120,7 @@ slimefun:
   enhanced_furnace: 强化熔炉
   more_enhanced_furnaces: 更好的熔炉
   high_tier_enhanced_furnaces: 高级熔炉
-  reinforced_furnace: 强化熔炉
+  reinforced_furnace: 强化（高级）熔炉
   carbonado_furnace: 黑金刚石刃口熔炉
   electric_motor: 热起来吧
   block_placer: 方块放置器
@@ -144,7 +144,7 @@ slimefun:
   android_memory_core: 记忆核心
   oil: 原油
   fuel: 燃油
-  hologram_projector: 全息图像
+  hologram_projector: 全息投影
   capacitors: 一级电容
   high_tier_capacitors: 二级电容
   even_higher_tier_capacitors: 三级电容
@@ -159,7 +159,7 @@ slimefun:
   multimeter: 能量测量
   gps_setup: 基础 GPS 设备
   gps_emergency_transmitter: GPS 应急传送点
-  programmable_androids: 可编程式机器人
+  programmable_androids: 可编程机器人
   android_interfaces: 机器人接口
   geo_scanner: GEO 扫描
   combustion_reactor: 燃烧反应堆
@@ -185,7 +185,7 @@ slimefun:
   better_crop_growth_accelerator: 更好的作物生长加速器
   reactor_essentials: 反应堆基础
   nuclear_reactor: 核电站
-  freezer: 冰箱先生
+  freezer: 急冻先生
   cargo_basics: 基础货运
   cargo_nodes: 货运设施
   electric_ingot_machines: 电力铸锭
@@ -195,7 +195,7 @@ slimefun:
   better_food_fabricator: 更好的食物制造机
   reactor_access_port: 反应堆交互
   fluid_pump: 流体泵
-  better_freezer: 更好的冰箱
+  better_freezer: 更好的冷冻机
   boosted_uranium: 永无止境的循环
   trash_can: 垃圾桶
   advanced_output_node: 高级输出节点
@@ -207,7 +207,7 @@ slimefun:
   empowered_butcher_android: 强化屠夫机器人
   empowered_fisherman_android: 强化渔夫机器人
   high_tier_carbon_press: 终极碳压机
-  wither_assembler: 自动化击杀凋零
+  wither_assembler: 自动化击杀凋灵
   better_heated_pressure_chamber: 更好的加热压力舱
   elytra: 鞘翅
   special_elytras: 特殊鞘翅
@@ -225,7 +225,7 @@ slimefun:
   copper_wire: 更好的导体
   radiant_backpack: 金光闪闪的背包
   auto_drier: 自动烘干机
-  diet_cookie: 减肥曲奇
+  diet_cookie: 减肥饼干
   storm_staff: 雷之法杖
   soulbound_rune: 灵魂绑定符文
   geo_miner: GEO 采矿机
