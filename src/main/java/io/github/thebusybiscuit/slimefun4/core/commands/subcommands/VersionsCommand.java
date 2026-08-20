@@ -161,7 +161,7 @@ class VersionsCommand extends SubCommand {
                     hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder()
                         .append("该插件已被禁用。\n请查看控制台中的错误信息。")
                         .color(ChatColor.RED)
-                        .append("\n> Click here to report on their issues tracker")
+                        .append("\n> 点击此处前往其问题反馈页面报告")
                         .color(ChatColor.DARK_RED)
                         .create()
                     ));

@@ -167,7 +167,7 @@ public class IndustrialMiner extends MultiBlockMachine {
             ItemStack item = fuel.getInput().clone();
             ItemMeta im = item.getItemMeta();
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColors.color("&8\u21E8 &7最多可挖 " + fuel.getTicks() + " Ores"));
+            lore.add(ChatColors.color("&8\u21E8 &7最多可挖 " + fuel.getTicks() + " 个矿石"));
             im.setLore(lore);
             item.setItemMeta(im);
             list.add(item);

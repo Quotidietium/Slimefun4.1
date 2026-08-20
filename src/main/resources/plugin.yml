@@ -69,7 +69,7 @@ permissions:
     description: 允许你使用 /sf debug
     default: op
   slimefun.android.bypass:
-    description: Allows you to edit other Players Androids
+    description: 允许你编辑其他玩家的机器人
     default: op
   slimefun.cargo.bypass:
     description: Allows you to edit other Players Cargo Blocks

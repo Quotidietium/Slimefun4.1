@@ -45,13 +45,13 @@ public final class SlimefunItems {
     public static final SlimefunItemStack TAPE_MEASURE = new SlimefunItemStack("TAPE_MEASURE", "180d5c43a6cf5bb7769fd0c8240e1e70d2ae38ef9d78a1db401aca6a2cb36f65", "&6卷尺", "", "&e潜行 & 右键 &7设置锚点", "&e右键 &7测量");
 
     /* Gadgets */
-    public static final SlimefunItemStack GOLD_PAN = new SlimefunItemStack("GOLD_PAN", Material.BOWL, "&6淘金盘", "", "&e右键&7收集资源", "&7从沙砾中");
-    public static final SlimefunItemStack NETHER_GOLD_PAN = new SlimefunItemStack("NETHER_GOLD_PAN", Material.BOWL, "&4下界淘金盘", "", "&e右键&7收集资源", "&7从灵魂沙中");
+    public static final SlimefunItemStack GOLD_PAN = new SlimefunItemStack("GOLD_PAN", Material.BOWL, "&6淘金盘", "", "&e右键&7收集资源", "&7（从沙砾中）");
+    public static final SlimefunItemStack NETHER_GOLD_PAN = new SlimefunItemStack("NETHER_GOLD_PAN", Material.BOWL, "&4下界淘金盘", "", "&e右键&7收集资源", "&7（从灵魂沙中）");
     public static final SlimefunItemStack PARACHUTE = new SlimefunItemStack("PARACHUTE", Material.LEATHER_CHESTPLATE, Color.WHITE, "&f&l降落伞", "", LoreBuilder.CROUCH_TO_USE);
     public static final SlimefunItemStack GRAPPLING_HOOK = new SlimefunItemStack("GRAPPLING_HOOK", Material.LEAD, "&6抓钩", "", LoreBuilder.RIGHT_CLICK_TO_USE);
     public static final SlimefunItemStack SOLAR_HELMET = new SlimefunItemStack("SOLAR_HELMET", Material.IRON_HELMET, "&b太阳能头盔", "", "&a&o为手持物品与盔甲充电");
     public static final SlimefunItemStack CLOTH = new SlimefunItemStack("CLOTH", Material.PAPER, "&b布料");
-    public static final SlimefunItemStack REINFORCED_CLOTH = new SlimefunItemStack("REINFORCED_CLOTH", Material.PAPER, "&b强化布料", "", "&f这块布料经过 &b铅&f强化，", "&f以抵御放射性物质", "&f以抵御放射性物质");
+    public static final SlimefunItemStack REINFORCED_CLOTH = new SlimefunItemStack("REINFORCED_CLOTH", Material.PAPER, "&b强化布料", "", "&f这块布料经过 &b铅&f强化，", "&f可抵御", "&f放射性物质");
     public static final SlimefunItemStack TIN_CAN = new SlimefunItemStack("CAN", HeadTexture.TIN_CAN, "&f锡罐");
     public static final SlimefunItemStack NIGHT_VISION_GOGGLES = new SlimefunItemStack("NIGHT_VISION_GOGGLES", Material.LEATHER_HELMET, Color.BLACK, "&a夜视仪", "", "&9+ 夜视");
     public static final SlimefunItemStack ELYTRA_CAP = new SlimefunItemStack("ELYTRA_CAP", Material.LEATHER_HELMET, Color.PURPLE, "&5鞘翅帽", "", "&7这顶头盔可以保护你", "&7在鞘翅飞行时坠地受伤。");
@@ -76,7 +76,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack GILDED_BACKPACK = new SlimefunItemStack("GILDED_BACKPACK", HeadTexture.BACKPACK, "&e镀金背包", "", "&7容量： &e45", BACKPACK_ID, "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
     public static final SlimefunItemStack RADIANT_BACKPACK = new SlimefunItemStack("RADIANT_BACKPACK", HeadTexture.BACKPACK, "&e闪耀背包", "", "&7容量： &e54（双箱）", BACKPACK_ID, "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
     public static final SlimefunItemStack BOUND_BACKPACK = new SlimefunItemStack("BOUND_BACKPACK", HeadTexture.ENDER_BACKPACK, "&c灵魂绑定背包", "", "&7容量： &e36", BACKPACK_ID, "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
-    public static final SlimefunItemStack COOLER = new SlimefunItemStack("COOLER", HeadTexture.COOLER, "&b冷藏箱", "&f允许你储存果汁/冰沙", "&f并在你饥饿时自动食用", "&f且你背包中有此物品时，", "", "&7容量： &e27", BACKPACK_ID, "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
+    public static final SlimefunItemStack COOLER = new SlimefunItemStack("COOLER", HeadTexture.COOLER, "&b冷藏箱", "&f允许你储存果汁/冰沙", "&f并在你饥饿时自动食用", "&f（需将它放在背包中）", "", "&7容量： &e27", BACKPACK_ID, "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
     public static final SlimefunItemStack RESTORED_BACKPACK = new SlimefunItemStack("RESTORED_BACKPACK", HeadTexture.RESTORED_BACKPACK, "&e恢复的背包", "", "&7取回你丢失的物品", BACKPACK_ID, "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
 
     /* Jetpacks */
@@ -174,7 +174,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack CHRISTMAS_CARAMEL = new SlimefunItemStack("CHRISTMAS_CARAMEL", Material.BRICK, "&6焦糖");
     public static final SlimefunItemStack CHRISTMAS_CARAMEL_APPLE = new SlimefunItemStack("CHRISTMAS_CARAMEL_APPLE", Material.APPLE, "&6焦糖苹果");
     public static final SlimefunItemStack CHRISTMAS_CHOCOLATE_APPLE = new SlimefunItemStack("CHRISTMAS_CHOCOLATE_APPLE", Material.APPLE, "&6巧克力苹果");
-    public static final SlimefunItemStack CHRISTMAS_PRESENT = new SlimefunItemStack("CHRISTMAS_PRESENT", HeadTexture.CHRISTMAS_PRESENT, ChatUtils.christmas("Christmas Present"), "&7来自：&cTheBusyBiscuit", "&7授予： &e你", "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
+    public static final SlimefunItemStack CHRISTMAS_PRESENT = new SlimefunItemStack("CHRISTMAS_PRESENT", HeadTexture.CHRISTMAS_PRESENT, ChatUtils.christmas("圣诞节礼物"), "&7来自：&cTheBusyBiscuit", "&7送给： &e你", "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
 
     /* Easter */
     public static final SlimefunItemStack EASTER_EGG = new SlimefunItemStack("EASTER_EGG", HeadTexture.EASTER_EGG, "&f复活节彩蛋", "&d复活节快乐！送你一份惊喜。", "", LoreBuilder.RIGHT_CLICK_TO_OPEN);
@@ -184,7 +184,7 @@ public final class SlimefunItems {
     /* Weapons */
     public static final SlimefunItemStack GRANDMAS_WALKING_STICK = new SlimefunItemStack("GRANDMAS_WALKING_STICK", Material.STICK, "&7奶奶的手杖");
     public static final SlimefunItemStack GRANDPAS_WALKING_STICK = new SlimefunItemStack("GRANDPAS_WALKING_STICK", Material.STICK, "&7爷爷的手杖");
-    public static final SlimefunItemStack SWORD_OF_BEHEADING = new SlimefunItemStack("SWORD_OF_BEHEADING", Material.IRON_SWORD, "&6斩首之剑", "&7斩首 II", "", "&f有几率斩首生物", "&f（甚至有更高概率掉自凋灵骷髅）");
+    public static final SlimefunItemStack SWORD_OF_BEHEADING = new SlimefunItemStack("SWORD_OF_BEHEADING", Material.IRON_SWORD, "&6斩首之剑", "&7斩首 II", "", "&f有几率斩首生物", "&f（对凋灵骷髅的斩首几率更高）");
     public static final SlimefunItemStack BLADE_OF_VAMPIRES = new SlimefunItemStack("BLADE_OF_VAMPIRES", Material.GOLDEN_SWORD, "&c吸血鬼之刃", "&7生命偷取 I", "", "&f每当你攻击目标时，", "&f你有 45% 概率", "&f恢复 2 颗心的生命值");
     public static final SlimefunItemStack SEISMIC_AXE = new SlimefunItemStack("SEISMIC_AXE", Material.IRON_AXE, "&a地震斧", "", "&7&o便携式地震……", "", LoreBuilder.RIGHT_CLICK_TO_USE);
 
@@ -210,7 +210,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack PICKAXE_OF_THE_SEEKER = new SlimefunItemStack("PICKAXE_OF_THE_SEEKER", Material.DIAMOND_PICKAXE, "&a寻矿者之镐", "&f永远为你指向最近的矿石", "&f但过程中可能会受损", "", "&7&e右键&7指向最近的矿石");
     public static final SlimefunItemStack COBALT_PICKAXE = new SlimefunItemStack("COBALT_PICKAXE", Material.IRON_PICKAXE, "&9钴镐");
     public static final SlimefunItemStack PICKAXE_OF_VEIN_MINING = new SlimefunItemStack("PICKAXE_OF_VEIN_MINING", Material.DIAMOND_PICKAXE, "&e连锁挖矿镐", "", "&f此镐将一次性挖出", "&f整条矿脉……");
-    public static final SlimefunItemStack CLIMBING_PICK = new SlimefunItemStack("CLIMBING_PICK", Material.IRON_PICKAXE, "&b攀岩镐", "", "&f允许你攀爬特定的表面，", "&f右键即可。", "&f为此镐附上效率魔咒，", "&f爬得更快！");
+    public static final SlimefunItemStack CLIMBING_PICK = new SlimefunItemStack("CLIMBING_PICK", Material.IRON_PICKAXE, "&b攀岩镐", "", "&f允许你攀爬特定的表面", "&f（右键即可）。", "&f为此镐附上效率魔咒，", "&f爬得更快！");
 
     static {
         COBALT_PICKAXE.addUnsafeEnchantment(VersionedEnchantment.UNBREAKING, 10);
@@ -256,9 +256,9 @@ public final class SlimefunItems {
 
     static {
         hazmatLore.add("");
-        hazmatLore.add(ChatColor.GOLD + "Full set effects:");
-        hazmatLore.add(ChatColor.YELLOW + "- Radiation immunity");
-        hazmatLore.add(ChatColor.YELLOW + "- Bee Sting protection");
+        hazmatLore.add(ChatColor.GOLD + "全套效果：");
+        hazmatLore.add(ChatColor.YELLOW + "- 免疫辐射");
+        hazmatLore.add(ChatColor.YELLOW + "- 抵御蜂刺");
     }
 
     public static final SlimefunItemStack SCUBA_HELMET = new SlimefunItemStack("SCUBA_HELMET", Material.LEATHER_HELMET, Color.ORANGE, "&c潜水头盔", "", "&7允许你在水下呼吸");
@@ -372,7 +372,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack ENDER_LUMP_3 = new SlimefunItemStack("ENDER_LUMP_3", Material.GOLD_NUGGET, "&5末影碎块 &7- &eIII", "", "&c&o等级： III");
     public static final SlimefunItemStack MAGICAL_BOOK_COVER = new SlimefunItemStack("MAGICAL_BOOK_COVER", Material.PAPER, "&6魔法书封皮", "", "&a&o用于制作多种魔法书");
     public static final SlimefunItemStack MAGICAL_GLASS = new SlimefunItemStack("MAGICAL_GLASS", Material.GLASS_PANE, "&6魔法玻璃", "", "&a&o用于制作多种魔法道具");
-    public static final SlimefunItemStack SYNTHETIC_SHULKER_SHELL = new SlimefunItemStack("SYNTHETIC_SHULKER_SHELL", Material.SHULKER_SHELL, "&d合成潜影壳", "", "&f此物品可在", "&f上使用，作用类似普通潜影壳");
+    public static final SlimefunItemStack SYNTHETIC_SHULKER_SHELL = new SlimefunItemStack("SYNTHETIC_SHULKER_SHELL", Material.SHULKER_SHELL, "&d合成潜影壳", "", "&f此物品可在工作台中", "&f使用，作用类似普通潜影壳");
 
     /* Technical components */
     public static final SlimefunItemStack BASIC_CIRCUIT_BOARD = new SlimefunItemStack("BASIC_CIRCUIT_BOARD", Material.ACTIVATOR_RAIL, "&b基础电路板");
@@ -393,7 +393,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack SALT = new SlimefunItemStack("SALT", Material.SUGAR, "&f盐");
     public static final SlimefunItemStack CHEESE = new SlimefunItemStack("CHEESE", HeadTexture.CHEESE, "&f奶酪");
     public static final SlimefunItemStack BUTTER = new SlimefunItemStack("BUTTER", HeadTexture.BUTTER, "&f黄油");
-    public static final SlimefunItemStack DUCT_TAPE = new SlimefunItemStack("DUCT_TAPE", HeadTexture.DUCT_TAPE, "&8胶带", "", "&f你可以用它修复物品，", "&f在自动铁砧中");
+    public static final SlimefunItemStack DUCT_TAPE = new SlimefunItemStack("DUCT_TAPE", HeadTexture.DUCT_TAPE, "&8胶带", "", "&f你可以在自动铁砧中", "&f用它修复物品");
     public static final SlimefunItemStack HEAVY_CREAM = new SlimefunItemStack("HEAVY_CREAM", Material.SNOWBALL, "&f浓奶油");
     public static final SlimefunItemStack CRUSHED_ORE = new SlimefunItemStack("CRUSHED_ORE", Material.GUNPOWDER, "&6粉碎矿石");
     public static final SlimefunItemStack PULVERIZED_ORE = new SlimefunItemStack("PULVERIZED_ORE", Material.GUNPOWDER, "&6研磨矿石");
@@ -411,9 +411,9 @@ public final class SlimefunItems {
     public static final SlimefunItemStack HEATING_COIL = new SlimefunItemStack("HEATING_COIL", HeadTexture.HEATING_COIL, "&c加热线圈");
     public static final SlimefunItemStack COOLING_UNIT = new SlimefunItemStack("COOLING_UNIT", HeadTexture.COOLING_UNIT, "&b冷却单元");
     public static final SlimefunItemStack ELECTRIC_MOTOR = new SlimefunItemStack("ELECTRIC_MOTOR", HeadTexture.MOTOR, "&c电动机");
-    public static final SlimefunItemStack CARGO_MOTOR = new SlimefunItemStack("CARGO_MOTOR", HeadTexture.CARGO_MOTOR, "&3货物马达", "", "&7多种物品的", "&7重要原料");
-    public static final SlimefunItemStack SCROLL_OF_DIMENSIONAL_TELEPOSITION = new SlimefunItemStack("SCROLL_OF_DIMENSIONAL_TELEPOSITION", Material.PAPER, "&6维度传送卷轴", "", "&c此卷轴能够制造一个", "&c临时黑洞，它会将附近的", "&c实体吸入其中并送往", "&c另一个维度，在那里", "&c一切都被颠倒的", "", "&f换句话说：让实体旋转 180 度");
-    public static final SlimefunItemStack TOME_OF_KNOWLEDGE_SHARING = new SlimefunItemStack("TOME_OF_KNOWLEDGE_SHARING", Material.ENCHANTED_BOOK, "&6知识共享之书", "&7所有者： &b无", "", "&e右键&7将此典籍绑定到你身上", "", "", "&e右键&7获得放置者", "&7与货运管理相关的物品");
+    public static final SlimefunItemStack CARGO_MOTOR = new SlimefunItemStack("CARGO_MOTOR", HeadTexture.CARGO_MOTOR, "&3货物马达", "", "&7与货运管理相关的", "&7多种物品的重要原料");
+    public static final SlimefunItemStack SCROLL_OF_DIMENSIONAL_TELEPOSITION = new SlimefunItemStack("SCROLL_OF_DIMENSIONAL_TELEPOSITION", Material.PAPER, "&6维度传送卷轴", "", "&c此卷轴能够制造一个", "&c临时黑洞，它会将附近的", "&c实体吸入其中并送往", "&c另一个维度，在那里", "&c一切都被颠倒", "", "&f换句话说：让实体旋转 180 度");
+    public static final SlimefunItemStack TOME_OF_KNOWLEDGE_SHARING = new SlimefunItemStack("TOME_OF_KNOWLEDGE_SHARING", Material.ENCHANTED_BOOK, "&6知识共享之书", "&7所有者： &b无", "", "&e右键&7将此典籍绑定到你身上", "", "", "&e右键&7获得之前绑定的", "&7所有者的全部研究");
     public static final SlimefunItemStack HARDENED_GLASS = new SlimefunItemStack("HARDENED_GLASS", Material.LIGHT_GRAY_STAINED_GLASS, "&7硬化玻璃", "", "&f可抵御爆炸");
     public static final SlimefunItemStack WITHER_PROOF_OBSIDIAN = new SlimefunItemStack("WITHER_PROOF_OBSIDIAN", Material.OBSIDIAN, "&5防凋零黑曜石", "", "&f可抵御爆炸", "&f可抵御凋灵");
     public static final SlimefunItemStack WITHER_PROOF_GLASS = new SlimefunItemStack("WITHER_PROOF_GLASS", Material.PURPLE_STAINED_GLASS, "&5防凋零玻璃", "", "&f可抵御爆炸", "&f可抵御凋灵");
@@ -431,7 +431,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack RAINBOW_CONCRETE = new SlimefunItemStack("RAINBOW_CONCRETE", Material.WHITE_CONCRETE, "&5彩虹混凝土", "", LoreBuilder.RAINBOW);
     public static final SlimefunItemStack RAINBOW_GLAZED_TERRACOTTA = new SlimefunItemStack("RAINBOW_GLAZED_TERRACOTTA", Material.WHITE_GLAZED_TERRACOTTA, "&5彩虹带釉陶瓦", "", LoreBuilder.RAINBOW);
     /* Seasonal */
-    private static final String CHRISTMAS = ChatUtils.christmas("[Christmas Edition]");
+    private static final String CHRISTMAS = ChatUtils.christmas("[圣诞节特别版]");
     public static final SlimefunItemStack RAINBOW_WOOL_XMAS = new SlimefunItemStack("RAINBOW_WOOL_XMAS", Material.WHITE_WOOL, "&5彩虹羊毛 &7(圣诞节)", "", CHRISTMAS);
     public static final SlimefunItemStack RAINBOW_GLASS_XMAS = new SlimefunItemStack("RAINBOW_GLASS_XMAS", Material.WHITE_STAINED_GLASS, "&5彩虹玻璃 &7(圣诞节)", "", CHRISTMAS);
     public static final SlimefunItemStack RAINBOW_CLAY_XMAS = new SlimefunItemStack("RAINBOW_CLAY_XMAS", Material.WHITE_TERRACOTTA, "&5彩虹黏土 &7(圣诞节)", "", CHRISTMAS);
@@ -528,10 +528,10 @@ public final class SlimefunItems {
     public static final SlimefunItemStack GOLD_24K_BLOCK = new SlimefunItemStack("GOLD_24K_BLOCK", Material.GOLD_BLOCK, "&f金块 &7(24K)");
 
     /* Gems */
-    public static final SlimefunItemStack SYNTHETIC_DIAMOND = new SlimefunItemStack("SYNTHETIC_DIAMOND", Material.DIAMOND, "&b合成钻石", "", "&f此物品可在", "&f上使用，作用类似普通钻石");
+    public static final SlimefunItemStack SYNTHETIC_DIAMOND = new SlimefunItemStack("SYNTHETIC_DIAMOND", Material.DIAMOND, "&b合成钻石", "", "&f此物品可在工作台中", "&f使用，作用类似普通钻石");
     public static final SlimefunItemStack SYNTHETIC_EMERALD = new SlimefunItemStack("SYNTHETIC_EMERALD", Material.EMERALD, "&b合成绿宝石", "", "&f此物品可用于", "&f与村民交易");
-    public static final SlimefunItemStack SYNTHETIC_SAPPHIRE = new SlimefunItemStack("SYNTHETIC_SAPPHIRE", HeadTexture.SAPPHIRE, "&b合成蓝宝石", "", "&f此物品可在", "&f上使用，作用类似青金石");
-    public static final SlimefunItemStack CARBONADO = new SlimefunItemStack("CARBONADO", HeadTexture.CARBONADO, "&b&l黑金刚石", "", "&7&o\"Black Diamond\"");
+    public static final SlimefunItemStack SYNTHETIC_SAPPHIRE = new SlimefunItemStack("SYNTHETIC_SAPPHIRE", HeadTexture.SAPPHIRE, "&b合成蓝宝石", "", "&f此物品可在工作台中", "&f使用，作用类似青金石");
+    public static final SlimefunItemStack CARBONADO = new SlimefunItemStack("CARBONADO", HeadTexture.CARBONADO, "&b&l黑金刚石", "", "&7&o\"黑钻石\"");
     public static final SlimefunItemStack RAW_CARBONADO = new SlimefunItemStack("RAW_CARBONADO", HeadTexture.RAW_CARBONADO, "&b原始黑金刚石");
 
     public static final SlimefunItemStack URANIUM = new SlimefunItemStack("URANIUM", HeadTexture.URANIUM, "&4铀", "", LoreBuilder.radioactive(Radioactivity.HIGH), LoreBuilder.HAZMAT_SUIT_REQUIRED);
@@ -543,7 +543,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack COMMON_TALISMAN = new SlimefunItemStack("COMMON_TALISMAN", Material.EMERALD, "&6普通护身符");
     public static final SlimefunItemStack ENDER_TALISMAN = new SlimefunItemStack("ENDER_TALISMAN", Material.EMERALD, "&5末影护身符");
 
-    public static final SlimefunItemStack TALISMAN_ANVIL = new SlimefunItemStack("ANVIL_TALISMAN", Material.EMERALD, "&a铁砧护身符", "", "&f每个护身符都能防止", "&f1 件工具免于损坏，", "&f但随后会被消耗", "", "&4&l警告：", "&4该护身符无法作用于", "&4过于复杂而", "&4过于强大的工具");
+    public static final SlimefunItemStack TALISMAN_ANVIL = new SlimefunItemStack("ANVIL_TALISMAN", Material.EMERALD, "&a铁砧护身符", "", "&f每个护身符都能防止", "&f1 件工具免于损坏，", "&f但随后会被消耗", "", "&4&l警告：", "&4该护身符无法作用于", "&4因过于复杂而", "&4过于强大的工具");
     public static final SlimefunItemStack TALISMAN_MINER = new SlimefunItemStack("MINER_TALISMAN", Material.EMERALD, "&a矿工护身符", "", "&f当你持有此护身符时，", "&f放在背包中时，它有", "&f20% 概率使", "&f你开采的所有矿石翻倍");
     public static final SlimefunItemStack TALISMAN_FARMER = new SlimefunItemStack("FARMER_TALISMAN", Material.EMERALD, "&a农夫护身符", "", "&f当你持有此护身符时，", "&f放在背包中时，它有", "&f20% 概率使", "&f你收获的所有作物翻倍");
     public static final SlimefunItemStack TALISMAN_HUNTER = new SlimefunItemStack("HUNTER_TALISMAN", Material.EMERALD, "&a猎人护身符", "", "&f当你持有此护身符时，", "&f放在背包中时，它有", "&f20% 概率使", "&f你击杀生物的所有掉落物翻倍");
@@ -605,7 +605,7 @@ public final class SlimefunItems {
     /* Machines */
     public static final SlimefunItemStack COMPOSTER = new SlimefunItemStack("COMPOSTER", Material.CAULDRON, "&a堆肥桶", "", "&a&o可随时间转换多种材料……");
     public static final SlimefunItemStack CRUCIBLE = new SlimefunItemStack("CRUCIBLE", Material.CAULDRON, "&c坩埚", "", "&a&o用于将物品熔炼成液体");
-    public static final SlimefunItemStack OUTPUT_CHEST = new SlimefunItemStack("OUTPUT_CHEST", Material.CHEST, "&4输出箱", "", "&c&o若箱子放置在发射器", "&c&o将产出的物品放入该箱子。", "&c&o相邻处，基础机器会尝试");
+    public static final SlimefunItemStack OUTPUT_CHEST = new SlimefunItemStack("OUTPUT_CHEST", Material.CHEST, "&4输出箱", "", "&c&o基础机器会尝试将产出", "&c&o的物品放入此箱子（若它放置", "&c&o在发射器的相邻处）。");
     public static final SlimefunItemStack IGNITION_CHAMBER = new SlimefunItemStack("IGNITION_CHAMBER", Material.DROPPER, "&4自动点火室", "", "&f防止冶炼炉耗尽火焰。", "&f只要把它装满 \"打火石\"", "&f并放置在冶炼炉发射器的相邻处");
     public static final SlimefunItemStack HOLOGRAM_PROJECTOR = new SlimefunItemStack("HOLOGRAM_PROJECTOR", Material.QUARTZ_SLAB, "&b全息投影仪", "", "&f投射可编辑的全息影像");
     public static final SlimefunItemStack BLOCK_PLACER = new SlimefunItemStack("BLOCK_PLACER", Material.DISPENSER, "&a方块放置器", "", "&f该发射器中的所有方块", "&f会被自动放置");
@@ -658,7 +658,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack SOLAR_GENERATOR = new SlimefunItemStack("SOLAR_GENERATOR", Material.DAYLIGHT_DETECTOR, "&b太阳能发电机", "", LoreBuilder.machine(MachineTier.BASIC, MachineType.GENERATOR), LoreBuilder.powerBuffer(0), LoreBuilder.powerPerSecond(4));
     public static final SlimefunItemStack SOLAR_GENERATOR_2 = new SlimefunItemStack("SOLAR_GENERATOR_2", Material.DAYLIGHT_DETECTOR, "&c高级太阳能发电机", "", LoreBuilder.machine(MachineTier.MEDIUM, MachineType.GENERATOR), LoreBuilder.powerBuffer(0), LoreBuilder.powerPerSecond(16));
     public static final SlimefunItemStack SOLAR_GENERATOR_3 = new SlimefunItemStack("SOLAR_GENERATOR_3", Material.DAYLIGHT_DETECTOR, "&4黑金刚石太阳能发电机", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.GENERATOR), LoreBuilder.powerBuffer(0), LoreBuilder.powerPerSecond(64));
-    public static final SlimefunItemStack SOLAR_GENERATOR_4 = new SlimefunItemStack("SOLAR_GENERATOR_4", Material.DAYLIGHT_DETECTOR, "&e充能太阳能发电机", "", "&9夜间生效", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.GENERATOR), LoreBuilder.powerBuffer(0), LoreBuilder.powerPerSecond(256) + " (Day)", LoreBuilder.powerPerSecond(128) + " (Night)");
+    public static final SlimefunItemStack SOLAR_GENERATOR_4 = new SlimefunItemStack("SOLAR_GENERATOR_4", Material.DAYLIGHT_DETECTOR, "&e充能太阳能发电机", "", "&9夜间生效", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.GENERATOR), LoreBuilder.powerBuffer(0), LoreBuilder.powerPerSecond(256) + "（白天）", LoreBuilder.powerPerSecond(128) + "（夜间）");
 
     public static final SlimefunItemStack COAL_GENERATOR = new SlimefunItemStack("COAL_GENERATOR", HeadTexture.GENERATOR, "&c燃煤发电机", "", LoreBuilder.machine(MachineTier.AVERAGE, MachineType.GENERATOR), LoreBuilder.powerBuffer(64), LoreBuilder.powerPerSecond(16));
     public static final SlimefunItemStack COAL_GENERATOR_2 = new SlimefunItemStack("COAL_GENERATOR_2", HeadTexture.GENERATOR, "&c燃煤发电机 &7(&eII&7)", "", LoreBuilder.machine(MachineTier.ADVANCED, MachineType.GENERATOR), LoreBuilder.powerBuffer(256), LoreBuilder.powerPerSecond(30));
@@ -743,7 +743,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack PORTABLE_TELEPORTER = new SlimefunItemStack("PORTABLE_TELEPORTER", Material.COMPASS, "&b便携传送器", "", "&f此装置允许你随时随地", "&f传送到你的传送点", "", LoreBuilder.powerCharged(0, 50), "", "&e右键&7使用");
 
     public static final SlimefunItemStack ELEVATOR_PLATE = new SlimefunItemStack("ELEVATOR_PLATE", Material.STONE_PRESSURE_PLATE, "&b电梯板", "", "&f在每层楼放置一块电梯板，", "&f之后就能在楼层间传送。", "", "&e右键此方块 &7为其命名");
-    public static final SlimefunItemStack INFUSED_HOPPER = new SlimefunItemStack("INFUSED_HOPPER", Material.HOPPER, "&5注入漏斗", "", "&f自动拾取 7x7x7 范围内的掉落物", "&f半径范围内。");
+    public static final SlimefunItemStack INFUSED_HOPPER = new SlimefunItemStack("INFUSED_HOPPER", Material.HOPPER, "&5注入漏斗", "", "&f放置后自动拾取 7x7x7", "&f半径内的掉落物。");
 
     public static final SlimefunItemStack HEATED_PRESSURE_CHAMBER = new SlimefunItemStack("HEATED_PRESSURE_CHAMBER", Material.LIGHT_GRAY_STAINED_GLASS, "&c加热压力舱", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.MACHINE), LoreBuilder.speed(1), LoreBuilder.powerPerSecond(10));
     public static final SlimefunItemStack HEATED_PRESSURE_CHAMBER_2 = new SlimefunItemStack("HEATED_PRESSURE_CHAMBER_2", Material.LIGHT_GRAY_STAINED_GLASS, "&c加热压力舱 &7- &eII", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.MACHINE), LoreBuilder.speed(5), LoreBuilder.powerPerSecond(44));
@@ -767,7 +767,7 @@ public final class SlimefunItems {
     public static final SlimefunItemStack BLISTERING_INGOT_3 = new SlimefunItemStack("BLISTERING_INGOT_3", Material.GOLD_INGOT, "&6炽热锭", "", LoreBuilder.radioactive(Radioactivity.VERY_HIGH), LoreBuilder.HAZMAT_SUIT_REQUIRED);
 
     public static final SlimefunItemStack ENERGY_REGULATOR = new SlimefunItemStack("ENERGY_REGULATOR", HeadTexture.ENERGY_REGULATOR, "&6能量调节器", "", "&f能量网络的核心组件");
-    public static final SlimefunItemStack ENERGY_CONNECTOR = new SlimefunItemStack("ENERGY_CONNECTOR", HeadTexture.ENERGY_CONNECTOR, "&e能量连接器", LoreBuilder.range(6), "", "&f放置在机器与发电机之间，", "&f连接起来", "&f连接到你的调节器上。");
+    public static final SlimefunItemStack ENERGY_CONNECTOR = new SlimefunItemStack("ENERGY_CONNECTOR", HeadTexture.ENERGY_CONNECTOR, "&e能量连接器", LoreBuilder.range(6), "", "&f放置在机器与发电机之间，", "&f将它们连接到", "&f你的调节器上。");
     public static final SlimefunItemStack DEBUG_FISH = new SlimefunItemStack("DEBUG_FISH", Material.SALMON, "&3这条鱼多少钱？", "", "&e右键 &f任意方块查看其方块数据", "&e左键 &f破坏方块", "&eShift + 左键 &f任意方块抹除其方块数据", "&eShift + 右键 &f放置占位方块");
 
     public static final SlimefunItemStack NETHER_ICE = new SlimefunItemStack("NETHER_ICE", HeadTexture.NETHER_ICE, "&e下界冰", "", LoreBuilder.radioactive(Radioactivity.MODERATE), LoreBuilder.HAZMAT_SUIT_REQUIRED);
@@ -827,7 +827,7 @@ public final class SlimefunItems {
 
     public static final SlimefunItemStack NUCLEAR_REACTOR = new SlimefunItemStack("NUCLEAR_REACTOR", HeadTexture.NUCLEAR_REACTOR, "&2核反应堆", "", "&f需要冷却！", "&8\u21E8 &b必须被水包围", "&8\u21E8 &b必须供给反应堆冷却单元", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.GENERATOR), LoreBuilder.powerBuffer(16384), LoreBuilder.powerPerSecond(500));
     public static final SlimefunItemStack NETHER_STAR_REACTOR = new SlimefunItemStack("NETHERSTAR_REACTOR", HeadTexture.NETHER_STAR_REACTOR, "&f下界之星反应堆", "", "&f以下界之星为能源", "&8\u21E8 &b必须被水包围", "&8\u21E8 &b必须供给下界冰冷却单元", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.GENERATOR), LoreBuilder.powerBuffer(32768), LoreBuilder.powerPerSecond(1024), "&8\u21E8 &4使附近实体受到凋零效果");
-    public static final SlimefunItemStack REACTOR_ACCESS_PORT = new SlimefunItemStack("REACTOR_ACCESS_PORT", Material.CYAN_TERRACOTTA, "&2反应堆接入端口", "", "&f允许你操作反应堆", "&f也可通过货运节点存取，", "&f作为缓冲", "", "&8\u21E8 &e必须放置在反应堆上方 &a3 格&e处");
+    public static final SlimefunItemStack REACTOR_ACCESS_PORT = new SlimefunItemStack("REACTOR_ACCESS_PORT", Material.CYAN_TERRACOTTA, "&2反应堆接入端口", "", "&f允许你操作反应堆", "&f也可通过货运节点存取，", "&f并作为缓冲使用", "", "&8\u21E8 &e必须放置在反应堆上方 &a3 格&e处");
 
     public static final SlimefunItemStack FREEZER = new SlimefunItemStack("FREEZER", Material.LIGHT_BLUE_STAINED_GLASS, "&b冷冻机", "", LoreBuilder.machine(MachineTier.ADVANCED, MachineType.MACHINE), LoreBuilder.speed(1), LoreBuilder.powerBuffer(256), LoreBuilder.powerPerSecond(18));
     public static final SlimefunItemStack FREEZER_2 = new SlimefunItemStack("FREEZER_2", Material.LIGHT_BLUE_STAINED_GLASS, "&b冷冻机 &7(&eII&7)", "", LoreBuilder.machine(MachineTier.END_GAME, MachineType.MACHINE), LoreBuilder.speed(2), LoreBuilder.powerBuffer(256), LoreBuilder.powerPerSecond(30));

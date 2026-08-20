@@ -177,7 +177,7 @@ public abstract class AbstractEntityAssembler<T extends Entity> extends SimpleSl
 
         double offset = getSpawnOffset(b);
 
-        menu.replaceExistingItem(31, CustomItemStack.create(Material.PISTON, "&7偏移： &3" + offset + " Block(s)", "", "&f左键： &7+0.1", "&f右键： &7-0.1"));
+        menu.replaceExistingItem(31, CustomItemStack.create(Material.PISTON, "&7偏移： &3" + offset + " 格", "", "&f左键： &7+0.1", "&f右键： &7-0.1"));
         menu.addMenuClickHandler(31, (p, slot, item, action) -> {
             double offsetv = NumberUtils.reparseDouble(getSpawnOffset(b) + (action.isRightClicked() ? -0.1F : 0.1F));
             BlockStorage.addBlockInfo(b, KEY_OFFSET, String.valueOf(offsetv));

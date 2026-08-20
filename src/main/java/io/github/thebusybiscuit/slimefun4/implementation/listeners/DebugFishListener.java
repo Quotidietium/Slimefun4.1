@@ -155,7 +155,7 @@ public class DebugFishListener implements Listener {
 
         if (item.isTicking()) {
             p.sendMessage(ChatColors.color("&dTick 状态： " + greenCheckmark));
-            p.sendMessage(ChatColors.color("  &dAsync: &e" + (item.getBlockTicker().isSynchronized() ? redCross : greenCheckmark)));
+            p.sendMessage(ChatColors.color("  &d异步： &e" + (item.getBlockTicker().isSynchronized() ? redCross : greenCheckmark)));
         } else if (item instanceof EnergyNetProvider) {
             p.sendMessage(ChatColors.color("&dTick 状态： &3间接（发电机）"));
         } else {
@@ -170,10 +170,10 @@ public class DebugFishListener implements Listener {
 
         if (item instanceof EnergyNetComponent component) {
             p.sendMessage(ChatColors.color("&d能量网络组件"));
-            p.sendMessage(ChatColors.color("  &dType: &e" + component.getEnergyComponentType()));
+            p.sendMessage(ChatColors.color("  &d类型： &e" + component.getEnergyComponentType()));
 
             if (component.isChargeable()) {
-                p.sendMessage(ChatColors.color("  &dChargeable: " + greenCheckmark));
+                p.sendMessage(ChatColors.color("  &d可充电： " + greenCheckmark));
                 p.sendMessage(ChatColors.color("  &dEnergy: &e" + component.getCharge(b.getLocation()) + " / " + component.getCapacity()));
             } else {
                 p.sendMessage(ChatColors.color("&d可充电： " + redCross));

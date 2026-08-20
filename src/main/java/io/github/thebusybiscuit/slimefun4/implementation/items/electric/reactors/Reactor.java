@@ -200,7 +200,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
                 return false;
             });
         } else {
-            menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7接入端口", "", "&c未检测到", "", "&7接入端口必须放置在", "&7反应堆上方 3 格处", "&7（接入端口下方需为反应堆！）"));
+            menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7接入端口", "", "&c未检测到", "", "&7接入端口必须放置在", "&7反应堆上方 3 格处", "&7才能被检测到！"));
             menu.addMenuClickHandler(INFO_SLOT, (p, slot, item, action) -> {
                 updateInventory(menu, b);
                 menu.open(p);

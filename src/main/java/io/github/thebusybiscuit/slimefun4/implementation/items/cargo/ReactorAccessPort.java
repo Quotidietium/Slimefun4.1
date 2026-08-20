@@ -89,7 +89,7 @@ public class ReactorAccessPort extends SlimefunItem {
                         return false;
                     });
                 } else {
-                    menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7反应堆", "", "&c未检测到", "", "&7反应堆必须放置在", "&7接入端口下方 3 格处", "&7（接入端口上方需为反应堆！）"));
+                    menu.replaceExistingItem(INFO_SLOT, CustomItemStack.create(Material.RED_WOOL, "&7反应堆", "", "&c未检测到", "", "&7反应堆必须放置在", "&7接入端口下方 3 格处", "&7才能被检测到！"));
                     menu.addMenuClickHandler(INFO_SLOT, (p, slot, item, action) -> {
                         newInstance(menu, b);
                         return false;
