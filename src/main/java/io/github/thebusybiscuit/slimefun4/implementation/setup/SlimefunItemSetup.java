@@ -396,7 +396,7 @@ public final class SlimefunItemSetup {
                 .register(plugin);
 
         new BasicCircuitBoard(itemGroups.technicalComponents, SlimefunItems.BASIC_CIRCUIT_BOARD, RecipeType.MOB_DROP,
-                new ItemStack[] {null, null, null, null, CustomItemStack.create(SlimefunUtils.getCustomHead(HeadTexture.IRON_GOLEM.getTexture()), "&aIron Golem"), null, null, null, null})
+                new ItemStack[] {null, null, null, null, CustomItemStack.create(SlimefunUtils.getCustomHead(HeadTexture.IRON_GOLEM.getTexture()), "&a铁傀儡"), null, null, null, null})
                 .register(plugin);
 
         new UnplaceableBlock(itemGroups.technicalComponents, SlimefunItems.ADVANCED_CIRCUIT_BOARD, RecipeType.ENHANCED_CRAFTING_TABLE,
@@ -1422,7 +1422,7 @@ public final class SlimefunItemSetup {
                 new ItemStack[] {SlimefunItems.FLASK_OF_KNOWLEDGE.item(), null, null, null, null, null, null, null, null})
                 .register(plugin);
 
-        new BirthdayCake(itemGroups.birthday, new SlimefunItemStack("BIRTHDAY_CAKE", Material.CAKE, "&bBirthday Cake"), RecipeType.ENHANCED_CRAFTING_TABLE,
+        new BirthdayCake(itemGroups.birthday, new SlimefunItemStack("BIRTHDAY_CAKE", Material.CAKE, "&b生日蛋糕"), RecipeType.ENHANCED_CRAFTING_TABLE,
                 new ItemStack[] {null, new ItemStack(Material.TORCH), null, new ItemStack(Material.SUGAR), new ItemStack(Material.CAKE), new ItemStack(Material.SUGAR), null, null, null})
                 .register(plugin);
 
@@ -2663,7 +2663,7 @@ public final class SlimefunItemSetup {
                 .register(plugin);
 
         new StrangeNetherGoo(itemGroups.magicalResources, SlimefunItems.STRANGE_NETHER_GOO, RecipeType.BARTER_DROP,
-                new ItemStack[] {null, null, null, null, CustomItemStack.create(HeadTexture.PIGLIN_HEAD.getAsItemStack(), "&fPiglin"), null, null, null, null})
+                new ItemStack[] {null, null, null, null, CustomItemStack.create(HeadTexture.PIGLIN_HEAD.getAsItemStack(), "&f猪灵"), null, null, null, null})
                 .register(plugin);
 
         if (minecraftVersion.isAtLeast(MinecraftVersion.MINECRAFT_1_17)) {
