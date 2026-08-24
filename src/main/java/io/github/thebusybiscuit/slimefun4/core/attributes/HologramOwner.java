@@ -32,18 +32,21 @@ public interface HologramOwner extends ItemAttribute {
      *            The nametag for the hologram
      */
     default void updateHologram(@Nonnull Block b, @Nonnull String text) {
-        Location loc = b.getLocation().add(getHologramOffset(b));
+        // Do not mutate the Location handed out by Block#getLocation() in place:
+        // Location#add mutates and returns the same instance, and implementations
+        // are not required to hand out defensive copies (MockBukkit does not).
+        Location loc = b.getLocation().clone().add(getHologramOffset(b));
         Slimefun.getHologramsService().setHologramLabel(loc, ChatColors.color(text));
     }
 
     /**
      * This will remove the hologram for the given {@link Block}.
-     * 
+     *
      * @param b
-     *            The {@link Block} to which the hologram blocks
+     *            The {@link Block} whose hologram the hologram blocks
      */
     default void removeHologram(@Nonnull Block b) {
-        Location loc = b.getLocation().add(getHologramOffset(b));
+        Location loc = b.getLocation().clone().add(getHologramOffset(b));
         Slimefun.getHologramsService().removeHologram(loc);
     }
 
