@@ -24,6 +24,7 @@
 1. `/sf cheat` → 放置 **太阳能发电机 + 电缆 + 能量调节器 + 充电的物品（如喷气背包）**。
 2. 游戏时间调正午（`/time set noon`），露天。
 3. 判据：调节器全息显示网络在线与发电量；**后接入**太阳能（网络先建、发电机后放）同样在数 tick 内激活；背包充能行数值上升。
+4. **无客户端可观测法（本轮新增）**：`/forceload add <x> <z>` 加载网络区块后，`/data get entity @e[type=minecraft:armor_stand,limit=1]` 直接读取调节器全息 CustomName（如 `&7+ N J ⚡` ——N>0 即发电中）；**必须先 `/weather clear`**（雨/雷压低天光会使太阳能输出 0，`/time set noon` 不清天气）。**注意**：用 `/fill` 清拆 SF 方块不会清 SF 方块数据（不触发破坏事件）——残留幽灵数据会干扰网络解析，重置布局须换新世界或破坏事件路径。
 4. 对应回归测试：`TestEnergyNetActivation` 5 场景（MockBukkit 层已绿，此处验真实 Bukkit 的 `getLocation()` 防御性副本行为）。
 
 ## 3. 核心链路冒烟——货运传输
