@@ -487,22 +487,31 @@ public abstract class AbstractAutoCrafter extends SlimefunItem implements Energy
                 }
             }
 
-            boolean success = inv.addItem(result.clone()).isEmpty();
+            /*
+             * The ingredients are consumed at this point, so every remaining item must be
+             * accounted for. An event-modified result can exceed the max stack size, in which
+             * case addItem overflows even though a slot was free - the overflow is dropped at
+             * the container instead of silently voiding it (the crafting still counts as
+             * completed, hence the return value).
+             */
+            Map<Integer, ItemStack> resultOverflow = inv.addItem(result.clone());
 
-            if (success) {
-                // Fixes #2926 - Push leftover items (e.g. empty buckets) back into the inventory.
-                // If the inventory filled up (the result just took the last free slot), drop the
-                // leftovers at the container instead of silently voiding them.
-                for (ItemStack leftoverItem : leftoverItems) {
-                    Map<Integer, ItemStack> rest = inv.addItem(leftoverItem);
+            // Fixes #2926 - Push leftover items (e.g. empty buckets) back into the inventory.
+            // If the inventory filled up (the result just took the last free slot), drop the
+            // leftovers at the container instead of silently voiding them.
+            for (ItemStack leftoverItem : leftoverItems) {
+                Map<Integer, ItemStack> rest = inv.addItem(leftoverItem);
 
-                    if (!rest.isEmpty()) {
-                        dropLeftover(inv, rest.values());
-                    }
+                if (!rest.isEmpty()) {
+                    dropLeftover(inv, rest.values());
                 }
             }
 
-            return success;
+            if (!resultOverflow.isEmpty()) {
+                dropLeftover(inv, resultOverflow.values());
+            }
+
+            return true;
         }
 
         return false;
