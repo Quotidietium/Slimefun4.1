@@ -52,7 +52,19 @@ class GitHubTask implements Runnable {
     }
 
     private void connectAndCache() {
-        gitHubService.getConnectors().forEach(GitHubConnector::download);
+        /*
+         * Isolate every connector: an unexpected RuntimeException (one GitHubConnector
+         * already catches the expected network failure modes internally) escaping a
+         * single download would abort this forEach and cancel the whole repeating
+         * task - contributor updates would silently stop until a restart.
+         */
+        gitHubService.getConnectors().forEach(connector -> {
+            try {
+                connector.download();
+            } catch (Exception | LinkageError x) {
+                Slimefun.logger().log(Level.WARNING, x, () -> "An error occurred while downloading GitHub data for \"" + connector.getFileName() + '"');
+            }
+        });
     }
 
     /**
