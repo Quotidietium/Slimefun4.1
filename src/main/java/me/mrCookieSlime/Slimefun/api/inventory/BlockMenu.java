@@ -103,7 +103,12 @@ public class BlockMenu extends DirtyChestMenu {
      * @param slots
      *            The slots of items that should be dropped
      */
-    public void dropItems(Location l, int... slots) {
+    /*
+     * Synchronized (menu monitor, see DirtyChestMenu#consumeItem): without the lock the
+     * read-slot/drop/clear sequence races an async ticker pushItem on the same slot -
+     * the pushed item would be silently voided by the clearing replaceExistingItem.
+     */
+    public synchronized void dropItems(Location l, int... slots) {
         for (int slot : slots) {
             ItemStack item = getItemInSlot(slot);
 
