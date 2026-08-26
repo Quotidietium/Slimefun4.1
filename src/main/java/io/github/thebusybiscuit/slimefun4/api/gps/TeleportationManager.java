@@ -227,8 +227,16 @@ public final class TeleportationManager {
             return 100;
         }
 
-        int speed = 50_000 + complexity * complexity;
-        int unsafeTime = Math.min(4 * distanceSquared(source, destination) / speed, 40);
+        /*
+         * Long arithmetic: complexity is player-stackable (number of transmitters x height x
+         * tier multiplier) and squares past Integer.MAX_VALUE at already-reachable values
+         * (5x tier-4 transmitters at world height exceed 90,000). The int product used to wrap
+         * around, landing on small "speed" values for certain complexities - teleportation
+         * time then snapped back to the 40-interval maximum, breaking the "higher complexity
+         * means faster teleportation" contract discontinuously.
+         */
+        long speed = 50_000L + (long) complexity * complexity;
+        int unsafeTime = (int) Math.min(4L * distanceSquared(source, destination) / speed, 40L);
 
         // Fixes #3573 - Using Math.max is a safer way to ensure values > 0 than relying on addition.
         return Math.max(1, unsafeTime);
