@@ -2,6 +2,10 @@ package io.github.thebusybiscuit.slimefun4.core.commands;
 
 import java.util.List;
 
+import org.bukkit.Material;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
+
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -79,5 +83,39 @@ class TestBackpackCommand {
         if (CommonPatterns.NUMERIC.matcher(id).matches()) {
             Assertions.assertFalse(hasBackpack(player, Integer.parseInt(id)));
         }
+    }
+
+    @Test
+    @DisplayName("Test /sf backpack with a full inventory drops the restored backpack instead of voiding it")
+    void testFullInventoryDropsBackpack() throws InterruptedException {
+        Player player = server.addPlayer();
+        player.setOp(true);
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+        PlayerBackpack backpack = profile.createBackpack(9);
+
+        // Fill every slot (storage, armor and offhand - MockBukkit's addItem uses all of
+        // them) so the restored backpack cannot be stored
+        for (int i = 0; i < player.getInventory().getSize(); i++) {
+            // setItem (not addItem): addItem would stack the filler into a single slot
+            player.getInventory().setItem(i, new ItemStack(Material.STONE));
+        }
+
+        server.execute("slimefun", player, "backpack", player.getName(), String.valueOf(backpack.getId())).assertSucceeded();
+
+        Assertions.assertFalse(hasBackpack(player, backpack.getId()), "Sanity: the backpack did not fit into the inventory");
+
+        boolean dropped = false;
+
+        for (Entity entity : player.getWorld().getEntities()) {
+            if (entity instanceof Item item && SlimefunUtils.isItemSimilar(item.getItemStack(), SlimefunItems.RESTORED_BACKPACK.item(), false)) {
+                List<String> lore = item.getItemStack().getItemMeta().getLore();
+
+                if (lore.get(2).equals(ChatColor.GRAY + "ID: " + player.getUniqueId() + "#" + backpack.getId())) {
+                    dropped = true;
+                }
+            }
+        }
+
+        Assertions.assertTrue(dropped, "The restored backpack was voided - it must be dropped at the player instead");
     }
 }

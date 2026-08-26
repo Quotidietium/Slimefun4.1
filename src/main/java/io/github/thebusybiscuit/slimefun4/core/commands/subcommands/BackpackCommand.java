@@ -2,6 +2,8 @@ package io.github.thebusybiscuit.slimefun4.core.commands.subcommands;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import java.util.Map;
+
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -78,7 +80,19 @@ class BackpackCommand extends SubCommand {
                     Slimefun.runSync(() -> {
                         ItemStack item = SlimefunItems.RESTORED_BACKPACK.item();
                         Slimefun.getBackpackListener().setBackpackId(backpackOwner, item, 2, id);
-                        player.getInventory().addItem(item);
+
+                        /*
+                         * A restored backpack is a data-bound item for the owner's stored
+                         * contents - silently voiding it on a full inventory (while the
+                         * command already reported success) is unacceptable. Drop any
+                         * leftover at the sender's feet instead.
+                         */
+                        Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
+
+                        for (ItemStack rest : leftover.values()) {
+                            player.getWorld().dropItemNaturally(player.getLocation(), rest.clone());
+                        }
+
                         Slimefun.getLocalization().sendMessage(sender, "commands.backpack.restored-backpack-given");
                     });
                 });
