@@ -103,6 +103,37 @@ class TestLegacyBackend {
         }
     }
 
+    // coal_generator (173) and bio_reactor (renumbered to 1730) historically shared the numeric
+    // id 173 - an upstream ResearchSetup gene. A legacy "researches.173" entry must restore BOTH
+    // researches so no player loses an unlock, while new saves keep them separable.
+    @Test
+    void testLegacySharedResearchIdCompat() throws IOException {
+        Research coal = new Research(new NamespacedKey(plugin, "coal_generator"), 173, "Coal Generator", 14);
+        Research bio = new Research(new NamespacedKey(plugin, "bio_reactor"), 1730, "Bio-Reactor", 18);
+        coal.register();
+        bio.register();
+
+        UUID uuid = UUID.randomUUID();
+        File playerFile = new File("data-storage/Slimefun/Players/" + uuid + ".yml");
+        Files.writeString(playerFile.toPath(), """
+        researches:
+          '173': true
+        """);
+
+        LegacyStorage storage = new LegacyStorage();
+        PlayerData data = storage.loadPlayerData(uuid);
+
+        Assertions.assertTrue(data.getResearches().contains(coal), "legacy shared key must restore coal_generator");
+        Assertions.assertTrue(data.getResearches().contains(bio), "legacy shared key must restore bio_reactor");
+
+        // Once saved under the new ids the two researches are independent again
+        data.getResearches().remove(coal);
+        storage.savePlayerData(uuid, data);
+        PlayerData reloaded = storage.loadPlayerData(uuid);
+        Assertions.assertFalse(reloaded.getResearches().contains(coal));
+        Assertions.assertTrue(reloaded.getResearches().contains(bio));
+    }
+
     // There's some issues with deserializing items in tests, I spent quite a while debugging this
     // and didn't really get anywhere. So commenting this out for now.
     /*

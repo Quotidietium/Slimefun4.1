@@ -183,7 +183,7 @@ public final class ResearchSetup {
         register("electric_ore_grinding", 171, "Crushing and Grinding", 20, SlimefunItems.ELECTRIC_ORE_GRINDER, SlimefunItems.ELECTRIC_INGOT_PULVERIZER);
         register("heated_pressure_chamber", 172, "Heated Pressure Chamber", 22, SlimefunItems.HEATED_PRESSURE_CHAMBER);
         register("coal_generator", 173, "Coal Generator", 14, SlimefunItems.COAL_GENERATOR);
-        register("bio_reactor", 173, "Bio-Reactor", 18, SlimefunItems.BIO_REACTOR);
+        register("bio_reactor", 1730, "Bio-Reactor", 18, SlimefunItems.BIO_REACTOR);
         register("auto_enchanting", 174, "Automatic Enchanting and Disenchanting", 24, SlimefunItems.AUTO_ENCHANTER, SlimefunItems.AUTO_DISENCHANTER);
         register("auto_anvil", 175, "Automatic Anvil", 34, SlimefunItems.AUTO_ANVIL, SlimefunItems.AUTO_ANVIL_2);
         register("multimeter", 176, "Power Measurement", 10, SlimefunItems.MULTIMETER);

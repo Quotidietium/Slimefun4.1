@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -545,6 +546,18 @@ public class Research implements Keyed {
 
         setCost(Slimefun.getResearchCfg().getInt(path + ".cost"));
         enabled = true;
+
+        for (Research existing : Slimefun.getRegistry().getResearches()) {
+            if (existing.getID() == id) {
+                /*
+                 * The numeric id is the persistence key for unlock state (LegacyStorage:
+                 * "researches.<id>"). Two researches sharing an id corrupt each other's
+                 * unlock state - make this visible instead of failing silently.
+                 */
+                Slimefun.logger().log(Level.WARNING, "Two researches share the same legacy id {0}: ''{1}'' and ''{2}''. Unlocking one will also unlock the other!", new Object[] { id, existing.getKey(), getKey() });
+                break;
+            }
+        }
 
         Slimefun.getRegistry().getResearches().add(this);
     }
