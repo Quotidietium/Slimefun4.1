@@ -23,6 +23,7 @@ import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
 
 /**
  * This Service is responsible for disabling a {@link SlimefunItem} in a certain {@link World}.
@@ -182,7 +183,7 @@ public class PerWorldSettingsService {
             }
         }
 
-        config.save();
+        ConfigUtils.saveAtomically(config);
     }
 
     @Nonnull
@@ -207,7 +208,7 @@ public class PerWorldSettingsService {
 
                 // We don't actually wanna write to disk during a Unit test
                 if (Slimefun.getMinecraftVersion() != MinecraftVersion.UNIT_TEST) {
-                    config.save();
+                    ConfigUtils.saveAtomically(config);
                 }
             } else {
                 disabledWorlds.add(world.getUID());

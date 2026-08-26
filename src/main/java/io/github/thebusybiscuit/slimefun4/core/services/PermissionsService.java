@@ -18,6 +18,7 @@ import org.bukkit.permissions.Permission;
 import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
 
 /**
  * This Service is responsible for handling the {@link Permission} of a
@@ -70,7 +71,7 @@ public class PermissionsService {
         }
 
         if (save) {
-            config.save();
+            ConfigUtils.saveAtomically(config);
         }
     }
 
@@ -138,7 +139,7 @@ public class PermissionsService {
             config.setValue(entry.getKey() + ".permission", entry.getValue());
         }
 
-        config.save();
+        ConfigUtils.saveAtomically(config);
     }
 
     /**

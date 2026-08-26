@@ -3,11 +3,14 @@ package me.mrCookieSlime.CSCoreLibPlugin.Configuration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-import me.mrCookieSlime.Slimefun.api.BlockStorage;
+import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.utils.FileUtils;
 
 /**
  * An old remnant of CS-CoreLib.
@@ -89,21 +92,31 @@ public class Config {
      * Saves the Config Object to its File
      */
     public void save() {
-        try {
-            config.save(file);
-        } catch (IOException e) {}
+        save(file);
     }
 
     /**
      * Saves the Config Object to a File
-     * 
+     *
      * @param file
      *            The File you are saving this Config to
      */
     public void save(File file) {
-        try {
-            config.save(file);
-        } catch (IOException e) {}
+        /*
+         * Atomic write (temporary file + atomic move): FileConfiguration#save streams directly
+         * into the live file, so a crash or disk-full mid-write used to truncate it. A failed
+         * write is now reported instead of silently swallowed (the old empty catch), so an
+         * intact previous file and a log entry are left behind rather than corrupted data.
+         */
+        if (!FileUtils.saveAtomically(file, config.saveToString())) {
+            /*
+             * The error-reporting path itself must never throw: validateInstance() would
+             * replace the original I/O failure with an IllegalStateException, so fall back
+             * to a plain logger when the plugin is not fully initialised (e.g. Unit Tests).
+             */
+            Logger logger = Slimefun.instance() != null ? Slimefun.logger() : Logger.getLogger("Slimefun");
+            logger.log(Level.SEVERE, () -> "Could not save the legacy Config file \"" + file.getName() + "\" (disk full?) - the previous file is still intact, but the current state was NOT written to disk");
+        }
     }
 
     /**

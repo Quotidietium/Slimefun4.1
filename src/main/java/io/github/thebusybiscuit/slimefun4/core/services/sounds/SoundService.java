@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 
 import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
 
 import com.google.common.base.Preconditions;
 
@@ -62,7 +63,7 @@ public class SoundService {
         }
 
         if (save) {
-            config.save();
+            ConfigUtils.saveAtomically(config);
         }
     }
 

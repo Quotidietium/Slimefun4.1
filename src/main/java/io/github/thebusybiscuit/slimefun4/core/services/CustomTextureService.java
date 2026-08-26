@@ -20,6 +20,7 @@ import io.github.bakedlibs.dough.config.Config;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
 
 /**
  * This Service is responsible for applying custom model data to any {@link SlimefunItemStack}
@@ -88,7 +89,7 @@ public class CustomTextureService {
         version = config.getString("version");
 
         if (save) {
-            config.save();
+            ConfigUtils.saveAtomically(config);
         }
     }
 

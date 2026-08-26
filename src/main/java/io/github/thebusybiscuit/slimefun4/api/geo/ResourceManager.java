@@ -30,6 +30,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.geo.GEOMiner;
 import io.github.thebusybiscuit.slimefun4.implementation.items.geo.GEOScanner;
 import io.github.thebusybiscuit.slimefun4.utils.ChatUtils;
+import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.HeadTexture;
 
@@ -86,7 +87,7 @@ public class ResourceManager {
         }
 
         if (Slimefun.getMinecraftVersion() != MinecraftVersion.UNIT_TEST) {
-            config.save();
+            ConfigUtils.saveAtomically(config);
         }
     }
 

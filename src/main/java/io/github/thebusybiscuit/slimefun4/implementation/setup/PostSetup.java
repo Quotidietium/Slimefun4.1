@@ -32,6 +32,7 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.multiblocks.Grind
 import io.github.thebusybiscuit.slimefun4.implementation.items.multiblocks.MakeshiftSmeltery;
 import io.github.thebusybiscuit.slimefun4.implementation.items.multiblocks.OreCrusher;
 import io.github.thebusybiscuit.slimefun4.implementation.items.multiblocks.Smeltery;
+import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
 import io.github.thebusybiscuit.slimefun4.utils.JsonUtils;
 
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.AContainer;
@@ -110,8 +111,8 @@ public final class PostSetup {
 
         sender.sendMessage("");
 
-        Slimefun.getItemCfg().save();
-        Slimefun.getResearchCfg().save();
+        ConfigUtils.saveAtomically(Slimefun.getItemCfg());
+        ConfigUtils.saveAtomically(Slimefun.getResearchCfg());
         Slimefun.getRegistry().setAutoLoadingMode(true);
     }
 

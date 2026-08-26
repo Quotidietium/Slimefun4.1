@@ -37,6 +37,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.services.LocalizationService;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
 
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -81,7 +82,7 @@ public abstract class SlimefunLocalization implements Keyed {
      * Saves this Localization to its File
      */
     protected void save() {
-        defaultConfig.save();
+        ConfigUtils.saveAtomically(defaultConfig);
     }
 
     /**
