@@ -1,7 +1,9 @@
 # Paper 1.21.11 实机端到端回归 Runbook
 
 > 状态：**第 1 节已实机通过（2026-08-27，本地 Paper 1.21.11 build 132 + Java 21.0.10 headless）**——部署 ✅、加载日志判据全过（必须出现 3/3、不得出现 0 命中，含 shaded 依赖 LinkageError 零出现）、研究重复告警零出现；启动日志存档 [1.21.11-boot-log.txt](1.21.11-boot-log.txt)。
-> 第 2-4 节（游戏内三链路冒烟/老存档迁移）仍需客户端交互或带老存档环境，保持待执行。
+> **第 2 节已实机通过（2026-08-27 第 28 轮）**：新世界 + /weather clear + /time set noon + 机器人放置五件套 → 调节器全息稳定读取 **`+ 2 J ⚡`**，消费者淘金盘 `.sfb` 落盘 `energy-charge: 128`——发电→传输→充电→持久化全链闭环（日志 note/report/1.21.11-solar-success.log）。**根因结论**：此前零发电为雨天天光被压（/time set noon 不清天气），非插件缺陷。
+> **第 3 节已实机通过（第 26 轮）**：右键机器打开真实 SF GUI（81 槽、中文 customName 断言通过）。
+> 第 4 节：货运管理器/双箱/煤炭入箱已验（第 26 轮）；输入/输出节点放置为 mineflayer 交互限制（非插件缺陷，传输逻辑有 MockBukkit 8 场景端到端覆盖）；researches.173 迁移由 TestLegacyBackend 覆盖。
 > 构建产物：`target/SlimeFun4.1-5.1.1.jar`（2.9MB，含 21 轮审计全部修复；版本号待回归通过后再行 bump 与 Release）。
 > 环境：Paper 1.21.11 + Java 21（`F:\Java\21`）。
 
