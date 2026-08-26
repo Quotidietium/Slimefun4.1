@@ -1,0 +1,105 @@
+Downloading mojang_1.21.11.jar
+Applying patches
+Starting org.bukkit.craftbukkit.Main
+2026-08-26T19:08:02.563201100Z ServerMain WARN Advanced terminal features are not available in this environment
+[03:08:02 INFO]: [bootstrap] Running Java 21 (Java HotSpot(TM) 64-Bit Server VM 21.0.10+8-LTS-217; Oracle Corporation null) on Windows 11 10.0 (amd64)
+[03:08:02 INFO]: [bootstrap] Loading Paper 1.21.11-132-ver/1.21.11@c5eb079 (2026-05-11T11:43:09Z) for Minecraft 1.21.11
+[03:08:03 WARN]: [oshi.driver.windows.perfmon.PerfmonDisabled] Invalid registry value type detected for PerfOS counters. Should be REG_DWORD. Ignoring: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PerfOS\Performance\Disable Performance Counters.
+[03:08:04 INFO]: [PluginInitializerManager] Initializing plugins...
+[03:08:04 INFO]: [ReobfServer] Remapping server...
+[03:08:09 INFO]: [ReobfServer] Done remapping server in 4512ms.
+[03:08:09 INFO]: [PluginRemapper] Remapping plugin 'plugins\SlimeFun4.1-5.1.1.jar'...
+[03:08:09 INFO]: [PluginRemapper] Done remapping plugin 'plugins\SlimeFun4.1-5.1.1.jar' in 387ms.
+[03:08:09 INFO]: [PluginInitializerManager] Initialized 1 plugin
+[03:08:09 INFO]: [PluginInitializerManager] Bukkit plugins (1):
+ - Slimefun (5.1.1)
+[03:08:14 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[03:08:14 INFO]: Found new data pack file/bukkit, loading it automatically
+[03:08:14 INFO]: Found new data pack paper, loading it automatically
+[03:08:15 INFO]: No existing world data, creating new world
+[03:08:16 INFO]: Loaded 1470 recipes
+[03:08:16 INFO]: Loaded 1584 advancements
+[03:08:16 INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Initialising converters for DataConverter...
+[03:08:16 INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Finished initialising converters for DataConverter in 342.2ms
+[03:08:16 INFO]: Starting minecraft server version 1.21.11
+[03:08:16 INFO]: Loading properties
+[03:08:17 INFO]: This server is running Paper version 1.21.11-132-ver/1.21.11@c5eb079 (2026-05-11T11:43:09Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)
+[03:08:17 INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
+[03:08:17 INFO]: Server Ping Player Sample Count: 12
+[03:08:17 INFO]: Using 4 threads for Netty based IO
+[03:08:17 INFO]: [MoonriseCommon] Paper is using 8 worker threads, 1 I/O threads
+[03:08:18 INFO]: Default game type: SURVIVAL
+[03:08:18 INFO]: Generating keypair
+[03:08:18 INFO]: Starting Minecraft server on *:25565
+[03:08:18 INFO]: Paper: Using Java compression from Velocity.
+[03:08:18 INFO]: Paper: Using Java cipher from Velocity.
+[03:08:18 INFO]: [Slimefun] Loading server plugin Slimefun v5.1.1
+[03:08:18 WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[03:08:18 WARN]: The server will make no attempt to authenticate usernames. Beware.
+[03:08:18 WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[03:08:18 WARN]: To change this, set "online-mode" to "true" in the server.properties file.
+[03:08:18 INFO]: Preparing level "world"
+[03:08:19 INFO]: Selecting spawn point for world 'minecraft:overworld'...
+[03:08:21 INFO]: Selecting spawn point for world 'minecraft:the_nether'...
+[03:08:21 INFO]: Selecting spawn point for world 'minecraft:the_end'...
+[03:08:22 INFO]: Loading 0 persistent chunks for world 'minecraft:overworld'...
+[03:08:22 INFO]: Preparing spawn area: 100%
+[03:08:22 INFO]: Prepared spawn area in 2956 ms
+[03:08:22 INFO]: Loading 0 persistent chunks for world 'minecraft:the_nether'...
+[03:08:22 INFO]: Preparing spawn area: 100%
+[03:08:22 INFO]: Prepared spawn area in 920 ms
+[03:08:22 INFO]: Loading 0 persistent chunks for world 'minecraft:the_end'...
+[03:08:22 INFO]: Preparing spawn area: 100%
+[03:08:22 INFO]: Prepared spawn area in 214 ms
+[03:08:22 INFO]: Done preparing level "world" (3.595s)
+[03:08:22 INFO]: [Slimefun] Enabling Slimefun v5.1.1
+[03:08:22 INFO]: [Slimefun] Paper was detected! Performance optimizations have been applied.
+[03:08:22 INFO]: [Slimefun] Creating directories...
+[03:08:22 INFO]: [Slimefun] Loading language files...
+[03:08:22 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[03:08:22 INFO]: [Slimefun] Loaded language "zh-CN"
+[03:08:22 INFO]: [Slimefun] Available languages: en, de, fr, it, es, ru, pl, uk, sv, nl, da, cs, ro, bg, pt, pt-BR, hu, lv, sk, vi, id, zh-CN, zh-TW, ja, ko, he, ar, tr, fa, th, tl
+[03:08:22 INFO]: [Slimefun] Using legacy storage for player data
+[03:08:22 INFO]: [Slimefun] Loading GEO-Resources...
+[03:08:23 INFO]: [Slimefun] Loading Tags...
+[03:08:23 INFO]: [Slimefun] Loading items...
+[03:08:24 INFO]: [Slimefun] Loading researches...
+[03:08:24 INFO]: [Slimefun] Loading Wiki pages...
+[03:08:24 INFO]: [Slimefun] Registering listeners...
+[03:08:24 INFO]: [Slimefun] Loading Third-Party plugin integrations...
+[03:08:24 INFO]: [Slimefun] Slimefun has finished loading in 2.22s
+[03:08:24 INFO]: [spark] Starting background profiler...
+[03:08:24 INFO]: [spark] The async-profiler engine is not supported for your os/arch (windows11/amd64), so the built-in Java engine will be used instead.
+[03:08:24 INFO]: Running delayed init tasks
+[03:08:24 INFO]: [Slimefun] Collecting Snapshots of all Recipes...
+[03:08:24 INFO]: [Slimefun] Found 1,470 Recipes!
+[03:08:24 INFO]: 
+[03:08:24 INFO]: [38;5;10m######################### - Slimefun v5.1.1 - #########################[0m
+[03:08:24 INFO]: 
+[03:08:24 INFO]: [38;5;10mSuccessfully loaded 555 Items and 258 Researches[0m
+[03:08:24 INFO]: [38;5;10m( 555 Items from Slimefun, 0 Items from 0 Addons )[0m
+[03:08:24 INFO]: 
+[03:08:24 INFO]: [38;5;10mSlimefun is an Open-Source project that is kept alive by a large community.[0m
+[03:08:24 INFO]: [38;5;10mConsider helping us maintain this project by contributing on GitHub![0m
+[03:08:24 INFO]: [38;5;10m - UNOFFICIALLY MODIFIED BUILD - NO OFFICIAL SUPPORT GIVEN[0m
+[03:08:24 INFO]: 
+[03:08:24 INFO]: [Slimefun] Loading Blocks for World "world"
+[03:08:24 INFO]: [Slimefun] This may take a long time...
+[03:08:24 INFO]: [Slimefun] Loading Blocks for World "world_nether"
+[03:08:24 INFO]: [Slimefun] This may take a long time...
+[03:08:24 INFO]: [Slimefun] Loading Blocks for World "world_the_end"
+[03:08:24 INFO]: [Slimefun] This may take a long time...
+[03:08:24 INFO]: [dough: protection] Loading Protection Modules...
+[03:08:24 INFO]: [dough: protection] This may happen more than once.
+[03:08:24 INFO]: Done (23.229s)! For help, type "help"
+[03:08:24 INFO]: *************************************************************************************
+[03:08:24 INFO]: This is the first time you're starting this server.
+[03:08:24 INFO]: It's recommended you read our 'Getting Started' documentation for guidance.
+[03:08:24 INFO]: View this and more helpful information here: https://docs.papermc.io/paper/next-steps
+[03:08:24 INFO]: *************************************************************************************
+[03:08:26 WARN]: *************************************************************************************
+[03:08:26 WARN]: You are running the latest build for your Minecraft version (1.21.11)
+[03:08:26 WARN]: However, you are 4 release(s) behind the latest stable release (26.2)!
+[03:08:26 WARN]: It is recommended that you update as soon as possible
+[03:08:26 WARN]: https://papermc.io/downloads/paper
+[03:08:26 WARN]: *************************************************************************************
