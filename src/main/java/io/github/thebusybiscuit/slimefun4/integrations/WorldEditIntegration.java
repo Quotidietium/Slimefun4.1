@@ -43,16 +43,18 @@ class WorldEditIntegration {
 
             @Override
             public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 pos, T block) throws WorldEditException {
-                if (block.getBlockType().getMaterial().isAir()) {
-                    World world = Bukkit.getWorld(event.getWorld().getName());
+                /*
+                 * Any WorldEdit setBlock replaces whatever block currently occupies this
+                 * position - if that was a Slimefun block, its data must not survive onto
+                 * the block that now occupies the spot (ghost data). The previous version
+                 * only cleared the data when the replacement was air, leaving operations
+                 * like "//set stone" over machines behind as invisible stale data.
+                 */
+                World world = Bukkit.getWorld(event.getWorld().getName());
 
-                    if (world != null) {
-                        Location l = new Location(world, pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
-
-                        if (BlockStorage.hasBlockInfo(l)) {
-                            BlockStorage.clearBlockInfo(l);
-                        }
-                    }
+                if (world != null) {
+                    Location l = new Location(world, pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
+                    BlockStorage.clearBlockDataIfPresent(l);
                 }
 
                 return getExtent().setBlock(pos, block);

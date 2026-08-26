@@ -1024,6 +1024,26 @@ public class BlockStorage {
         Slimefun.getTickerTask().queueDelete(l, destroy);
     }
 
+    /**
+     * Clears the Slimefun block data at the given {@link Location}, if any exists.
+     * This is safe to call from any thread: the read is weakly consistent (the underlying
+     * storage is a {@link java.util.concurrent.ConcurrentHashMap}) and the actual removal
+     * is deferred through the deletion queue, which the TickerTask processes on its own thread.
+     *
+     * @param l
+     *            The {@link Location} whose Slimefun block data should be cleared
+     *
+     * @return Whether Slimefun block data was present at that {@link Location}
+     */
+    public static boolean clearBlockDataIfPresent(@Nonnull Location l) {
+        if (hasBlockInfo(l)) {
+            clearBlockInfo(l);
+            return true;
+        }
+
+        return false;
+    }
+
     public static void clearAllBlockInfoAtChunk(Chunk chunk, boolean destroy) {
         clearAllBlockInfoAtChunk(chunk.getWorld(), chunk.getX(), chunk.getZ(), destroy);
     }
