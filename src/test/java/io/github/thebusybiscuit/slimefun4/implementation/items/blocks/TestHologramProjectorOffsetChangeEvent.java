@@ -86,12 +86,13 @@ class TestHologramProjectorOffsetChangeEvent {
      * {@code LivingEntityMock#setRemoveWhenFarAway}, which the spawn path of
      * {@code ArmorStandUtils} calls; finding an existing stand avoids it.
      */
-    private Block placeProjector(int x, int z) {
+    private Block placeProjector(org.bukkit.entity.Player owner, int x, int z) {
         Block b = world.getBlockAt(x, 60, z);
         b.setType(Material.QUARTZ_BLOCK);
         BlockStorage.addBlockInfo(b, "id", "_TEST_HOLOGRAM_PROJECTOR_OFFSET");
         BlockStorage.addBlockInfo(b, "text", "&7Old Text");
         BlockStorage.addBlockInfo(b, "offset", "0.5");
+        BlockStorage.addBlockInfo(b, "owner", owner.getUniqueId().toString(), true);
 
         ArmorStandMock stand = new ArmorStandMock(server, UUID.randomUUID());
         stand.setLocation(new Location(world, x + 0.5, 60.5, z + 0.5));
@@ -124,7 +125,7 @@ class TestHologramProjectorOffsetChangeEvent {
     @DisplayName("HologramProjectorOffsetChangeEvent exposes its fields and validates constructor arguments")
     void testEventFieldsAndValidation() {
         Player player = server.addPlayer();
-        Block b = placeProjector(1, 1);
+        Block b = placeProjector(player, 1, 1);
 
         HologramProjectorOffsetChangeEvent event = new HologramProjectorOffsetChangeEvent(player, projector, b, 0.5, 0.6);
 
@@ -152,7 +153,7 @@ class TestHologramProjectorOffsetChangeEvent {
     @DisplayName("Adjusting the offset fires the event and moves the hologram")
     void testChangeFiresEventAndApplies() {
         Player player = server.addPlayer();
-        Block b = placeProjector(100, 100);
+        Block b = placeProjector(player, 100, 100);
 
         boolean[] seen = { false };
         Listener watcher = new Listener() {
@@ -186,7 +187,7 @@ class TestHologramProjectorOffsetChangeEvent {
     @DisplayName("Cancelling HologramProjectorOffsetChangeEvent keeps the old offset")
     void testCancelKeepsOldOffset() {
         Player player = server.addPlayer();
-        Block b = placeProjector(200, 200);
+        Block b = placeProjector(player, 200, 200);
 
         Listener cancelling = new Listener() {
             @EventHandler
@@ -213,7 +214,7 @@ class TestHologramProjectorOffsetChangeEvent {
     @DisplayName("Adjusting without listeners still applies the offset, preserving the old behavior")
     void testChangeWithoutListenersApplies() {
         Player player = server.addPlayer();
-        Block b = placeProjector(300, 300);
+        Block b = placeProjector(player, 300, 300);
 
         projector.updateOffset(player, b, 0.6);
 
@@ -225,7 +226,7 @@ class TestHologramProjectorOffsetChangeEvent {
     @DisplayName("Overriding the offset via setNewOffset applies the override")
     void testOverrideAppliesOverriddenOffset() {
         Player player = server.addPlayer();
-        Block b = placeProjector(400, 400);
+        Block b = placeProjector(player, 400, 400);
 
         Listener overriding = new Listener() {
             @EventHandler
@@ -252,11 +253,38 @@ class TestHologramProjectorOffsetChangeEvent {
     @DisplayName("A downward adjustment moves the hologram down")
     void testDecreaseMovesHologramDown() {
         Player player = server.addPlayer();
-        Block b = placeProjector(500, 500);
+        Block b = placeProjector(player, 500, 500);
 
         projector.updateOffset(player, b, 0.4);
 
         Assertions.assertEquals("0.4", storedOffset(b), "The stored offset must have been updated");
         Assertions.assertEquals(60.4, hologramsNear(b).get(0).getLocation().getY(), 1e-9, "The hologram must have moved down");
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("Adjusting after the projector was re-placed by someone else is rejected")
+    void testEditOffsetAfterReplacedByOtherOwner() {
+        org.bukkit.entity.Player originalOwner = server.addPlayer();
+        org.bukkit.entity.Player newOwner = server.addPlayer();
+        Block b = placeProjector(newOwner, 600, 600);
+
+        boolean[] seen = { false };
+        org.bukkit.event.Listener watcher = new org.bukkit.event.Listener() {
+            @org.bukkit.event.EventHandler
+            public void onOffset(HologramProjectorOffsetChangeEvent event) {
+                seen[0] = true;
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            // The original owner's still-open editor clicks after the projector changed hands
+            projector.updateOffset(originalOwner, b, 0.9);
+
+            org.junit.jupiter.api.Assertions.assertFalse(seen[0], "HologramProjectorOffsetChangeEvent must not fire for a non-owner adjustment");
+            org.junit.jupiter.api.Assertions.assertEquals("0.5", BlockStorage.getLocationInfo(b.getLocation(), "offset"), "A non-owner adjustment must not change the offset");
+        } finally {
+            org.bukkit.event.HandlerList.unregisterAll(watcher);
+        }
     }
 }

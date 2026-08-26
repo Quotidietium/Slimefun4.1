@@ -86,12 +86,13 @@ class TestHologramProjectorTextChangeEvent {
      * does not implement {@code LivingEntityMock#setRemoveWhenFarAway}, which the
      * spawn path of {@code ArmorStandUtils} calls; finding an existing stand avoids it.
      */
-    private Block placeProjector(int x, int z) {
+    private Block placeProjector(org.bukkit.entity.Player owner, int x, int z) {
         Block b = world.getBlockAt(x, 60, z);
         b.setType(Material.QUARTZ_BLOCK);
         BlockStorage.addBlockInfo(b, "id", "_TEST_HOLOGRAM_PROJECTOR");
         BlockStorage.addBlockInfo(b, "text", "&7Old Text");
         BlockStorage.addBlockInfo(b, "offset", "0.5");
+        BlockStorage.addBlockInfo(b, "owner", owner.getUniqueId().toString(), true);
 
         ArmorStandMock stand = new ArmorStandMock(server, UUID.randomUUID());
         stand.setLocation(new Location(world, x + 0.5, 60.5, z + 0.5));
@@ -124,7 +125,7 @@ class TestHologramProjectorTextChangeEvent {
     @DisplayName("HologramProjectorTextChangeEvent exposes its fields and validates constructor arguments")
     void testEventFieldsAndValidation() {
         Player player = server.addPlayer();
-        Block b = placeProjector(1, 1);
+        Block b = placeProjector(player, 1, 1);
 
         HologramProjectorTextChangeEvent event = new HologramProjectorTextChangeEvent(player, projector, b, "&7Old Text", "&aNew Text");
 
@@ -152,7 +153,7 @@ class TestHologramProjectorTextChangeEvent {
     @DisplayName("Submitting a new text fires the event and applies it to the hologram")
     void testChangeFiresEventAndApplies() {
         Player player = server.addPlayer();
-        Block b = placeProjector(100, 100);
+        Block b = placeProjector(player, 100, 100);
 
         boolean[] seen = { false };
         Listener watcher = new Listener() {
@@ -186,7 +187,7 @@ class TestHologramProjectorTextChangeEvent {
     @DisplayName("Cancelling HologramProjectorTextChangeEvent keeps the old text")
     void testCancelKeepsOldText() {
         Player player = server.addPlayer();
-        Block b = placeProjector(200, 200);
+        Block b = placeProjector(player, 200, 200);
 
         Listener cancelling = new Listener() {
             @EventHandler
@@ -213,7 +214,7 @@ class TestHologramProjectorTextChangeEvent {
     @DisplayName("Submitting without listeners still applies the text, preserving the old behavior")
     void testChangeWithoutListenersApplies() {
         Player player = server.addPlayer();
-        Block b = placeProjector(300, 300);
+        Block b = placeProjector(player, 300, 300);
 
         projector.updateText(player, b, "&aNew Text");
 
@@ -224,7 +225,7 @@ class TestHologramProjectorTextChangeEvent {
     @DisplayName("Rewriting the text via setNewText applies the rewritten text")
     void testRewriteAppliesRewrittenText() {
         Player player = server.addPlayer();
-        Block b = placeProjector(400, 400);
+        Block b = placeProjector(player, 400, 400);
 
         Listener rewriting = new Listener() {
             @EventHandler
@@ -251,7 +252,7 @@ class TestHologramProjectorTextChangeEvent {
     @DisplayName("Repeated text changes reuse the same hologram instead of spawning duplicates")
     void testRepeatedChangesReuseHologram() {
         Player player = server.addPlayer();
-        Block b = placeProjector(500, 500);
+        Block b = placeProjector(player, 500, 500);
 
         projector.updateText(player, b, "&aFirst");
         projector.updateText(player, b, "&eSecond");
@@ -261,5 +262,32 @@ class TestHologramProjectorTextChangeEvent {
         List<ArmorStand> stands = hologramsNear(b);
         Assertions.assertEquals(1, stands.size(), "The hologram must have been reused, not duplicated");
         Assertions.assertEquals(ChatColors.color("&eSecond"), stands.get(0).getCustomName(), "The hologram must show the latest text");
+    }
+
+    @Test
+    @DisplayName("Editing after the projector was re-placed by someone else is rejected")
+    void testEditTextAfterReplacedByOtherOwner() {
+        org.bukkit.entity.Player originalOwner = server.addPlayer();
+        org.bukkit.entity.Player newOwner = server.addPlayer();
+        Block b = placeProjector(newOwner, 600, 600);
+
+        boolean[] seen = { false };
+        org.bukkit.event.Listener watcher = new org.bukkit.event.Listener() {
+            @org.bukkit.event.EventHandler
+            public void onText(HologramProjectorTextChangeEvent event) {
+                seen[0] = true;
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            // The original owner's pending chat input arrives after the projector changed hands
+            projector.updateText(originalOwner, b, "&cStolen Text");
+
+            org.junit.jupiter.api.Assertions.assertFalse(seen[0], "HologramProjectorTextChangeEvent must not fire for a non-owner edit");
+            org.junit.jupiter.api.Assertions.assertEquals("&7Old Text", storedText(b), "A non-owner edit must not change the hologram text");
+        } finally {
+            org.bukkit.event.HandlerList.unregisterAll(watcher);
+        }
     }
 }

@@ -115,6 +115,16 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
      */
     @ParametersAreNonnullByDefault
     void updateText(Player p, Block projector, String message) {
+        /*
+         * The editor was owner-gated when it opened, but the text arrives via chat input
+         * which may be submitted seconds later - the projector may have been broken and
+         * re-placed by someone else in the meantime. Do not carry the edit over to the
+         * new owner's hologram (mirrors ElevatorPlate#renameFloor).
+         */
+        if (!isOwner(p, projector)) {
+            return;
+        }
+
         if (HologramProjectorTextChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
             String previousText = BlockStorage.getLocationInfo(projector.getLocation(), "text");
             HologramProjectorTextChangeEvent event = new HologramProjectorTextChangeEvent(p, this, projector, previousText, message);
@@ -183,6 +193,15 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
      */
     @ParametersAreNonnullByDefault
     void updateOffset(Player p, Block projector, double offset) {
+        /*
+         * Same drift window as updateText: the editor re-opens after every change, so a
+         * menu that was opened by the previous owner would otherwise keep adjusting the
+         * projector indefinitely, even after it was re-placed by someone else.
+         */
+        if (!isOwner(p, projector)) {
+            return;
+        }
+
         if (HologramProjectorOffsetChangeEvent.getHandlerList().getRegisteredListeners().length > 0) {
             HologramProjectorOffsetChangeEvent event = new HologramProjectorOffsetChangeEvent(p, this, projector, getOffset(projector), offset);
             Bukkit.getPluginManager().callEvent(event);
@@ -215,6 +234,16 @@ public class HologramProjector extends SlimefunItem implements HologramOwner {
         } catch (NumberFormatException x) {
             return 0.5D;
         }
+    }
+
+    /**
+     * Verifies that the given {@link Player} still owns this projector. Real projectors
+     * always carry an "owner" key (written by the place handler), so a missing or
+     * mismatched value fails closed.
+     */
+    private static boolean isOwner(@Nonnull Player p, @Nonnull Block projector) {
+        String owner = BlockStorage.getLocationInfo(projector.getLocation(), "owner");
+        return p.getUniqueId().toString().equals(owner);
     }
 
     private static ArmorStand getArmorStand(@Nonnull Block projector, boolean createIfNoneExists) {
