@@ -45,6 +45,7 @@ public class ResearchBuilder {
 
     private NamespacedKey key;
     private int id = 0;
+    private boolean explicitId = false;
     private String name;
     private int cost = 1;
     private final Set<SlimefunItem> items = new LinkedHashSet<>();
@@ -68,14 +69,23 @@ public class ResearchBuilder {
     /**
      * Sets the legacy numeric id of this {@link Research}.
      *
+     * <p>
+     * The numeric id is the persistence key for research unlock state (see
+     * {@code LegacyStorage}: {@code researches.<id>}). If you do not call this method,
+     * a deterministic id is derived from the {@link NamespacedKey} at {@link #build()} time —
+     * do <em>not</em> rely on the historical default of {@code 0}, which silently collided
+     * with built-in researches and any other default-id research.
+     * </p>
+     *
      * @param id
-     *            The legacy numeric id (defaults to {@code 0})
+     *            The legacy numeric id
      *
      * @return This {@link ResearchBuilder}, for chaining
      */
     @Nonnull
     public ResearchBuilder id(int id) {
         this.id = id;
+        this.explicitId = true;
         return this;
     }
 
@@ -154,7 +164,8 @@ public class ResearchBuilder {
         Validate.notNull(key, "A NamespacedKey must be provided (use ResearchBuilder#key)");
         Validate.notNull(name, "A name must be specified (use ResearchBuilder#name)");
 
-        Research research = new Research(key, id, name, cost);
+        int legacyId = explicitId ? id : deriveLegacyId(key);
+        Research research = new Research(key, legacyId, name, cost);
 
         for (SlimefunItem item : items) {
             research.addItems(item);
@@ -165,6 +176,16 @@ public class ResearchBuilder {
         }
 
         return research;
+    }
+
+    /**
+     * Derives a deterministic legacy id from the {@link NamespacedKey}. Determinism across
+     * restarts is required because the numeric id is the persistence key for unlock state;
+     * spreading over the positive int range keeps clear of the densely populated low ids
+     * used by built-in researches (0-8800+).
+     */
+    private static int deriveLegacyId(@Nonnull NamespacedKey key) {
+        return Math.floorMod(key.hashCode(), 1 << 30);
     }
 
     /**

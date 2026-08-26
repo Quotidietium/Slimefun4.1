@@ -85,6 +85,29 @@ class TestResearchProgressionApi {
     }
 
     @Test
+    @DisplayName("Test ResearchBuilder derives a stable non-zero default legacy id from the key")
+    void testBuilderDerivedDefaultId() {
+        // The numeric id is the persistence key for unlock state. The historical default
+        // of 0 collided with the built-in "walking_sticks" research (id 0) and with every
+        // other default-id research, silently corrupting unlock state.
+        NamespacedKey key = new NamespacedKey(plugin, "derived_default_id");
+        Research first = new ResearchBuilder().key(key).name("Derived A").build();
+        Research second = new ResearchBuilder().key(key).name("Derived B").build();
+        Research other = new ResearchBuilder().key(new NamespacedKey(plugin, "derived_other_key")).name("Derived C").build();
+
+        Assertions.assertNotEquals(0, first.getID(), "derived id must not fall back to the legacy default 0");
+        Assertions.assertEquals(first.getID(), second.getID(), "same key must derive the same id (stable across restarts)");
+        Assertions.assertNotEquals(first.getID(), other.getID(), "different keys must derive different ids");
+    }
+
+    @Test
+    @DisplayName("Test ResearchBuilder preserves an explicitly provided legacy id")
+    void testBuilderExplicitIdPreserved() {
+        Research research = new ResearchBuilder().key(new NamespacedKey(plugin, "explicit_id_research")).name("Explicit").id(987654).build();
+        Assertions.assertEquals(987654, research.getID());
+    }
+
+    @Test
     @DisplayName("Test addDependency / removeDependency / getDependencies")
     void testDependencyManagement() {
         Research a = new Research(new NamespacedKey(plugin, "dep_a"), 8802, "A", 1);
