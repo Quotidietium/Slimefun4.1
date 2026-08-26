@@ -194,6 +194,12 @@ public class AncientAltarListener implements Listener {
     private void useAltar(@Nonnull Block altar, @Nonnull Player p) {
         if (!Slimefun.getProtectionManager().hasPermission(p, altar, Interaction.INTERACT_BLOCK)) {
             Slimefun.getLocalization().sendMessage(p, "inventory.no-access", true);
+
+            /*
+             * onInteract() already marked this altar as "in use" - without removing it here,
+             * a single denied click would brick the altar until the server restarts.
+             */
+            altarsInUse.remove(altar.getLocation());
             return;
         }
 
@@ -213,6 +219,9 @@ public class AncientAltarListener implements Listener {
                     if (!Slimefun.getProtectionManager().hasPermission(p, pedestal, Interaction.INTERACT_BLOCK)) {
                         Slimefun.getLocalization().sendMessage(p, "inventory.no-access", true);
                         altars.remove(altar);
+
+                        // Same as above: onInteract() marked the altar as "in use" before we got here
+                        altarsInUse.remove(altar.getLocation());
                         return;
                     }
                 }
