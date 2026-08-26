@@ -1,0 +1,107 @@
+Starting org.bukkit.craftbukkit.Main
+2026-08-26T19:49:31.729359400Z ServerMain WARN Advanced terminal features are not available in this environment
+[03:49:31 INFO]: [bootstrap] Running Java 21 (Java HotSpot(TM) 64-Bit Server VM 21.0.10+8-LTS-217; Oracle Corporation null) on Windows 11 10.0 (amd64)
+[03:49:31 INFO]: [bootstrap] Loading Paper 1.21.11-132-ver/1.21.11@c5eb079 (2026-05-11T11:43:09Z) for Minecraft 1.21.11
+[03:49:32 WARN]: [oshi.driver.windows.perfmon.PerfmonDisabled] Invalid registry value type detected for PerfOS counters. Should be REG_DWORD. Ignoring: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\PerfOS\Performance\Disable Performance Counters.
+[03:49:33 INFO]: [PluginInitializerManager] Initializing plugins...
+[03:49:33 INFO]: [PluginInitializerManager] Initialized 1 plugin
+[03:49:33 INFO]: [PluginInitializerManager] Bukkit plugins (1):
+ - Slimefun (5.1.1)
+[03:49:38 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[03:49:41 INFO]: Loaded 1470 recipes
+[03:49:41 INFO]: Loaded 1584 advancements
+[03:49:41 INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Initialising converters for DataConverter...
+[03:49:41 INFO]: [ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry] Finished initialising converters for DataConverter in 340.2ms
+[03:49:41 INFO]: Starting minecraft server version 1.21.11
+[03:49:41 INFO]: Loading properties
+[03:49:41 INFO]: This server is running Paper version 1.21.11-132-ver/1.21.11@c5eb079 (2026-05-11T11:43:09Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)
+[03:49:41 INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
+[03:49:41 INFO]: Server Ping Player Sample Count: 12
+[03:49:41 INFO]: Using 4 threads for Netty based IO
+[03:49:42 INFO]: [MoonriseCommon] Paper is using 8 worker threads, 1 I/O threads
+[03:49:42 INFO]: Default game type: SURVIVAL
+[03:49:42 INFO]: Generating keypair
+[03:49:42 INFO]: Starting Minecraft server on *:25565
+[03:49:42 INFO]: Paper: Using Java compression from Velocity.
+[03:49:42 INFO]: Paper: Using Java cipher from Velocity.
+[03:49:43 INFO]: [Slimefun] Loading server plugin Slimefun v5.1.1
+[03:49:43 INFO]: Server permissions file permissions.yml is empty, ignoring it
+[03:49:43 WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[03:49:43 WARN]: The server will make no attempt to authenticate usernames. Beware.
+[03:49:43 WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[03:49:43 WARN]: To change this, set "online-mode" to "true" in the server.properties file.
+[03:49:43 INFO]: Preparing level "world"
+[03:49:43 INFO]: Loading 0 persistent chunks for world 'minecraft:overworld'...
+[03:49:43 INFO]: Preparing spawn area: 100%
+[03:49:43 INFO]: Prepared spawn area in 3 ms
+[03:49:43 INFO]: Loading 0 persistent chunks for world 'minecraft:the_nether'...
+[03:49:43 INFO]: Prepared spawn area in 2 ms
+[03:49:43 INFO]: Loading 0 persistent chunks for world 'minecraft:the_end'...
+[03:49:43 INFO]: Preparing spawn area: 100%
+[03:49:43 INFO]: Prepared spawn area in 3 ms
+[03:49:43 INFO]: Done preparing level "world" (0.869s)
+[03:49:43 INFO]: [Slimefun] Enabling Slimefun v5.1.1
+[03:49:43 INFO]: [Slimefun] Paper was detected! Performance optimizations have been applied.
+[03:49:43 INFO]: [Slimefun] Creating directories...
+[03:49:44 INFO]: [Slimefun] Loading language files...
+[03:49:44 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, profilesHost=https://api.mojang.com, name=PROD]
+[03:49:44 INFO]: [Slimefun] Loaded language "zh-CN"
+[03:49:44 INFO]: [Slimefun] Available languages: en, de, fr, it, es, ru, pl, uk, sv, nl, da, cs, ro, bg, pt, pt-BR, hu, lv, sk, vi, id, zh-CN, zh-TW, ja, ko, he, ar, tr, fa, th, tl
+[03:49:44 INFO]: [Slimefun] Using legacy storage for player data
+[03:49:44 INFO]: [Slimefun] Loading GEO-Resources...
+[03:49:44 INFO]: [Slimefun] Loading Tags...
+[03:49:44 INFO]: [Slimefun] Loading items...
+[03:49:45 INFO]: [Slimefun] Loading researches...
+[03:49:45 INFO]: [Slimefun] Loading Wiki pages...
+[03:49:45 INFO]: [Slimefun] Registering listeners...
+[03:49:46 INFO]: [Slimefun] Loading Third-Party plugin integrations...
+[03:49:46 INFO]: [Slimefun] Slimefun has finished loading in 2.13s
+[03:49:46 INFO]: [spark] Starting background profiler...
+[03:49:46 INFO]: [spark] The async-profiler engine is not supported for your os/arch (windows11/amd64), so the built-in Java engine will be used instead.
+[03:49:46 INFO]: Starting remote control listener
+[03:49:46 INFO]: Thread RCON Listener started
+[03:49:46 INFO]: RCON running on 0.0.0.0:25575
+[03:49:46 INFO]: Running delayed init tasks
+[03:49:46 INFO]: [Slimefun] Collecting Snapshots of all Recipes...
+[03:49:46 INFO]: [Slimefun] Found 1,470 Recipes!
+[03:49:46 INFO]: 
+[03:49:46 INFO]: [38;5;10m######################### - Slimefun v5.1.1 - #########################[0m
+[03:49:46 INFO]: 
+[03:49:46 INFO]: [38;5;10mSuccessfully loaded 555 Items and 258 Researches[0m
+[03:49:46 INFO]: [38;5;10m( 555 Items from Slimefun, 0 Items from 0 Addons )[0m
+[03:49:46 INFO]: 
+[03:49:46 INFO]: [38;5;10mSlimefun is an Open-Source project that is kept alive by a large community.[0m
+[03:49:46 INFO]: [38;5;10mConsider helping us maintain this project by contributing on GitHub![0m
+[03:49:46 INFO]: [38;5;10m - UNOFFICIALLY MODIFIED BUILD - NO OFFICIAL SUPPORT GIVEN[0m
+[03:49:46 INFO]: 
+[03:49:46 INFO]: [Slimefun] Loading Blocks for World "world"
+[03:49:46 INFO]: [Slimefun] This may take a long time...
+[03:49:46 INFO]: [Slimefun] Loading Blocks... 100% (FINISHED - 11ms)
+[03:49:46 INFO]: [Slimefun] Loaded a total of 7 Blocks for World "world"
+[03:49:46 INFO]: [Slimefun] Avg: 1.57ms/Block
+[03:49:46 INFO]: [Slimefun] Loading Blocks for World "world_nether"
+[03:49:46 INFO]: [Slimefun] This may take a long time...
+[03:49:46 INFO]: [Slimefun] Loading Blocks... 100% (FINISHED - 0ms)
+[03:49:46 INFO]: [Slimefun] Loaded a total of 0 Blocks for World "world_nether"
+[03:49:46 INFO]: [Slimefun] Loading Blocks for World "world_the_end"
+[03:49:46 INFO]: [Slimefun] This may take a long time...
+[03:49:46 INFO]: [Slimefun] Loading Blocks... 100% (FINISHED - 0ms)
+[03:49:46 INFO]: [Slimefun] Loaded a total of 0 Blocks for World "world_the_end"
+[03:49:46 INFO]: [dough: protection] Loading Protection Modules...
+[03:49:46 INFO]: [dough: protection] This may happen more than once.
+[03:49:46 INFO]: Done (15.881s)! For help, type "help"
+[03:49:47 WARN]: *************************************************************************************
+[03:49:47 WARN]: You are running the latest build for your Minecraft version (1.21.11)
+[03:49:47 WARN]: However, you are 4 release(s) behind the latest stable release (26.2)!
+[03:49:47 WARN]: It is recommended that you update as soon as possible
+[03:49:47 WARN]: https://papermc.io/downloads/paper
+[03:49:47 WARN]: *************************************************************************************
+[03:51:00 INFO]: Thread RCON Client /127.0.0.1 started
+[03:51:00 INFO]: [3m[38;5;7m[Rcon: Set the time to 6000][0m
+[03:51:00 INFO]: Thread RCON Client /127.0.0.1 shutting down
+[03:51:26 INFO]: [Slimefun] Auto-saving block data... (Next auto-save: 1m)
+[03:51:26 INFO]: [Slimefun] Saving block data for world "world" (2 change(s) queued)
+[03:52:29 INFO]: Thread RCON Client /127.0.0.1 started
+[03:52:29 INFO]: [3m[38;5;7m[Rcon: Marked chunk [0, 0] in minecraft:overworld to be force loaded][0m
+[03:52:29 INFO]: [3m[38;5;7m[Rcon: Set the time to 6000][0m
+[03:52:29 INFO]: Thread RCON Client /127.0.0.1 shutting down
