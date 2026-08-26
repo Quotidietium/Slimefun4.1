@@ -283,6 +283,17 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
             return;
         }
 
+        /*
+         * The plate may also have been broken and re-placed by someone else in the
+         * meantime: the editor was owner-gated when it opened, but the pending chat
+         * input must not carry the rename over to the new owner's plate.
+         */
+        String owner = BlockStorage.getLocationInfo(b.getLocation(), "owner");
+
+        if (!p.getUniqueId().toString().equals(owner)) {
+            return;
+        }
+
         if (ElevatorFloorRenameEvent.getHandlerList().getRegisteredListeners().length > 0) {
             ElevatorFloorRenameEvent event = new ElevatorFloorRenameEvent(p, b, BlockStorage.getLocationInfo(b.getLocation(), DATA_KEY), name);
             Bukkit.getPluginManager().callEvent(event);

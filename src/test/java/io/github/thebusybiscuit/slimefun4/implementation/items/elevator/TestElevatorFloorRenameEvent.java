@@ -82,10 +82,11 @@ class TestElevatorFloorRenameEvent {
      * Places the plate as a real block backed by {@link BlockStorage} with the given
      * floor name, mirroring what the place handler stores.
      */
-    private Block placePlate(int x, int z, String floorName) {
+    private Block placePlate(Player owner, int x, int z, String floorName) {
         Block b = world.getBlockAt(x, 60, z);
         b.setType(Material.HEAVY_WEIGHTED_PRESSURE_PLATE);
         BlockStorage.addBlockInfo(b, "id", plate.getId(), true);
+        BlockStorage.addBlockInfo(b, "owner", owner.getUniqueId().toString(), true);
 
         if (floorName != null) {
             BlockStorage.addBlockInfo(b, FLOOR_KEY, floorName, true);
@@ -159,7 +160,7 @@ class TestElevatorFloorRenameEvent {
     @DisplayName("Renaming fires the event with the raw typed name and stores the sanitized name")
     void testRenameFiresEventAndStoresName() {
         Player player = server.addPlayer();
-        Block b = placePlate(10, 10, "&7Old Floor");
+        Block b = placePlate(player, 10, 10, "&7Old Floor");
         boolean[] opened = trackMenuOpens(player);
 
         boolean[] seen = { false };
@@ -190,7 +191,7 @@ class TestElevatorFloorRenameEvent {
     @DisplayName("Cancelling ElevatorFloorRenameEvent keeps the old name and opens no editor")
     void testCancelKeepsOldNameAndSkipsEditor() {
         Player player = server.addPlayer();
-        Block b = placePlate(20, 20, "&7Old Floor");
+        Block b = placePlate(player, 20, 20, "&7Old Floor");
         boolean[] opened = trackMenuOpens(player);
 
         Listener cancelling = new Listener() {
@@ -215,7 +216,7 @@ class TestElevatorFloorRenameEvent {
     @DisplayName("Renaming without listeners still stores the name, preserving the old behavior")
     void testRenameWithoutListenersStores() {
         Player player = server.addPlayer();
-        Block b = placePlate(30, 30, "&7Old Floor");
+        Block b = placePlate(player, 30, 30, "&7Old Floor");
         boolean[] opened = trackMenuOpens(player);
 
         plate.renameFloor(player, b, "&bSilent Floor");
@@ -228,7 +229,7 @@ class TestElevatorFloorRenameEvent {
     @DisplayName("Redirecting via setNewName changes the stored name")
     void testSetNewNameRedirect() {
         Player player = server.addPlayer();
-        Block b = placePlate(40, 40, "&7Old Floor");
+        Block b = placePlate(player, 40, 40, "&7Old Floor");
 
         Listener redirecting = new Listener() {
             @EventHandler(priority = EventPriority.LOWEST)
@@ -259,7 +260,7 @@ class TestElevatorFloorRenameEvent {
     @DisplayName("Renaming a never-named floor exposes a null previous name")
     void testUnnamedFloorPreviousNameNull() {
         Player player = server.addPlayer();
-        Block b = placePlate(50, 50, null);
+        Block b = placePlate(player, 50, 50, null);
 
         boolean[] seen = { false };
         Listener watcher = new Listener() {
@@ -276,6 +277,35 @@ class TestElevatorFloorRenameEvent {
 
             Assertions.assertTrue(seen[0], "ElevatorFloorRenameEvent was not fired");
             Assertions.assertEquals("First Name", storedName(b), "The new name must have been stored");
+        } finally {
+            HandlerList.unregisterAll(watcher);
+        }
+    }
+
+    @Test
+    @DisplayName("Renaming after the plate was re-placed by someone else is rejected")
+    void testRenameAfterPlateReplacedByOtherOwner() {
+        Player originalOwner = server.addPlayer();
+        Player newOwner = server.addPlayer();
+        Block b = placePlate(newOwner, 60, 60, "&7Old Floor");
+        boolean[] opened = trackMenuOpens(originalOwner);
+
+        boolean[] seen = { false };
+        Listener watcher = new Listener() {
+            @EventHandler
+            public void onRename(ElevatorFloorRenameEvent event) {
+                seen[0] = true;
+            }
+        };
+        server.getPluginManager().registerEvents(watcher, plugin);
+
+        try {
+            // The original owner's pending chat input arrives after the plate changed hands
+            plate.renameFloor(originalOwner, b, "Stolen Floor");
+
+            Assertions.assertFalse(seen[0], "ElevatorFloorRenameEvent must not fire for a non-owner rename");
+            Assertions.assertEquals("&7Old Floor", storedName(b), "A non-owner rename must not change the floor name");
+            Assertions.assertFalse(opened[0], "A non-owner rename must not re-open the editor");
         } finally {
             HandlerList.unregisterAll(watcher);
         }
