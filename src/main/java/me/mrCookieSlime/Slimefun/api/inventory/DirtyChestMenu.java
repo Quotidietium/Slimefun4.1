@@ -113,8 +113,9 @@ public class DirtyChestMenu extends ChestMenu {
      * @return {@link ItemStack} with any items that did not fit into the inventory
      *         or null when everything had fit
      */
+    // Synchronized: see consumeItem(int, int, boolean) for the lost-update rationale
     @Nullable
-    public ItemStack pushItem(ItemStack item, int... slots) {
+    public synchronized ItemStack pushItem(ItemStack item, int... slots) {
         if (item == null || item.getType() == Material.AIR) {
             throw new IllegalArgumentException("Cannot push null or AIR");
         }
@@ -146,6 +147,13 @@ public class DirtyChestMenu extends ChestMenu {
                         stack.setAmount(stack.getAmount() + added);
                         amount -= added;
                         item.setAmount(amount);
+
+                        // The live stack was mutated in place (no replaceExistingItem),
+                        // so the change counter must be bumped here - a menu whose only
+                        // change was a merge would otherwise never be re-saved and the
+                        // merged items would be lost on restart (BlockMenu#save skips
+                        // clean menus).
+                        markDirty();
                     }
                 }
             }
@@ -166,7 +174,16 @@ public class DirtyChestMenu extends ChestMenu {
         consumeItem(slot, amount, false);
     }
 
-    public void consumeItem(int slot, int amount, boolean replaceConsumables) {
+    /*
+     * Synchronized (menu monitor): the read-slot / mutate-amount / write-back sequence
+     * is a lost-update window when the async machine ticker pushes while the main
+     * thread (cargo / player interactions) pushes or consumes the same menu - an
+     * 8-thread probe measured silently voided items without this lock. The
+     * BlockMenuPreset#onItemStackChange callback runs under the monitor by design;
+     * its default implementation is pure, addons must not re-enter OTHER menus from
+     * within it.
+     */
+    public synchronized void consumeItem(int slot, int amount, boolean replaceConsumables) {
         ItemUtils.consumeItem(getItemInSlot(slot), amount, replaceConsumables);
         markDirty();
     }

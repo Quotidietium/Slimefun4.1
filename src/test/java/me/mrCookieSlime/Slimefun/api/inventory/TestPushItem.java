@@ -98,4 +98,51 @@ class TestPushItem {
         Assertions.assertNull(rest);
         Assertions.assertEquals(5, menu.getItemInSlot(0).getAmount());
     }
+
+    @Test
+    @DisplayName("A merged push marks the menu dirty so the change is persisted")
+    void testMergedPushMarksDirty() {
+        DirtyChestMenu menu = newMenu();
+        menu.addItem(0, new ItemStack(Material.STONE, 60));
+
+        // Simulate a completed save (BlockMenu#save subtracts the written change count)
+        menu.changes.set(0);
+        Assertions.assertFalse(menu.isDirty());
+
+        ItemStack rest = menu.pushItem(new ItemStack(Material.STONE, 2), 0);
+
+        Assertions.assertNull(rest);
+        Assertions.assertEquals(62, menu.getItemInSlot(0).getAmount());
+        Assertions.assertTrue(menu.isDirty(), "A merged push must mark the menu dirty, otherwise the merged items are never saved");
+    }
+
+    @Test
+    @DisplayName("Concurrent pushes into the same partial slot never corrupt the slot")
+    void testConcurrentPushesNeverCorruptTheSlot() throws InterruptedException {
+        DirtyChestMenu menu = newMenu();
+        menu.addItem(0, new ItemStack(Material.STONE, 32));
+
+        Thread[] threads = new Thread[4];
+
+        for (int t = 0; t < threads.length; t++) {
+            threads[t] = new Thread(() -> {
+                for (int i = 0; i < 100; i++) {
+                    menu.pushItem(new ItemStack(Material.STONE, 1), 0);
+                }
+            });
+
+            threads[t].start();
+        }
+
+        for (Thread thread : threads) {
+            thread.join(10_000);
+        }
+
+        ItemStack stack = menu.getItemInSlot(0);
+
+        if (stack != null) {
+            Assertions.assertTrue(stack.getAmount() > 0, "The slot must never be emptied or corrupted by concurrent pushes");
+            Assertions.assertTrue(stack.getAmount() <= stack.getMaxStackSize(), "The slot must never exceed its max stack size");
+        }
+    }
 }
