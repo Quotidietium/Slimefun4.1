@@ -1037,7 +1037,19 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
             return null;
         }
 
-        return instance.getServer().getScheduler().runTaskLater(instance, runnable, delay);
+        /*
+         * Chokepoint guard for all one-shot sync tasks (~50 call sites): an uncaught
+         * exception would abort the deferred action with only an anonymous scheduler
+         * log line - attribute it to Slimefun properly instead. The action itself is
+         * not recoverable either way; this only makes the failure diagnosable.
+         */
+        return instance.getServer().getScheduler().runTaskLater(instance, () -> {
+            try {
+                runnable.run();
+            } catch (Exception | LinkageError x) {
+                logger().log(Level.SEVERE, x, () -> "An Exception occurred in a deferred sync task (Slimefun v" + getVersion() + ")");
+            }
+        }, delay);
     }
 
     /**
@@ -1065,7 +1077,14 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
             return null;
         }
 
-        return instance.getServer().getScheduler().runTask(instance, runnable);
+        // See runSync(Runnable, long) for the chokepoint guard rationale
+        return instance.getServer().getScheduler().runTask(instance, () -> {
+            try {
+                runnable.run();
+            } catch (Exception | LinkageError x) {
+                logger().log(Level.SEVERE, x, () -> "An Exception occurred in a deferred sync task (Slimefun v" + getVersion() + ")");
+            }
+        });
     }
 
     public static @Nonnull Storage getPlayerStorage() {
