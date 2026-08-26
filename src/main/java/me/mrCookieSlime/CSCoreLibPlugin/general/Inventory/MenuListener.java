@@ -1,8 +1,8 @@
 package me.mrCookieSlime.CSCoreLibPlugin.general.Inventory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -24,7 +24,10 @@ import me.mrCookieSlime.Slimefun.api.inventory.DirtyChestMenu;
  */
 public class MenuListener implements Listener {
 
-    static final Map<UUID, ChestMenu> menus = new HashMap<>();
+    // ConcurrentHashMap: entries are (de)registered on the main thread, but an async
+    // InventoryCloseEvent (e.g. a plugin closing an inventory off-thread) also reaches
+    // onClose - a plain HashMap would corrupt under that concurrency.
+    static final Map<UUID, ChestMenu> menus = new ConcurrentHashMap<>();
 
     public MenuListener(Plugin plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);

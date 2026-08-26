@@ -85,7 +85,14 @@ public class DirtyChestMenu extends ChestMenu {
 
     public void close() {
         for (HumanEntity human : new ArrayList<>(toInventory().getViewers())) {
-            human.closeInventory();
+            /*
+             * closeInventory() must run on the main thread (see BlockStorage#clearInventory
+             * for the same pattern): this method is also reached from the async ticker's
+             * block-deletion queue via UniversalBlockMenu, and an async closeInventory()
+             * both mutates entity state off-thread and fires InventoryCloseEvent on the
+             * wrong thread.
+             */
+            Slimefun.runSync(human::closeInventory);
         }
     }
 
