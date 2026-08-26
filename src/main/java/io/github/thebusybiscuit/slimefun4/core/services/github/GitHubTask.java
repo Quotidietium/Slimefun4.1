@@ -48,7 +48,14 @@ class GitHubTask implements Runnable {
         }
 
         connectAndCache();
-        grabTextures();
+
+        try {
+            grabTextures();
+        } catch (Exception | LinkageError x) {
+            // future.get() inside times out on a slow Mojang API (an expected event) -
+            // an escaping exception would cancel this whole repeating task.
+            Slimefun.logger().log(Level.WARNING, x, () -> "An error occurred while fetching contributor textures");
+        }
     }
 
     private void connectAndCache() {

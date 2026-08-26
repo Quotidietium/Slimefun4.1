@@ -178,13 +178,18 @@ public class PlayerBackpack {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         Slimefun.runSync(() -> {
-            Iterator<HumanEntity> iterator = new ArrayList<>(inventory.getViewers()).iterator();
+            try {
+                Iterator<HumanEntity> iterator = new ArrayList<>(inventory.getViewers()).iterator();
 
-            while (iterator.hasNext()) {
-                iterator.next().closeInventory();
+                while (iterator.hasNext()) {
+                    iterator.next().closeInventory();
+                }
+
+                future.complete(null);
+            } catch (Exception | LinkageError x) {
+                // Never leave the future orphaned - chained follow-up actions would silently never run
+                future.completeExceptionally(x);
             }
-
-            future.complete(null);
         });
 
         return future;
