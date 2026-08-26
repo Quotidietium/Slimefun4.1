@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -80,17 +81,28 @@ public class BackupService implements Runnable {
             File file = new File(directory, format.format(LocalDateTime.now()) + ".zip");
 
             if (!file.exists()) {
-                try {
-                    if (file.createNewFile()) {
-                        try (ZipOutputStream output = new ZipOutputStream(new FileOutputStream(file))) {
-                            createBackup(output);
-                        }
+                // Build the zip under a temporary name first: backups run exactly when the
+                // server shuts down, which is also the most likely moment for the process to
+                // be killed mid-write. A crash during a direct write left a truncated zip
+                // whose timestamp name still matched the rotation filter, silently occupying
+                // one of the MAX_BACKUPS slots with unrestorable partial data.
+                File tmpFile = new File(directory, file.getName() + ".tmp");
 
-                        Slimefun.logger().log(Level.INFO, "Backed up Slimefun data to: {0}", file.getName());
-                    } else {
-                        Slimefun.logger().log(Level.WARNING, "Could not create backup-file: {0}", file.getName());
+                try {
+                    try (ZipOutputStream output = new ZipOutputStream(new FileOutputStream(tmpFile))) {
+                        createBackup(output);
                     }
+
+                    try {
+                        Files.move(tmpFile.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE);
+                    } catch (IOException moveError) {
+                        // Some filesystems do not support atomic moves - fall back to a plain replace
+                        Files.move(tmpFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    Slimefun.logger().log(Level.INFO, "Backed up Slimefun data to: {0}", file.getName());
                 } catch (IOException x) {
+                    deleteTmp(tmpFile);
                     Slimefun.logger().log(Level.SEVERE, x, () -> "An Exception occurred while creating a backup for Slimefun " + Slimefun.getVersion());
                 }
             }
@@ -205,4 +217,11 @@ public class BackupService implements Runnable {
         return LocalDateTime.parse(name.substring(0, name.length() - 4), format);
     }
 
+    private void deleteTmp(@Nonnull File tmpFile) {
+        try {
+            Files.deleteIfExists(tmpFile.toPath());
+        } catch (IOException ignored) {
+            // The tmp is already gone or undeletable - either way it is not a valid backup
+        }
+    }
 }
