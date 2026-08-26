@@ -121,6 +121,13 @@ public class AsyncRecipeChoiceTask implements Runnable {
             for (Map.Entry<Integer, LoopIterator<Material>> entry : iterators.entrySet()) {
                 inventory.setItem(entry.getKey(), new ItemStack(entry.getValue().next()));
             }
+        } catch (Exception | LinkageError x) {
+            /*
+             * An uncaught exception would cancel this repeating task (and, being a
+             * preview-only animation, a broken one is not worth retrying either) -
+             * stop the cycling gracefully instead.
+             */
+            Bukkit.getScheduler().cancelTask(id);
         } finally {
             lock.readLock().unlock();
         }
