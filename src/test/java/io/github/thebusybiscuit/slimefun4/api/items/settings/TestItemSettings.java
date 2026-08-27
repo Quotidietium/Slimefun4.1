@@ -92,4 +92,39 @@ class TestItemSettings {
         item.addItemSetting(setting);
         Assertions.assertThrows(IllegalArgumentException.class, () -> item.addItemSetting(setting));
     }
+
+    @Test
+    @DisplayName("A List setting rejects configured values whose element type differs")
+    void testListElementTypeMismatch() {
+        SlimefunItem item = TestUtilities.mockSlimefunItem(plugin, "_ITEM_SETTINGS_LIST_TEST", CustomItemStack.create(Material.EMERALD, "&cTest"));
+        item.register(plugin);
+        ItemSetting<java.util.List<String>> setting = new ItemSetting<>(item, "string-list", java.util.List.of("foo"));
+
+        // A hand-edited Items.yml now contains a list of integers under that key
+        Slimefun.getItemCfg().setValue("_ITEM_SETTINGS_LIST_TEST.string-list", java.util.List.of(1, 2, 3));
+        setting.reload();
+
+        java.util.List<String> value = setting.getValue();
+
+        for (String element : value) {
+            // With the old loose List check this would be a List<Integer> and the
+            // enhanced-for cast would throw a ClassCastException
+            Assertions.assertTrue(element instanceof String, "The setting must fall back to the default, never hold a mismatched element type");
+        }
+
+        Assertions.assertEquals(java.util.List.of("foo"), value, "A mismatched list must fall back to the default value");
+    }
+
+    @Test
+    @DisplayName("A List setting still accepts configured values with matching element types")
+    void testListElementTypeMatch() {
+        SlimefunItem item = TestUtilities.mockSlimefunItem(plugin, "_ITEM_SETTINGS_LIST_TEST_2", CustomItemStack.create(Material.EMERALD, "&cTest"));
+        item.register(plugin);
+        ItemSetting<java.util.List<String>> setting = new ItemSetting<>(item, "string-list", java.util.List.of("foo"));
+
+        Slimefun.getItemCfg().setValue("_ITEM_SETTINGS_LIST_TEST_2.string-list", java.util.List.of("bar", "baz"));
+        setting.reload();
+
+        Assertions.assertEquals(java.util.List.of("bar", "baz"), setting.getValue());
+    }
 }

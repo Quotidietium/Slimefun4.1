@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
@@ -169,7 +170,38 @@ public class ItemSetting<T> {
         Slimefun.getItemCfg().setDefaultValue(item.getId() + '.' + getKey(), getDefaultValue());
         Object configuredValue = Slimefun.getItemCfg().getValue(item.getId() + '.' + getKey());
 
-        if (defaultValue.getClass().isInstance(configuredValue) || (configuredValue instanceof List && defaultValue instanceof List)) {
+        boolean typeMatches;
+
+        if (defaultValue.getClass().isInstance(configuredValue)) {
+            typeMatches = true;
+        } else if (defaultValue instanceof List<?> defaultList && configuredValue instanceof List<?> configuredList) {
+            /*
+             * Lists need a looser type check (their exact class differs between the
+             * default and the deserialized value), but the ELEMENT type must still
+             * match: storing e.g. a List<Integer> in a List<String> setting would
+             * only explode later with a ClassCastException deep inside the consumer.
+             */
+            Class<?> sample = sampleElementType(defaultList);
+
+            if (sample == null) {
+                // No non-null element to compare against - accept as before
+                typeMatches = true;
+            } else {
+                typeMatches = configuredList.stream().allMatch(sample::isInstance);
+
+                if (!typeMatches) {
+                    item.warn(
+                        "We have found an invalid config setting in your Items.yml!" +
+                        "\n  at \"" + item.getId() + "." + getKey() + "\"" +
+                        "\n  The list may only contain '" + sample.getSimpleName() + "' values!"
+                    );
+                }
+            }
+        } else {
+            typeMatches = false;
+        }
+
+        if (typeMatches) {
             // We can do an unsafe cast here, we did an isInstance(...) check before!
             T newValue = (T) configuredValue;
 
@@ -198,6 +230,16 @@ public class ItemSetting<T> {
             );
             // @formatter:on
         }
+    }
+
+    private @Nullable Class<?> sampleElementType(@Nonnull List<?> list) {
+        for (Object element : list) {
+            if (element != null) {
+                return element.getClass();
+            }
+        }
+
+        return null;
     }
 
     @Override
