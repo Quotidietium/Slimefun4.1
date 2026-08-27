@@ -169,4 +169,19 @@ class TestRecipeService {
         // The callback was executed
         Assertions.assertNotNull(reference.get());
     }
+
+    @Test
+    @DisplayName("A throwing subscriber does not prevent later subscribers from being notified")
+    void testSubscriberIsolation() {
+        MinecraftRecipeService service = new MinecraftRecipeService(plugin);
+        AtomicReference<RecipeSnapshot> later = new AtomicReference<>();
+
+        service.subscribe(snapshot -> {
+            throw new IllegalStateException("Intentional subscriber failure");
+        });
+        service.subscribe(later::set);
+
+        Assertions.assertDoesNotThrow(service::refresh, "One broken subscriber must not abort the refresh");
+        Assertions.assertNotNull(later.get(), "A throwing subscriber must not block later subscribers from the snapshot");
+    }
 }

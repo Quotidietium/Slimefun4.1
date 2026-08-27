@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
@@ -50,8 +51,13 @@ public class MinecraftRecipeService {
 
     /**
      * Our {@link RecipeSnapshot} - The centerpiece of this class.
+     *
+     * <p>
+     * Volatile because the snapshot is written once on the main thread (startup task)
+     * but read by asynchronous consumers (e.g. ticking auto crafters).
+     * </p>
      */
-    private RecipeSnapshot snapshot;
+    private volatile RecipeSnapshot snapshot;
 
     /**
      * This constructs a new {@link MinecraftRecipeService} for the given {@link Plugin}.
@@ -70,10 +76,21 @@ public class MinecraftRecipeService {
      * This method refreshes the {@link RecipeSnapshot} that is used by the {@link MinecraftRecipeService}.
      */
     public void refresh() {
-        snapshot = new RecipeSnapshot(plugin);
+        RecipeSnapshot newSnapshot = new RecipeSnapshot(plugin);
+        snapshot = newSnapshot;
 
         for (Consumer<RecipeSnapshot> subscriber : subscriptions) {
-            subscriber.accept(snapshot);
+            try {
+                subscriber.accept(newSnapshot);
+            } catch (Exception | LinkageError x) {
+                /*
+                 * One misbehaving (add-on) subscriber must neither abort the refresh
+                 * nor prevent any of the remaining subscribers from being notified -
+                 * e.g. an Electric Furnace registered after a broken subscriber would
+                 * otherwise never see the snapshot.
+                 */
+                plugin.getLogger().log(Level.WARNING, x, () -> "A Recipe snapshot subscriber threw an exception");
+            }
         }
     }
 
