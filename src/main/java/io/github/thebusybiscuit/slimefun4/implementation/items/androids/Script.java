@@ -230,7 +230,13 @@ public final class Script {
             loadScripts(scripts, AndroidType.NONE);
         }
 
-        Collections.sort(scripts, Comparator.comparingInt(script -> -script.getUpvotes() + 1 - script.getDownvotes()));
+        /*
+         * Sort by net upvotes (up - down), best first. The old key
+         * "-upvotes + 1 - downvotes" reduced to 1 - (up + down), i.e. it sorted by
+         * TOTAL vote count - a heavily downvoted script would rank above a small,
+         * well-received one.
+         */
+        Collections.sort(scripts, Comparator.comparingInt(script -> script.getDownvotes() - script.getUpvotes()));
         return scripts;
     }
 
