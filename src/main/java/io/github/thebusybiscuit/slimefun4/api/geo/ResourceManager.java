@@ -257,7 +257,7 @@ public class ResourceManager {
         resources.sort(Comparator.comparing(a -> a.getName(p).toLowerCase(Locale.ROOT)));
 
         int index = 10;
-        int pages = (resources.size() - 1) / 36 + 1;
+        int pages = getPageCount(resources.size());
 
         for (int i = displayPage * 28; i < resources.size() && i < (displayPage + 1) * 28; i++) {
             GEOResource resource = resources.get(i);
@@ -300,4 +300,25 @@ public class ResourceManager {
         menu.open(p);
     }
 
+    /**
+     * The number of resources shown per scan-results page. The menu layout skips the
+     * border columns (index jumps by 2 whenever it hits the last slot of a row), so
+     * each page holds 7 x 4 = 28 entries - not 36.
+     */
+    static final int RESOURCES_PER_PAGE = 28;
+
+    /**
+     * Computes how many pages the scan-results menu needs for the given number of
+     * resources. The division must match {@link #RESOURCES_PER_PAGE}, otherwise
+     * resources in the tail (e.g. entries 28-35 out of 30-36 total) would never be
+     * reachable from the next/previous buttons.
+     *
+     * @param resourceCount
+     *            The total number of registered GEO-Resources
+     *
+     * @return The number of pages, at least one
+     */
+    static int getPageCount(int resourceCount) {
+        return Math.max(1, (resourceCount - 1) / RESOURCES_PER_PAGE + 1);
+    }
 }
