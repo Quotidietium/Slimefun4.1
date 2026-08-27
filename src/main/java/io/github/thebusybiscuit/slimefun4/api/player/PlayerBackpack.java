@@ -281,7 +281,18 @@ public class PlayerBackpack {
     public void markDirty() {
         if (profile != null) {
             profile.markDirty();
+            return;
         }
+
+        /*
+         * Backpacks created via load()/newBackpack() (the only paths the current
+         * storage backend uses) do not carry a profile reference. Resolving the
+         * owning profile from the cache keeps the dirty flag working - without
+         * this, edits made right before a player logs off would never trigger a
+         * save and the profile could be evicted with the changes still in memory
+         * only (silent item loss).
+         */
+        PlayerProfile.find(Bukkit.getOfflinePlayer(ownerId)).ifPresent(PlayerProfile::markDirty);
     }
 
     private void setContents(int size, HashMap<Integer, ItemStack> contents) {
