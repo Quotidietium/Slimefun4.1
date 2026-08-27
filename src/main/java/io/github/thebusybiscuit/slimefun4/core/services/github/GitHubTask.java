@@ -161,7 +161,11 @@ class GitHubTask implements Runnable {
 
         if (uuid.isPresent()) {
             CompletableFuture<PlayerSkin> future = PlayerSkin.fromPlayerUUID(Slimefun.instance(), uuid.get());
-            Optional<String> skin = Optional.of(future.get().getProfile().getBase64Texture());
+
+            // Same #3241 rationale as above: an unbounded get() would hang this whole
+            // async task thread when sessionserver.mojang.com is silently dropped.
+            // A TimeoutException is handled by requestTexture's catch block below.
+            Optional<String> skin = Optional.ofNullable(future.get(30, TimeUnit.SECONDS)).map(s -> s.getProfile().getBase64Texture());
             skins.put(contributor.getMinecraftName(), skin.orElse(""));
             return skin.orElse(null);
         } else {
