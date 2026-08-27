@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
@@ -31,7 +32,12 @@ import io.github.thebusybiscuit.slimefun4.utils.ConfigUtils;
  */
 public class PermissionsService {
 
-    private final Map<String, String> permissions = new HashMap<>();
+    /*
+     * ConcurrentHashMap: hasPermission(...) is reachable from async machine tickers via
+     * SlimefunItem#canUse, while register(...) may put entries on the main thread for
+     * runtime-registered items - a plain HashMap could corrupt under that overlap.
+     */
+    private final Map<String, String> permissions = new ConcurrentHashMap<>();
     private final Config config;
 
     public PermissionsService(@Nonnull Slimefun plugin) {
