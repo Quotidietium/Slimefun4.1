@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -116,10 +117,20 @@ abstract class GitHubConnector {
                 .orElse("");
             URI uri = new URI(url + params);
 
-            HttpResponse<String> response = client.send(
-                HttpRequest.newBuilder(uri).header("User-Agent", USER_AGENT).build(),
-                HttpResponse.BodyHandlers.ofString()
-            );
+            /*
+             * Without a request timeout, a firewall that silently drops packets to
+             * api.github.com makes this send() hang forever: the connectors run
+             * sequentially on one async task thread, so one hung request would leak
+             * that thread and stop every subsequent connector until a restart.
+             * HttpTimeoutException is an IOException, so the existing catch block
+             * falls back to the cached file below.
+             */
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                .header("User-Agent", USER_AGENT)
+                .timeout(Duration.ofSeconds(30))
+                .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             JsonElement element = JsonUtils.parseString(response.body());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
