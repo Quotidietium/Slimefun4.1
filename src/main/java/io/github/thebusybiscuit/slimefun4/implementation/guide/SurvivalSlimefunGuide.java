@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -308,13 +309,7 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
                         if (sfitem instanceof MultiBlockMachine) {
                             Slimefun.getLocalization().sendMessage(pl, "guide.cheat.no-multiblocks");
                         } else {
-                            ItemStack clonedItem = sfitem.getItem().clone();
-
-                            if (action.isShiftClicked()) {
-                                clonedItem.setAmount(clonedItem.getMaxStackSize());
-                            }
-
-                            pl.getInventory().addItem(clonedItem);
+                            giveCheatItem(pl, sfitem, action.isShiftClicked());
                         }
                     } else {
                         /*
@@ -330,6 +325,34 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
 
                 return false;
             });
+        }
+    }
+
+    /**
+     * Gives the given {@link SlimefunItem} to the {@link Player} via the cheat sheet
+     * guide. Any portion that does not fit into the inventory is dropped at the
+     * player's feet instead of silently vanishing.
+     *
+     * @param pl
+     *            The {@link Player} receiving the item
+     * @param sfitem
+     *            The {@link SlimefunItem} to give
+     * @param shiftClicked
+     *            Whether the click was shift-clicked (grants a full stack)
+     */
+    static void giveCheatItem(@Nonnull Player pl, @Nonnull SlimefunItem sfitem, boolean shiftClicked) {
+        ItemStack clonedItem = sfitem.getItem().clone();
+
+        if (shiftClicked) {
+            clonedItem.setAmount(clonedItem.getMaxStackSize());
+        }
+
+        Map<Integer, ItemStack> leftover = pl.getInventory().addItem(clonedItem);
+
+        if (!leftover.isEmpty()) {
+            for (ItemStack rest : leftover.values()) {
+                pl.getWorld().dropItemNaturally(pl.getLocation(), rest);
+            }
         }
     }
 
