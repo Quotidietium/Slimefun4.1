@@ -70,10 +70,20 @@ public class GitHubService {
     public void start(@Nonnull Slimefun plugin) {
         loadConnectors(false);
 
-        long period = TimeUnit.HOURS.toMillis(1);
         GitHubTask task = new GitHubTask(this);
 
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, task, 30 * 20L, period);
+        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, task, 30 * 20L, getRefreshPeriodTicks());
+    }
+
+    /**
+     * The connector-refresh period in ticks (one hour). The previous code passed
+     * {@code TimeUnit.HOURS.toMillis(1)} - a milliseconds value - into a parameter
+     * measured in ticks, stretching the refresh cycle to 50 hours instead of one.
+     *
+     * @return The refresh period in ticks
+     */
+    static long getRefreshPeriodTicks() {
+        return TimeUnit.HOURS.toSeconds(1) * 20L;
     }
 
     /**
