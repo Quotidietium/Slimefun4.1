@@ -1,5 +1,7 @@
 package io.github.thebusybiscuit.slimefun4.core.multiblocks;
 
+import java.util.Arrays;
+
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.junit.jupiter.api.AfterAll;
@@ -52,6 +54,30 @@ class TestMultiBlocks {
         Assertions.assertEquals(item, multiblock.getSlimefunItem());
         Assertions.assertArrayEquals(new Material[9], multiblock.getStructure());
         Assertions.assertEquals(BlockFace.DOWN, multiblock.getTriggerBlock());
+    }
+
+    @Test
+    @DisplayName("equals-consistent hashCode: structurally equal MultiBlocks from different items hash equally")
+    void testHashCodeContract() {
+        /*
+         * equals(...) compares the structure (with tag equivalence), the trigger and
+         * the symmetry - NOT the owning item. Two structurally equal MultiBlocks from
+         * two different items must therefore also share the same hashCode, otherwise
+         * any hash-based container would silently break.
+         */
+        SlimefunItem itemA = TestUtilities.mockSlimefunItem(plugin, "_MB_HASH_A", CustomItemStack.create(Material.BRICK, "&5A"));
+        SlimefunItem itemB = TestUtilities.mockSlimefunItem(plugin, "_MB_HASH_B", CustomItemStack.create(Material.BRICK, "&5B"));
+
+        Material[] structureA = new Material[9];
+        Material[] structureB = new Material[9];
+        Arrays.fill(structureA, Material.OAK_LOG);
+        Arrays.fill(structureB, Material.BIRCH_LOG);
+
+        MultiBlock a = new MultiBlock(itemA, structureA, BlockFace.SELF);
+        MultiBlock b = new MultiBlock(itemB, structureB, BlockFace.SELF);
+
+        Assertions.assertTrue(a.equals(b), "Sanity: tag-equivalent structures from different items are equal");
+        Assertions.assertEquals(a.hashCode(), b.hashCode(), "Structurally equal MultiBlocks must share the same hashCode (equals/hashCode contract)");
     }
 
     @Test

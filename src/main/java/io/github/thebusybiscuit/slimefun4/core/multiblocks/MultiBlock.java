@@ -113,7 +113,41 @@ public class MultiBlock {
 
     @Override
     public int hashCode() {
-        return Objects.hash(item.getId(), blocks, trigger, isSymmetric);
+        /*
+         * Must stay consistent with equals(...): equals compares the structure via
+         * tag equivalence (and the piston special case), the trigger and the
+         * symmetry - it does NOT compare the owning item. Hashing raw materials or
+         * the array identity would break the equals/hashCode contract for any
+         * hash-based container, so every block is normalized to its equivalence
+         * class first.
+         */
+        int[] hashes = new int[blocks.length];
+
+        for (int i = 0; i < blocks.length; i++) {
+            hashes[i] = blockHash(blocks[i]);
+        }
+
+        return Objects.hash(Arrays.hashCode(hashes), trigger, isSymmetric);
+    }
+
+    private static int blockHash(@Nullable Material material) {
+        if (material == null) {
+            return 0;
+        }
+
+        // Pistons and moving pistons compare as equal in equals(...) too
+        if (material == Material.PISTON || material == Material.MOVING_PISTON) {
+            return Material.PISTON.hashCode();
+        }
+
+        for (Tag<Material> tag : SUPPORTED_TAGS) {
+            if (tag.isTagged(material)) {
+                // Tag constants are singleton instances, so this is stable within a runtime
+                return tag.hashCode();
+            }
+        }
+
+        return material.hashCode();
     }
 
     private boolean compareBlocks(Material a, @Nullable Material b) {
