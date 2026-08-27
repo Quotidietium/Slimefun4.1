@@ -548,6 +548,18 @@ public class Research implements Keyed {
         enabled = true;
 
         for (Research existing : Slimefun.getRegistry().getResearches()) {
+            if (existing.getKey().equals(key)) {
+                /*
+                 * Unlock state is tracked per Research object, so two researches sharing
+                 * a key would both stay in the registry while getResearch(...) only ever
+                 * returns the first - make the conflict visible instead of failing silently.
+                 */
+                Slimefun.logger().log(Level.WARNING, "A Research with the key \"{0}\" is already registered. Items bound to one of them will not count as unlocked for the other!", key);
+                break;
+            }
+        }
+
+        for (Research existing : Slimefun.getRegistry().getResearches()) {
             if (existing.getID() == id) {
                 /*
                  * The numeric id is the persistence key for unlock state (LegacyStorage:

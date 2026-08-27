@@ -188,6 +188,23 @@ class TestResearches {
     }
 
     @Test
+    @DisplayName("Test registering a duplicate Research key")
+    void testDuplicateResearchKey() {
+        NamespacedKey key = new NamespacedKey(plugin, "duplicate_research_key");
+        Research first = new Research(key, 600, "First", 10);
+        Research second = new Research(key, 601, "Second", 10);
+
+        first.register();
+        second.register();
+
+        // Upstream behaviour is preserved (both register, no exception), only a
+        // diagnostic warning is emitted - getResearch(...) resolves to the first one
+        Assertions.assertTrue(Slimefun.getRegistry().getResearches().contains(first));
+        Assertions.assertTrue(Slimefun.getRegistry().getResearches().contains(second));
+        Assertions.assertEquals(first, Research.getResearch(key).get());
+    }
+
+    @Test
     @DisplayName("Test PlayerPreResearchEvent")
     void testPreCanUnlockResearchEvent() throws InterruptedException {
         Slimefun.getRegistry().setResearchingEnabled(true);
