@@ -310,4 +310,18 @@ class TestElevatorFloorRenameEvent {
             HandlerList.unregisterAll(watcher);
         }
     }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("Floor selector page count has no empty trailing page")
+    void testFloorSelectorPageCount() {
+        /*
+         * The old formula 1 + floors / 27 produced an extra empty page whenever the
+         * floor count was an exact multiple of the page size (e.g. exactly 27 floors).
+         */
+        org.junit.jupiter.api.Assertions.assertEquals(1, io.github.thebusybiscuit.slimefun4.implementation.items.elevator.ElevatorPlate.getPageCount(2), "Two floors fit on one page");
+        org.junit.jupiter.api.Assertions.assertEquals(1, io.github.thebusybiscuit.slimefun4.implementation.items.elevator.ElevatorPlate.getPageCount(27), "Exactly 27 floors must fill exactly one page");
+        org.junit.jupiter.api.Assertions.assertEquals(2, io.github.thebusybiscuit.slimefun4.implementation.items.elevator.ElevatorPlate.getPageCount(28));
+        org.junit.jupiter.api.Assertions.assertEquals(2, io.github.thebusybiscuit.slimefun4.implementation.items.elevator.ElevatorPlate.getPageCount(54), "Exactly 54 floors must fill exactly two pages");
+        org.junit.jupiter.api.Assertions.assertEquals(3, io.github.thebusybiscuit.slimefun4.implementation.items.elevator.ElevatorPlate.getPageCount(55));
+    }
 }

@@ -161,7 +161,7 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
             // @formatter:on
         }
 
-        int pages = 1 + (floors.size() / GUI_SIZE);
+        int pages = getPageCount(floors.size());
 
         // 0 index so size is the first slot of the last row.
         for (int i = GUI_SIZE; i < GUI_SIZE + 9; i++) {
@@ -181,6 +181,20 @@ public class ElevatorPlate extends SimpleSlimefunItem<BlockUseHandler> {
         }
 
         menu.open(p);
+    }
+
+    /**
+     * Computes how many pages the floor selector needs. The old formula
+     * {@code 1 + floors / GUI_SIZE} produced an extra, completely empty page
+     * whenever the floor count was an exact multiple of the page size.
+     *
+     * @param floorCount
+     *            The number of floors to display
+     *
+     * @return The number of pages, at least one
+     */
+    static int getPageCount(int floorCount) {
+        return Math.max(1, (floorCount - 1) / GUI_SIZE + 1);
     }
 
     @ParametersAreNonnullByDefault
