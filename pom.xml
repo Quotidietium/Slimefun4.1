@@ -10,7 +10,7 @@
 
     <!-- The version does not start with "Dev - " or "RC - " and does not contain "UNOFFICIAL", -->
     <!-- so UpdaterService classifies it as UNKNOWN and will NOT auto-update (protecting this fork). -->
-    <version>5.1.5</version>
+    <version>5.1.6</version>
     <inceptionYear>2013</inceptionYear>
     <packaging>jar</packaging>
 
