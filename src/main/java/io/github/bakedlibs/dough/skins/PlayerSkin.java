@@ -3,6 +3,7 @@ package io.github.bakedlibs.dough.skins;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -118,32 +119,44 @@ public class PlayerSkin {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             String targetUrl = "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString().replace("-", "") + "?unsigned=false";
 
-            try (InputStreamReader reader = new InputStreamReader(new URL(targetUrl).openStream(), StandardCharsets.UTF_8)) {
-                JsonElement element = new JsonParser().parse(reader);
+            /*
+             * Timeouts on the transport itself: the caller-side future.get(30s) (GitHubTask)
+             * gives up on a hung request, but without a connect/read timeout this thread would
+             * stay blocked in the stream forever - leaking one scheduler-pool thread per hung
+             * request until the bounded async pool is exhausted.
+             */
+            try {
+                HttpURLConnection connection = (HttpURLConnection) new URL(targetUrl).openConnection();
+                connection.setConnectTimeout(10_000);
+                connection.setReadTimeout(10_000);
 
-                if (!(element instanceof JsonNull)) {
-                    JsonObject obj = element.getAsJsonObject();
+                try (InputStreamReader reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
+                    JsonElement element = new JsonParser().parse(reader);
 
-                    if (obj.has(ERROR_TOKEN)) {
-                        String error = obj.get(ERROR_TOKEN).getAsString();
-                        future.completeExceptionally(new UnsupportedOperationException(error));
-                        return;
-                    }
+                    if (!(element instanceof JsonNull)) {
+                        JsonObject obj = element.getAsJsonObject();
 
-                    JsonArray properties = obj.get("properties").getAsJsonArray();
-
-                    for (JsonElement el : properties) {
-                        if (el.isJsonObject() && el.getAsJsonObject().get("name").getAsString().equals("textures")) {
-                            String base64Texture = el.getAsJsonObject().get("value").getAsString();
-                            future.complete(PlayerSkin.fromBase64(uuid, base64Texture));
+                        if (obj.has(ERROR_TOKEN)) {
+                            String error = obj.get(ERROR_TOKEN).getAsString();
+                            future.completeExceptionally(new UnsupportedOperationException(error));
                             return;
                         }
-                    }
-                }
 
-                // No texture found for this uuid. Complete exceptionally so callers that
-                // rely on a non-null result (e.g. GitHub contributor head lookup) can skip it.
-                future.completeExceptionally(new IllegalStateException("No textures property found for UUID " + uuid));
+                        JsonArray properties = obj.get("properties").getAsJsonArray();
+
+                        for (JsonElement el : properties) {
+                            if (el.isJsonObject() && el.getAsJsonObject().get("name").getAsString().equals("textures")) {
+                                String base64Texture = el.getAsJsonObject().get("value").getAsString();
+                                future.complete(PlayerSkin.fromBase64(uuid, base64Texture));
+                                return;
+                            }
+                        }
+                    }
+
+                    // No texture found for this uuid. Complete exceptionally so callers that
+                    // rely on a non-null result (e.g. GitHub contributor head lookup) can skip it.
+                    future.completeExceptionally(new IllegalStateException("No textures property found for UUID " + uuid));
+                }
             } catch (MalformedURLException e) {
                 logger.log(Level.SEVERE, "Malformed sessions url: {0}", targetUrl);
                 future.completeExceptionally(e);
