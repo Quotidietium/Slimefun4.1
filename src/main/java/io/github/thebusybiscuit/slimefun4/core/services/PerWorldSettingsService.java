@@ -159,7 +159,7 @@ public class PerWorldSettingsService {
     public boolean isAddonEnabled(@Nonnull World world, @Nonnull SlimefunAddon addon) {
         Validate.notNull(world, "World cannot be null");
         Validate.notNull(addon, "Addon cannot be null");
-        return isWorldEnabled(world) && disabledAddons.getOrDefault(addon, Collections.emptySet()).contains(world.getName());
+        return isWorldEnabled(world) && !disabledAddons.getOrDefault(addon, Collections.emptySet()).contains(world.getName());
     }
 
     /**
@@ -225,15 +225,21 @@ public class PerWorldSettingsService {
                 config.setDefaultValue(addon + ".enabled", true);
                 config.setDefaultValue(addon + '.' + item.getId(), true);
 
-                // Whether the entire addon has been disabled
-                boolean isAddonDisabled = config.getBoolean(addon + ".enabled");
+                /*
+                 * The config key is ".enabled" (default true), so the addon is disabled when
+                 * it is explicitly false - the polarity here used to be inverted, which also
+                 * made every addon's entry collapse onto the "slimefun" key of disabledAddons
+                 * (keyed by the plugin instead of the item's owning addon). isAddonEnabled(...)
+                 * therefore returned false for every non-Slimefun addon in every world.
+                 */
+                boolean isAddonDisabled = !config.getBoolean(addon + ".enabled");
 
                 if (isAddonDisabled) {
-                    Set<String> blacklist = disabledAddons.computeIfAbsent(plugin, key -> new HashSet<>());
+                    Set<String> blacklist = disabledAddons.computeIfAbsent(item.getAddon(), key -> new HashSet<>());
                     blacklist.add(worldName);
                 }
 
-                if (!isAddonDisabled || !config.getBoolean(addon + '.' + item.getId())) {
+                if (isAddonDisabled || !config.getBoolean(addon + '.' + item.getId())) {
                     items.add(item.getId());
                 }
             }
