@@ -10,6 +10,7 @@ import io.github.thebusybiscuit.slimefun4.core.commands.SubCommand;
 import io.github.thebusybiscuit.slimefun4.core.guide.SlimefunGuide;
 import io.github.thebusybiscuit.slimefun4.core.guide.SlimefunGuideMode;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 class GuideCommand extends SubCommand {
 
@@ -23,7 +24,7 @@ class GuideCommand extends SubCommand {
         if (sender instanceof Player player) {
             if (sender.hasPermission("slimefun.command.guide")) {
                 SlimefunGuideMode design = SlimefunGuide.getDefaultMode();
-                player.getInventory().addItem(SlimefunGuide.getItem(design).clone());
+                SlimefunUtils.giveOrDrop(player, SlimefunGuide.getItem(design).clone());
             } else {
                 Slimefun.getLocalization().sendMessage(sender, "messages.no-permission", true);
             }

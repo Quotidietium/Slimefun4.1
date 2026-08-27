@@ -310,6 +310,27 @@ public final class SlimefunUtils {
      *
      * @return True if the given {@link ItemStack}s are similar under the given constraints
      */
+    /**
+     * Gives the given {@link ItemStack} to the {@link Player}. Any portion that does
+     * not fit into the inventory is dropped at the player's feet instead of being
+     * silently voided - dropping the addItem(...) return value loses exactly that
+     * remainder whenever the inventory is full.
+     *
+     * @param p
+     *            The {@link Player} receiving the item
+     * @param item
+     *            The {@link ItemStack} to give
+     */
+    public static void giveOrDrop(@Nonnull Player p, @Nonnull ItemStack item) {
+        Map<Integer, ItemStack> leftover = p.getInventory().addItem(item);
+
+        if (!leftover.isEmpty()) {
+            for (ItemStack rest : leftover.values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), rest);
+            }
+        }
+    }
+
     public static boolean isItemSimilar(@Nullable ItemStack item, @Nullable ItemStack sfitem, boolean checkLore) {
         return isItemSimilar(item, sfitem, checkLore, true, true);
     }

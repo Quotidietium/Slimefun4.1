@@ -66,6 +66,23 @@ class TestCheatSheetGiveItem {
     }
 
     @Test
+    @DisplayName("SlimefunUtils.giveOrDrop drops the remainder on a full inventory")
+    void testGiveOrDropOnFullInventory() {
+        org.bukkit.entity.Player player = server.addPlayer();
+
+        org.bukkit.inventory.ItemStack filler = new org.bukkit.inventory.ItemStack(Material.STONE);
+        for (int i = 0; i < 41; i++) {
+            player.getInventory().setItem(i, filler);
+        }
+
+        int before = player.getWorld().getEntities().stream().filter(e -> e instanceof org.bukkit.entity.Item).mapToInt(e -> 1).sum();
+        io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils.giveOrDrop(player, new org.bukkit.inventory.ItemStack(Material.DIAMOND));
+
+        int after = player.getWorld().getEntities().stream().filter(e -> e instanceof org.bukkit.entity.Item).mapToInt(e -> 1).sum();
+        org.junit.jupiter.api.Assertions.assertEquals(before + 1, after, "The item must be dropped when the inventory is full, never voided");
+    }
+
+    @Test
     @DisplayName("A cheat-sheet item that fits lands in the inventory")
     void testFittingItemArrives() {
         PlayerMock player = server.addPlayer();
