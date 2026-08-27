@@ -54,6 +54,7 @@ import io.github.thebusybiscuit.slimefun4.utils.ChatUtils;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedItemFlag;
 import io.github.thebusybiscuit.slimefun4.utils.itemstack.SlimefunGuideItem;
+import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu.MenuClickHandler;
@@ -441,7 +442,12 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
                                     clonedItem.setAmount(clonedItem.getMaxStackSize());
                                 }
 
-                                pl.getInventory().addItem(clonedItem);
+                                /*
+                                 * Same voiding bug r71/r95 fixed for the item-group view: the
+                                 * search view duplicated the cheat-give path without handling the
+                                 * addItem remainder - a full inventory silently voided the item.
+                                 */
+                                SlimefunUtils.giveOrDrop(pl, clonedItem);
                             }
                         } else {
                             Slimefun.getLocalization().sendMessage(pl, "messages.no-permission", true);
