@@ -1,6 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.core.services.sounds;
 
-import java.util.EnumMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -29,7 +29,12 @@ public class SoundService {
     /**
      * In this map we cache the corresponding {@link SoundConfiguration} to each {@link SoundEffect}.
      */
-    private final Map<SoundEffect, SoundConfiguration> soundMap = new EnumMap<>(SoundEffect.class);
+    /*
+     * ConcurrentHashMap: reloadSound(...) puts on the main thread while
+     * SoundEffect#playFor/playAt readers may run on async machine tickers -
+     * an EnumMap is not safe under that overlap.
+     */
+    private final Map<SoundEffect, SoundConfiguration> soundMap = new ConcurrentHashMap<>();
 
     public SoundService(@Nonnull Slimefun plugin) {
         config = new Config(plugin, "sounds.yml");
