@@ -128,7 +128,7 @@ class TestLegacyBackend {
 
         // Once saved under the new ids the two researches are independent again
         data.getResearches().remove(coal);
-        storage.savePlayerData(uuid, data);
+        storage.savePlayerData(uuid, data, java.util.Collections.emptyMap());
         PlayerData reloaded = storage.loadPlayerData(uuid);
         Assertions.assertFalse(reloaded.getResearches().contains(coal));
         Assertions.assertTrue(reloaded.getResearches().contains(bio));
@@ -296,7 +296,7 @@ class TestLegacyBackend {
         Assertions.assertEquals(1, data.getWaypoints().size(), "Only the waypoint in the loaded world resolves");
         Assertions.assertEquals(1, data.getUnresolvedWaypoints().size(), "The stranded waypoint must be preserved as raw data");
 
-        storage.savePlayerData(uuid, data);
+        storage.savePlayerData(uuid, data, java.util.Collections.emptyMap());
 
         // The unresolved waypoint must have been written back verbatim instead of
         // being wiped by waypointsFile.clear()
@@ -323,11 +323,11 @@ class TestLegacyBackend {
         PlayerBackpack second = PlayerBackpack.newBackpack(uuid, 1, 9);
         data.addBackpack(first);
         data.addBackpack(second);
-        storage.savePlayerData(uuid, data);
+        storage.savePlayerData(uuid, data, java.util.Collections.emptyMap());
 
         // Remove one backpack (e.g. an addon settling its contents) and save again
         data.removeBackpack(second);
-        storage.savePlayerData(uuid, data);
+        storage.savePlayerData(uuid, data, java.util.Collections.emptyMap());
 
         // The removed backpack must not be resurrected from the stale file section
         PlayerData reloaded = storage.loadPlayerData(uuid);
@@ -354,7 +354,7 @@ class TestLegacyBackend {
 
         // Save the player data
         LegacyStorage storage = new LegacyStorage();
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());
@@ -383,7 +383,7 @@ class TestLegacyBackend {
 
         // Save the player data
         LegacyStorage storage = new LegacyStorage();
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());
@@ -413,7 +413,7 @@ class TestLegacyBackend {
 
         // Save the player data
         LegacyStorage storage = new LegacyStorage();
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());
@@ -450,7 +450,7 @@ class TestLegacyBackend {
 
         // Save the player data
         LegacyStorage storage = new LegacyStorage();
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());
@@ -464,7 +464,7 @@ class TestLegacyBackend {
         profile.setResearched(Slimefun.getRegistry().getResearches().get(3), false);
 
         // Save the player data
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());
@@ -511,7 +511,7 @@ class TestLegacyBackend {
 
         // Save the player data
         LegacyStorage storage = new LegacyStorage();
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());
@@ -522,7 +522,7 @@ class TestLegacyBackend {
         profile.removeWaypoint(test2);
 
         // Save the player data
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());
@@ -554,7 +554,7 @@ class TestLegacyBackend {
 
         // Save the player data
         LegacyStorage storage = new LegacyStorage();
-        storage.savePlayerData(uuid, profile.getPlayerData());
+        storage.savePlayerData(uuid, profile.getPlayerData(), java.util.Collections.emptyMap());
 
         // Assert the file exists and data is correct
         Assertions.assertTrue(playerFile.exists());

@@ -167,7 +167,8 @@ public class LegacyStorage implements Storage {
 
     // The current design of saving all at once isn't great, this will be refined.
     @Override
-    public void savePlayerData(@Nonnull UUID uuid, @Nonnull PlayerData data) {
+    @ParametersAreNonnullByDefault
+    public void savePlayerData(UUID uuid, PlayerData data, Map<Integer, ItemStack[]> backpackSnapshots) {
         Config playerFile = new Config("data-storage/Slimefun/Players/" + uuid + ".yml");
         // Not too sure why this is its own file
         Config waypointsFile = new Config("data-storage/Slimefun/waypoints/" + uuid + ".yml");
@@ -205,8 +206,17 @@ public class LegacyStorage implements Storage {
         for (PlayerBackpack backpack : data.getBackpacks().values()) {
             playerFile.setValue("backpacks." + backpack.getId() + ".size", backpack.getSize());
 
+            /*
+             * Backpack inventories are main-thread objects. Serializing them from the
+             * async auto-save thread would race against players editing their backpack
+             * (getInventory()#getItem returns a live reference, not a copy), so we
+             * serialize the main-thread snapshot supplied by the caller. Ids without a
+             * snapshot fall back to the live read, which is safe on the main thread.
+             */
+            ItemStack[] snapshot = backpackSnapshots != null ? backpackSnapshots.get(backpack.getId()) : null;
+
             for (int i = 0; i < backpack.getSize(); i++) {
-                ItemStack item = backpack.getInventory().getItem(i);
+                ItemStack item = snapshot != null && i < snapshot.length ? snapshot[i] : backpack.getInventory().getItem(i);
                 if (item != null) {
                     playerFile.setValue("backpacks." + backpack.getId() + ".contents." + i, item);
 

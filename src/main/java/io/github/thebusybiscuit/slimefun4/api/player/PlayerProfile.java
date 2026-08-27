@@ -2,6 +2,8 @@ package io.github.thebusybiscuit.slimefun4.api.player;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +11,11 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -25,6 +31,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import com.google.common.collect.ImmutableList;
@@ -183,21 +190,89 @@ public class PlayerProfile {
      * This method will save the Player's Researches and Backpacks to the hard drive
      */
     public void save() {
+        /*
+         * Backpack inventories are main-thread objects. When the async auto-save thread
+         * calls this method the content snapshot must be taken on the main thread -
+         * serializing the live Inventory off-thread would race against players editing
+         * their backpack. The snapshot is taken BEFORE entering saveLock: a main-thread
+         * save() holding the lock while this thread waits for its snapshot task would
+         * otherwise deadlock.
+         */
+        Map<Integer, ItemStack[]> backpackSnapshots = snapshotBackpackContents();
+
         synchronized (saveLock) {
             // Capture the epoch before writing. If any mutation (which always bumps the epoch via
             // markDirty() AFTER changing the data) lands while we are writing, the epoch will have
-            // moved and we leave the profile dirty so the change is saved on the next cycle instead
+            // moved on and the profile stays dirty for another save cycle - changes are never lost
             // of being silently dropped.
             long epochBefore = modificationEpoch.get();
 
             // Throws UncheckedIOException on failure, which leaves dirty untouched so the profile is
             // retried on the next save cycle.
-            Slimefun.getPlayerStorage().savePlayerData(this.ownerId, this.data);
+            Slimefun.getPlayerStorage().savePlayerData(this.ownerId, this.data, backpackSnapshots);
 
             if (modificationEpoch.get() == epochBefore) {
                 dirty = false;
             }
         }
+    }
+
+    /**
+     * Takes a slot-by-slot copy of every backpack's contents on the main thread.
+     *
+     * <p>
+     * Called from {@link #save()}. On the main thread this happens inline; from another
+     * thread the capture is scheduled onto the main thread and awaited with a timeout,
+     * so a stuck main thread cannot hang the auto-save worker forever (the profile
+     * stays dirty and the next cycle retries).
+     * </p>
+     */
+    private @Nonnull Map<Integer, ItemStack[]> snapshotBackpackContents() {
+        if (data.getBackpacks().isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        if (Bukkit.isPrimaryThread()) {
+            return captureBackpackContents();
+        }
+
+        CompletableFuture<Map<Integer, ItemStack[]>> future = new CompletableFuture<>();
+        Slimefun.runSync(() -> {
+            try {
+                future.complete(captureBackpackContents());
+            } catch (Exception | LinkageError x) {
+                // Never leave the future orphaned - the waiting saver would hang until its timeout
+                future.completeExceptionally(x);
+            }
+        });
+
+        try {
+            return future.get(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for the backpack snapshot of " + ownerId, e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new IllegalStateException("Could not take a main-thread snapshot of the backpacks of " + ownerId, e);
+        }
+    }
+
+    private @Nonnull Map<Integer, ItemStack[]> captureBackpackContents() {
+        Map<Integer, ItemStack[]> snapshots = new HashMap<>();
+
+        for (Map.Entry<Integer, PlayerBackpack> entry : data.getBackpacks().entrySet()) {
+            PlayerBackpack backpack = entry.getValue();
+            Inventory inventory = backpack.getInventory();
+            ItemStack[] contents = new ItemStack[inventory.getSize()];
+
+            for (int slot = 0; slot < inventory.getSize(); slot++) {
+                ItemStack item = inventory.getItem(slot);
+                contents[slot] = item == null ? null : item.clone();
+            }
+
+            snapshots.put(entry.getKey(), contents);
+        }
+
+        return snapshots;
     }
 
     /**
