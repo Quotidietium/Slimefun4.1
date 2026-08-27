@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -110,6 +111,18 @@ public class ItemGroup implements Keyed {
 
         if (isRegistered()) {
             throw new UnsupportedOperationException("This ItemGroup has already been registered!");
+        }
+
+        /*
+         * Diagnostic for addon authors: registering a second group under an
+         * already-taken key does not fail, but the guide would render two
+         * identical-looking groups with the items split between them.
+         */
+        for (ItemGroup group : Slimefun.getRegistry().getAllItemGroups()) {
+            if (group.getKey().equals(key)) {
+                Slimefun.logger().log(Level.WARNING, "An ItemGroup with the key \"{0}\" is already registered. Registering another group with the same key will make the guide display both and split their items!", key);
+                break;
+            }
         }
 
         this.addon = addon;

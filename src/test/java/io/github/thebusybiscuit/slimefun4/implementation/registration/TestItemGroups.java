@@ -232,4 +232,62 @@ class TestItemGroups {
         Assertions.assertThrows(UnsupportedOperationException.class, () -> group.remove(null));
         Assertions.assertThrows(UnsupportedOperationException.class, () -> group.getItems());
     }
+
+    @Test
+    @DisplayName("Test a LockedItemGroup whose parent registers later (reverse addon load order)")
+    void testLockedItemGroupLateParent() throws InterruptedException {
+        /*
+         * The parent group registers AFTER the locked group - e.g. two addons
+         * loading in an order unknown to the author of the child group. The
+         * parent keys used to be resolved exactly once at register() time, so
+         * a parent that was not registered yet was permanently dropped and the
+         * lock silently never engaged.
+         */
+        ItemGroup lateParent = new ItemGroup(new NamespacedKey(plugin, "late_parent"), CustomItemStack.create(Material.EMERALD, "&5Late parent"));
+        LockedItemGroup locked = new LockedItemGroup(new NamespacedKey(plugin, "late_locked"), CustomItemStack.create(Material.GOLD_NUGGET, "&6Late Locked"), lateParent.getKey());
+
+        locked.register(plugin);
+        Assertions.assertFalse(locked.getParents().contains(lateParent), "An unregistered group cannot be a parent (yet)");
+
+        lateParent.register(plugin);
+        Assertions.assertTrue(locked.getParents().contains(lateParent), "A parent registered after the child must still be resolved lazily");
+
+        // The lazily resolved parent must fully engage the lock
+        Player player = server.addPlayer();
+        PlayerProfile profile = TestUtilities.awaitProfile(player);
+
+        Assertions.assertTrue(locked.hasUnlocked(player, profile), "Sanity: no items in the parent, so nothing blocks the lock");
+
+        SlimefunItem parentItem = new SlimefunItem(lateParent, new SlimefunItemStack("LATE_PARENT_ITEM", CustomItemStack.create(Material.LANTERN, "&6Late Parent Item")), RecipeType.NULL, new ItemStack[9]);
+        parentItem.register(plugin);
+        parentItem.load();
+
+        Slimefun.getRegistry().setResearchingEnabled(true);
+        Research research = new Research(new NamespacedKey(plugin, "late_parent_research"), 432433, "Late Parent Research", 90);
+        research.addItems(parentItem);
+        research.register();
+
+        Assertions.assertFalse(locked.hasUnlocked(player, profile), "An unresearched item in the lazily resolved parent must keep the group locked");
+
+        profile.setResearched(research, true);
+        Assertions.assertTrue(locked.hasUnlocked(player, profile), "Researching everything in the parent must unlock the group");
+    }
+
+    @Test
+    @DisplayName("Test registering a duplicate ItemGroup key")
+    void testDuplicateItemGroupKey() {
+        NamespacedKey key = new NamespacedKey(plugin, "duplicate_key");
+        ItemGroup first = new ItemGroup(key, CustomItemStack.create(Material.EMERALD, "&5First"));
+        ItemGroup second = new ItemGroup(key, CustomItemStack.create(Material.EMERALD, "&5Second"));
+
+        first.register(plugin);
+        second.register(plugin);
+
+        // Upstream behaviour is preserved (both register, no exception), only a
+        // diagnostic warning is emitted - this guards against accidental regressions
+        Assertions.assertTrue(first.isRegistered());
+        Assertions.assertTrue(second.isRegistered());
+        Assertions.assertTrue(Slimefun.getRegistry().getAllItemGroups().contains(first));
+        Assertions.assertTrue(Slimefun.getRegistry().getAllItemGroups().contains(second));
+    }
 }
