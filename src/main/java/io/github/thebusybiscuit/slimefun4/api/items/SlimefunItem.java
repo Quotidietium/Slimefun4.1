@@ -461,12 +461,22 @@ public class SlimefunItem implements Placeable {
                 }
             }
 
+            /*
+             * The default matters: under MockBukkit the plugin config file is never
+             * copied to the data folder, so without it every ticking item would be
+             * wrongly disabled in unit tests. setDefaultValue never overwrites the
+             * value a production server read from its config.yml.
+             */
+            Slimefun.getCfg().setDefaultValue("URID.enable-tickers", true);
             if (ticking && !Slimefun.getCfg().getBoolean("URID.enable-tickers")) {
+                /*
+                 * Tickers are disabled globally. This must NOT return early: the else
+                 * branch below clears the item handlers (and removes the id from
+                 * tickerBlocks), an early return would leave this DISABLED item behind
+                 * with live handlers and a ticker registration.
+                 */
                 state = ItemState.DISABLED;
-                return;
-            }
-
-            if (this instanceof NotConfigurable) {
+            } else if (this instanceof NotConfigurable) {
                 /*
                  * Not-configurable items will be enabled.
                  * Any other settings will remain as default.
@@ -508,6 +518,17 @@ public class SlimefunItem implements Placeable {
                 load();
             }
         } catch (Exception x) {
+            /*
+             * The registry entries above are written BEFORE the item's state is
+             * decided. Without this roll-back a half-registered UNREGISTERED husk
+             * would stay in the registry (SlimefunItem.getByID would find it and
+             * its item id would block any corrected re-registration).
+             * The materials set is intentionally NOT rolled back: it is only a
+             * fast-path hint and other items may share the same material.
+             */
+            Slimefun.getRegistry().getAllSlimefunItems().remove(this);
+            Slimefun.getRegistry().getSlimefunItemIds().remove(id, this);
+
             error("Registering " + toString() + " has failed!", x);
         }
     }
