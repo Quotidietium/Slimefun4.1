@@ -76,11 +76,26 @@ public final class ThreadService {
         long period,
         TimeUnit unit
     ) {
+        /*
+         * The period parameter used to be silently dropped here (delay was passed twice),
+         * so the declared "repeat every <period>" contract never held - tasks re-ran at
+         * their initial delay interval instead.
+         */
         this.scheduledPool.scheduleWithFixedDelay(() -> {
             // This is a bit of a hack, but it's the only way to have the thread name be as desired
             Thread.currentThread().setName(plugin.getName() + " - " + name);
             runnable.run();
-        }, delay, delay, unit);
+        }, delay, period, unit);
+    }
+
+    /**
+     * Shuts down both thread pools. Must be called on plugin disable: the scheduled pool
+     * keeps a non-daemon core thread alive forever, which would otherwise accumulate
+     * across plugin reloads/unloads.
+     */
+    public void shutdown() {
+        cachedPool.shutdown();
+        scheduledPool.shutdown();
     }
 
     /**

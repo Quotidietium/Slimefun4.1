@@ -435,6 +435,7 @@ public class Slimefun extends JavaPlugin implements SlimefunAddon {
 
         // Kill our Profiler Threads
         profiler.kill();
+        threadService.shutdown();
 
         // Save all Player Profiles that are still in memory
         PlayerProfile.iterator().forEachRemaining(profile -> {
