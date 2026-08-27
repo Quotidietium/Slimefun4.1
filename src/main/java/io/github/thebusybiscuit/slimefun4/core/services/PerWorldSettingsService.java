@@ -176,6 +176,13 @@ public class PerWorldSettingsService {
 
         Config config = getConfig(world);
 
+        /*
+         * The world-level "enabled" flag must be written explicitly: it lives in
+         * disabledWorlds, not in disabledItems, so skipping it here would drop any
+         * runtime setEnabled(world, false) change on the next restart.
+         */
+        config.setValue("enabled", !disabledWorlds.contains(world.getUID()));
+
         for (SlimefunItem item : Slimefun.getRegistry().getEnabledSlimefunItems()) {
             if (item != null) {
                 String addon = item.getAddon().getName().toLowerCase(Locale.ROOT);

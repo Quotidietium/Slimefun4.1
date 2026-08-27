@@ -190,4 +190,57 @@ class TestPerWorldSettingsService {
         Assertions.assertTrue(service.isAddonEnabled(world, foreignAddon), "A foreign addon on a fresh world must report as enabled");
         Assertions.assertTrue(service.isEnabled(world, item), "Its default-enabled item must be enabled");
     }
+
+    @Test
+    @DisplayName("save(world) persists a runtime world-level disable to disk")
+    void testSavePersistsWorldDisable() {
+        /*
+         * The world-level "enabled" flag lives in disabledWorlds, not in the item set.
+         * save(world) used to only write item-level keys, so a runtime
+         * setEnabled(world, false) followed by save(world) was silently reverted
+         * by the next restart.
+         */
+        SlimefunItem item = registerItem("_TEST_PWS_SAVE_DISABLE");
+        World world = TestUtilities.createWorld(server);
+        prepare(world, "slimefun", item.getId(), true, true);
+
+        PerWorldSettingsService service = Slimefun.getWorldSettingsService();
+        Assertions.assertTrue(service.isWorldEnabled(world), "Sanity: the world starts enabled");
+        service.setEnabled(world, false);
+        service.save(world);
+
+        Config onDisk = new Config(plugin, "world-settings/" + world.getName() + ".yml");
+        Assertions.assertFalse(onDisk.getBoolean("enabled"), "A runtime world disable must survive save(world) and a restart");
+    }
+
+    @Test
+    @DisplayName("save(world) persists a re-enabled world and keeps item-level keys symmetric")
+    void testSavePersistsWorldReEnable() {
+        SlimefunItem item = registerItem("_TEST_PWS_SAVE_ENABLE");
+        World world = TestUtilities.createWorld(server);
+        prepare(world, "slimefun", item.getId(), true, true);
+
+        PerWorldSettingsService service = Slimefun.getWorldSettingsService();
+        service.setEnabled(world, false);
+        service.setEnabled(world, true);
+        service.save(world);
+
+        Config onDisk = new Config(plugin, "world-settings/" + world.getName() + ".yml");
+        Assertions.assertTrue(onDisk.getBoolean("enabled"), "A re-enabled world must persist as enabled");
+    }
+
+    @Test
+    @DisplayName("save(world) keeps writing item-level keys")
+    void testSavePersistsItemDisable() {
+        SlimefunItem item = registerItem("_TEST_PWS_SAVE_ITEM");
+        World world = TestUtilities.createWorld(server);
+        prepare(world, "slimefun", item.getId(), true, true);
+
+        PerWorldSettingsService service = Slimefun.getWorldSettingsService();
+        service.setEnabled(world, item, false);
+        service.save(world);
+
+        Config onDisk = new Config(plugin, "world-settings/" + world.getName() + ".yml");
+        Assertions.assertFalse(onDisk.getBoolean("slimefun." + item.getId()), "A runtime item disable must persist to disk");
+    }
 }
