@@ -90,4 +90,20 @@ class TestTeleportationTime {
         assertTrue(manager.getTeleportationTime(100, source, farDestination) >= 1);
         assertTrue(manager.getTeleportationTime(100, source, farDestination) <= 40);
     }
+
+    @Test
+    @DisplayName("Same-world distance squared beyond int range must stay at the 40-interval cap")
+    void testUltraFarDistanceSaturation() {
+        /*
+         * 50,000 blocks apart: distanceSquared = 2.5e9, past Integer.MAX_VALUE. The
+         * double-to-int cast in TeleportationManager#distanceSquared saturates
+         * (JLS 5.1.3) to Integer.MAX_VALUE rather than wrapping, so the subsequent
+         * Math.min clamp still applies and the farthest reachable teleport stays at
+         * the 20-second cap. This pins that behavior: a refactor switching the
+         * distance term to int arithmetic (e.g. computing delta coordinates as ints
+         * first) would wrap negative and collapse the time to the fastest interval.
+         */
+        Location ultraFar = new Location(world, 50_000, 64, 0);
+        assertEquals(40, manager.getTeleportationTime(100, source, ultraFar));
+    }
 }
