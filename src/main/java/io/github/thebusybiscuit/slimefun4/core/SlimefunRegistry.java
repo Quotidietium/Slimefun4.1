@@ -54,7 +54,12 @@ import me.mrCookieSlime.Slimefun.api.inventory.UniversalBlockMenu;
  */
 public final class SlimefunRegistry {
 
-    private final Map<String, SlimefunItem> slimefunIds = new HashMap<>();
+    /*
+     * ConcurrentHashMap: getById(...) is called from async machine tickers (e.g. auto
+     * crafters resolving their machine), while runtime item registration may put here
+     * on the main thread - a plain HashMap is not safe under that overlap.
+     */
+    private final Map<String, SlimefunItem> slimefunIds = new ConcurrentHashMap<>();
     private final List<SlimefunItem> slimefunItems = new ArrayList<>();
     private final List<SlimefunItem> enabledItems = new ArrayList<>();
 

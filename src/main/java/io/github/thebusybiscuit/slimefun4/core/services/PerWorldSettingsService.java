@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
@@ -36,7 +37,12 @@ public class PerWorldSettingsService {
     private final Slimefun plugin;
 
     private final OptionalMap<UUID, Set<String>> disabledItems = new OptionalMap<>(HashMap::new);
-    private final Map<SlimefunAddon, Set<String>> disabledAddons = new HashMap<>();
+    /*
+     * ConcurrentHashMap: worlds can load at any time (WorldLoadEvent on the main thread
+     * calls putIfAbsent via load(...)), while isEnabled(...) is reachable from async
+     * machine tickers - a plain HashMap is not safe under that overlap.
+     */
+    private final Map<SlimefunAddon, Set<String>> disabledAddons = new ConcurrentHashMap<>();
     private final Set<UUID> disabledWorlds = new HashSet<>();
 
     public PerWorldSettingsService(@Nonnull Slimefun plugin) {
