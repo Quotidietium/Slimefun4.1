@@ -1,0 +1,31 @@
+NOTE|5.1.13-r134|Slimefun version under test: 5.1.13
+NOTE|5.1.13-r134|Java: 21.0.10 (Oracle Corporation)
+RESULT|5.1.13-r134|blockstorage|charge-write|median_ns_per_write|ns|204.540
+RESULT|5.1.13-r134|blockstorage|charge-write|min_ns_per_write|ns|197.200
+RESULT|5.1.13-r134|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|40.517
+RESULT|5.1.13-r134|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|36.398
+RESULT|5.1.13-r134|machine-idle-scan|empty-input|median_ns_per_tick|ns|739.900
+RESULT|5.1.13-r134|machine-idle-scan|empty-input|min_ns_per_tick|ns|398.800
+RESULT|5.1.13-r134|machine-idle-scan|junk-input|median_ns_per_tick|ns|340.600
+RESULT|5.1.13-r134|machine-idle-scan|junk-input|min_ns_per_tick|ns|336.000
+RESULT|5.1.13-r134|machine-processing|active|median_ns_per_tick|ns|793.400
+RESULT|5.1.13-r134|machine-processing|active|min_ns_per_tick|ns|681.700
+RESULT|5.1.13-r134|energy-settlement|charging-write|median_ns_per_component|ns|78.400
+RESULT|5.1.13-r134|energy-settlement|charging-write|min_ns_per_component|ns|76.600
+RESULT|5.1.13-r134|energy-settlement|saturated-skip|median_ns_per_component|ns|48.500
+RESULT|5.1.13-r134|energy-settlement|saturated-skip|min_ns_per_component|ns|47.700
+RESULT|5.1.13-r134|player-interaction|place-block|median_ns_per_op|ns|1072.500
+RESULT|5.1.13-r134|player-interaction|place-block|min_ns_per_op|ns|1014.500
+RESULT|5.1.13-r134|player-interaction|break-block|median_ns_per_op|ns|1284.500
+RESULT|5.1.13-r134|player-interaction|break-block|min_ns_per_op|ns|590.000
+NOTE|5.1.13-r134|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|5.1.13-r134|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|108.550
+RESULT|5.1.13-r134|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|106.450
+RESULT|5.1.13-r134|hologram-label|unchanged-label|median_ns_per_call|ns|73.950
+RESULT|5.1.13-r134|hologram-label|unchanged-label|min_ns_per_call|ns|73.000
+NOTE|5.1.13-r134|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|5.1.13-r134|ticker-run: first chunk isLoaded=true
+NOTE|5.1.13-r134|ticker-run: 5000 blocks ticked per run
+RESULT|5.1.13-r134|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|0.790
+RESULT|5.1.13-r134|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|0.766
+RESULT|5.1.13-r134|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|157.900
