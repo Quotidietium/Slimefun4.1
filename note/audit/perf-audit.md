@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r14base 均已用毕移除（r12base=3ae83e3f7、r13base=3a52e23be、r14base=286f85a83）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r15base 均已用毕移除（r13base=3a52e23be、r14base=286f85a83、r15base=f6d05df89）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -185,3 +185,13 @@
 **前提修正记录**：SlimefunItemStack 为独立包装类**非** ItemStack 子类——"instanceof 快路径"候选在类型上不可达，定向阶段推翻重来；最终 B1+C 形态。
 
 **量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r14-item-identity-memo.md](../report/perf/benchmark-perf-r14-item-identity-memo.md)）**：resolve-template **-78.4%**（129ns→28ns，9/9 对，区间 0.197-0.262 极紧）；sim-sf-hit **-67.8%**（9/9）；resolve-vanilla-shared -62.6%/-56.7%（9/9）；sim-vanilla-miss -20.9%（8/9）；**守卫 resolve-fresh +62.4%（0/9）**——纯 churn 形态每次解析多付 ~190ns 弱键插入，MockBukkit 下 meta 克隆仅 ~120ns 故占比显大，真实 Paper NBT 深拷（µs 级）下 <20% of miss 成本，测量学注记：**mock 保守下界方向性对分配类守卫成本反转**（克隆消除收益 mock 偏小 vs 插入成本 mock 偏大），双向均需锚点分解。新增 `TestItemIdentityResolutionMemo` 6 项判别（解析等价/晚注册失效/带外契约/isItemSimilar 全语义含药水检查存活/DistinctiveItem 上游语义文档化）。全量 **3278 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+## 第 15 轮（2026-09-29）：MultiBlock 右键触发材质分桶预筛——全注册表扫描改 EnumMap 直达候选
+
+**方向**：多方块结构交互分发面（玩家对任意方块的每次主手右键都遍历全部 ~40 台注册 MultiBlock，每台 9+ 次 getType 与逐 tag 对称比较——无关方块点击也全付）。定向阶段系统排查 AncientAltar（玩家触发非 tick）/AContainer（已有负缓存）/hologram（已有 text-unchanged 快路径）/profiler（idle 零成本）/cargo 六子面（r6-r9 已尽或红线否决：宏负缓存无目的地变更信号→延迟语义变更，否决）后，以最新 base 绝对成本排序确认本面为上游未触碰热点。A/B：base=f6d05df89（r15 bench 提交，worktree `../sf-perf-r15base`）vs opt=本轮。新场景 `multiblock-interact`（click-no-match 200k/近失 50k/全匹配 10k，40 台机器贴近真实规模；ProtectionManager 反射注入为环境搭建非被测代码）。
+
+**改动（4 文件）**：(1) `MultiBlock#getClickMaterial()`——SELF→blocks[4]、UP→blocks[7]（点击格为中列底格）、DOWN→blocks[1]（顶格），与旧 getRelative(trigger) 代数等价；(2) SlimefunRegistry 触发材质桶 `EnumMap<Material, List<MultiBlock>>` + `unbinnedMultiblocks`（null 通配触发格）+ `IdentityHashMap` 注册序号（桶碎片化后保留"注册表序最后一个胜出"的选择语义，含桶内/unbinned 交错）；(3) `MultiBlockMachine#postRegister` 重建钩子；(4) 事件路径尺寸漂移自愈（`bucketedMultiblockCount != list.size()` 即整体重建，兜住绕过钩子的直接 add）；监听器比较核心 compareMaterials/equals(Material,Material) 逐字未动，tag 扩张语义与 listener equals 完全一致（对称双属判定，无活塞特例）。
+
+**量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r15-multiblock-trigger-buckets.md](../report/perf/benchmark-perf-r15-multiblock-trigger-buckets.md)）**：click-no-match（生产常态形态）**-99.6%**（3111ns→~18ns median，min 全 0 为 JIT 消除，median 口径 9/9，区间 0.0033-0.0061）；click-near-miss **-76.7%**（3296→770ns，9/9）；click-full-match **-69.3%**（3692→1065ns，9/9）；median 指标三变体全部 9/9 同向同量级（对指标选取不敏感）；lean 池逐对 0.9887-1.0187 零回归。维护成本：注册期 O(N×T) 微秒级重建，事件路径正常态零分配。新增 `TestMultiblockBucketPrefilter` 7 项判别（oracle=测试内复刻旧全扫循环，**优化侧与 r15base 剥离 r15 专有断言后双侧 7/7 全绿**——直接等价证明；覆盖三 trigger 索引/tag 等价/null 通配/序选择/漂移自愈/零候选）。全量 **3285 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**MockBukkit 注记（bench/test 侧已固化）**：(1) full-match 路径 callItemHandler→canUse 需 ProtectionManager（正常由首 tick 调度创建，单测不泵 tick——反射注入 IntegrationsManager.protectionManager 字段）；(2) PlayerInteractEvent 须用 6 参构造 + EquipmentSlot.HAND（监听器检查 getHand）；(3) 判别测试的 lastEvent 捕获须每次点击前重置，否则无匹配迭代残留上一事件造成假失败（本轮曾中招）。
