@@ -4,7 +4,7 @@
 > **第 2 节已实机通过（2026-08-27 第 28 轮）**：新世界 + /weather clear + /time set noon + 机器人放置五件套 → 调节器全息稳定读取 **`+ 2 J ⚡`**，消费者淘金盘 `.sfb` 落盘 `energy-charge: 128`——发电→传输→充电→持久化全链闭环（日志 note/report/1.21.11-solar-success.log）。**根因结论**：此前零发电为雨天天光被压（/time set noon 不清天气），非插件缺陷。
 > **第 3 节已实机通过（第 26 轮）**：右键机器打开真实 SF GUI（81 槽、中文 customName 断言通过）。
 > 第 4 节：货运管理器/双箱/煤炭入箱已验（第 26 轮）；输入/输出节点放置为 mineflayer 交互限制（非插件缺陷，传输逻辑有 MockBukkit 8 场景端到端覆盖）；researches.173 迁移由 TestLegacyBackend 覆盖。
-> 构建产物：`target/SlimeFun4.1-5.1.1.jar`（2.9MB，含 21 轮审计全部修复；版本号待回归通过后再行 bump 与 Release）。
+> 构建产物：`target/SlimeFun4.1-<version>.jar`（当前 **5.1.13**）。§1–§4 判据已于 2026-08-27/28 逐节实机通过；此后 v5.1.2 → v5.1.13 历次发布均沿用本 runbook 的 §1（加载判据）+ 浸泡（全日志零 ERROR/SEVERE + 优雅停机）作为实机门槛，证据见 note/release/ 各版"实机回归"节。
 > 环境：Paper 1.21.11 + Java 21（`F:\Java\21`）。
 
 ## 0. 部署
@@ -17,7 +17,7 @@
 
 `latest.log` 中：
 
-- ✅ 必须出现：`Slimefun v5.1.1` 启动横幅、`Available languages: ... zh-CN ...`、`Loaded language "zh-CN"`。
+- ✅ 必须出现：所部署版本的 `Slimefun v<version>` 启动横幅、`Available languages: ... zh-CN ...`、`Loaded language "zh-CN"`。
 - ❌ 不得出现：`Failed to hook into`（集成降级可接受但需记录）、`Maybe consider updating`、`Asynchronous entity add`、`Unable to find handler list`、任何 `NoSuchMethodError/NoClassDefFoundError/ClassNotFoundException`（重点关注 shaded dough/paperlib 路径）。
 - ⚠️ 记录不阻塞：`Two researches share the same legacy id`（若出现说明附属引入重复 id，告警按设计工作）。
 
@@ -43,4 +43,6 @@
 
 ## 5. 通过后收尾
 
-全绿后：bump 版本（12 项修复，建议 5.1.2）→ `note/release/5.1.2.md` → 细粒度提交 → GitHub Release（附件即本 jar）。
+> 本节首发流程已于 2026-08-27 随 v5.1.2 完成执行；保留作后续版本发布模板。
+
+全绿后：bump pom 版本 → `note/release/<version>.md` 发布说明 → 细粒度提交 → 构建新 jar 实机过 §1 + 浸泡 → 发布（GitHub Release 附件即本 jar）。
