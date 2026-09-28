@@ -1,7 +1,14 @@
 # Update Procedure
 
 Date: 2024-01-15
-Last updated: 2024-01-15
+Last updated: 2026-09-28（SlimeFun4.1 fork 适配）
+
+> **Fork notice (SlimeFun4.1)：** 本 SOP 继承自官方 Slimefun4 仓库，仅作流程参考。在本 fork 中实际约定为：
+> - pom 中的版本属性是 **`paper.version`**（当前 `1.21.1`），不存在 `spigot.version`；
+> - 实机回归按 [note/report/runbook-1.21.11-regression.md](../../note/report/runbook-1.21.11-regression.md) 执行（本 fork 的既有实践：§1 加载判据 + 浸泡零错误 + 优雅停机）；
+> - 发布说明写入 [note/release/](../../note/release/)，审计记录写入 [note/audit/](../../note/audit/)；
+> - 测试须以 **Java 21** 运行（`JAVA_HOME` 指向 JDK 21；系统默认 PATH 若为其它大版本会触发 MockBukkit "No jar file selected" 级联失败）；
+> - PR/Issue 只提交到本仓库，不走官方 Discord/PR 流程。
 
 ## Goal
 
@@ -15,7 +22,7 @@ The first step is just updating Spigot in the pom.xml. This should only be done 
 * There's a new major version (well, MC major - 1.19 -> 1.20 is a major)
 * There was a change within MC or Bukkit/Spigot that broke the API
 
-To update the Spigot version, you will need to go to the `pom.xml` and find the `spigot.version` property, this will be within the `properties` property. Simply make this the MC version (e.g. `1.20` or in the case of minor `1.20.4`).
+To update the Spigot version, you will need to go to the `pom.xml` and find the `paper.version` property (this fork compiles against paper-api; upstream called it `spigot.version`), this will be within the `properties` property. Simply make this the MC version (e.g. `1.20` or in the case of minor `1.20.4`).
 
 Once updated, **make sure to run a build** to check for compilation failures with `mvn clean package -DskipTests=true`. We will go over the tests next.
 
