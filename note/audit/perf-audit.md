@@ -85,6 +85,14 @@
 
 **量化（交错 5+5，详见 [benchmark-perf-r4-save-buffer.md](../report/perf/benchmark-perf-r4-save-buffer.md)）**：save-5000 min **-3.7%**/中位 **-9.1%**（逆风：指示器 +5.6% 逆向漂移，真实改善估计 4-14%）；零改动场景全部经代码归因隔离（machine-processing +17% 判环境噪声——序列化仅在 save 周期运行，加工测量不触发）。全量 **3227 测试 0 失败**；`mvn clean package` BUILD SUCCESS。
 
+## 第 5 轮（2026-09-28）：BlockStorage 打包 long 键——完整实现后实测回归，撤销（负结果）
+
+**方向**：块表键结构重写（用户授权的结构重写方向）。实现：`storage`/`inventories` 改每世界 26/26/12 位打包坐标键，块对齐语义与磁盘对齐，越界读空/写响亮，getRawStorage 重建视图；3232 测试全绿（含 5 项判别测试）。
+
+**量化否决**：charge-write **+100%**、idle-empty **+120%**——`CHM<Long, …>` 每次 `Long.valueOf` 装箱（块键远超 Long 缓存区间），分配+GC 成本超过省下的 Location.hashCode/equals。**revert 后复核回归消除**（212.7ns / 656.6ns），归因确证。详见 [benchmark-perf-r5-packed-keys-reverted.md](../report/perf/benchmark-perf-r5-packed-keys-reverted.md)。
+
+**教训**：装箱键在高频路径不可用；"更便宜的键"必须配原语键容器（类路径上没有）；打包布局与范围守卫设计已入 git 历史（af9c68b7b），未来引入原语键容器可直接复用。红线 1 优先于理论收益——基准体系正是为此存在。
+
 ## 环境清单（滚动）
 
 - 基线 worktree：`../sf-perf-baseline`（HEAD=315df00fb，即 v5.1.13）——多轮复用，循环收尾时移除。
