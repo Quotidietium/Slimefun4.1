@@ -1,7 +1,6 @@
 package io.github.thebusybiscuit.slimefun4.core.networks.cargo;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -303,9 +302,12 @@ class CargoNetworkTask implements Runnable {
             roundRobinSort(index, tempDestinations);
             destinations = tempDestinations;
         } else {
-            // Using an ArrayList here since we won't need to sort the destinations
-            // The ArrayList has the best performance for iteration bar a primitive array
-            destinations = new ArrayList<>(outputNodes);
+            /*
+             * Iterate the routing list directly instead of copying it: the list is a
+             * per-tick local handed over by CargoNet#tick and nothing mutates it
+             * while this task runs synchronously on the main thread.
+             */
+            destinations = outputNodes;
         }
 
         for (Location output : destinations) {
@@ -350,8 +352,7 @@ class CargoNetworkTask implements Runnable {
                     }
 
                     try {
-                        ItemStackWrapper wrapper = ItemStackWrapper.wrap(item);
-                        item = CargoUtils.insert(network, inventories, output.getBlock(), target.get(), smartFill, item, wrapper);
+                        item = CargoUtils.insert(network, inventories, output.getBlock(), target.get(), smartFill, item);
                     } catch (Exception | LinkageError x) {
                         /*
                          * Isolate the failure to this one output node. The item was not

@@ -272,7 +272,7 @@ final class CargoUtils {
     }
 
     @Nullable
-    static ItemStack insert(AbstractItemNetwork network, Map<Location, Inventory> inventories, Block node, Block target, boolean smartFill, ItemStack stack, ItemStackWrapper wrapper) {
+    static ItemStack insert(AbstractItemNetwork network, Map<Location, Inventory> inventories, Block node, Block target, boolean smartFill, ItemStack stack) {
         Debug.log(TestCase.CARGO_INPUT_TESTING, "CargoUtils#insert");
         if (!matchesFilter(network, node, stack)) {
             return stack;
@@ -285,7 +285,7 @@ final class CargoUtils {
                 Inventory inventory = inventories.get(target.getLocation());
 
                 if (inventory != null) {
-                    return insertIntoVanillaInventory(stack, wrapper, smartFill, inventory);
+                    return insertIntoVanillaInventory(stack, smartFill, inventory);
                 }
 
                 BlockState state = PaperLib.getBlockState(target, false).getState();
@@ -293,12 +293,14 @@ final class CargoUtils {
                 if (state instanceof InventoryHolder inventoryHolder) {
                     inventory = inventoryHolder.getInventory();
                     inventories.put(target.getLocation(), inventory);
-                    return insertIntoVanillaInventory(stack, wrapper, smartFill, inventory);
+                    return insertIntoVanillaInventory(stack, smartFill, inventory);
                 }
             }
 
             return stack;
         }
+
+        ItemStackWrapper wrapper = ItemStackWrapper.wrap(stack);
 
         for (int slot : menu.getPreset().getSlotsAccessedByItemTransport(menu, ItemTransportFlow.INSERT, wrapper)) {
             ItemStack itemInSlot = menu.getItemInSlot(slot);
@@ -326,6 +328,11 @@ final class CargoUtils {
 
             if (!smartFill && currentAmount == maxStackSize) {
                 // Skip full stacks - Performance optimization for non-smartfill nodes
+                continue;
+            }
+
+            if (itemInSlot.getType() != wrapper.getType()) {
+                // isItemSimilar() checks the Material first and cannot match here
                 continue;
             }
 
@@ -374,7 +381,7 @@ final class CargoUtils {
     }
 
     @Nullable
-    private static ItemStack insertIntoVanillaInventory(@Nonnull ItemStack stack, @Nonnull ItemStackWrapper wrapper, boolean smartFill, @Nonnull Inventory inv) {
+    private static ItemStack insertIntoVanillaInventory(@Nonnull ItemStack stack, boolean smartFill, @Nonnull Inventory inv) {
         /*
          * If the Inventory does not accept this Item Type, bounce the item back.
          * Example: Shulker boxes within shulker boxes (fixes #2662)
@@ -387,6 +394,14 @@ final class CargoUtils {
         int[] range = getInputSlotRange(inv, stack);
         int minSlot = range[0];
         int maxSlot = range[1];
+
+        /*
+         * Created on demand: a slot that is empty, full (without smart-fill) or of
+         * a different Material never reaches an isItemSimilar() call, so a stack
+         * that bounces off mixed storage allocates no wrapper at all.
+         */
+        ItemStackWrapper wrapper = null;
+        Material type = stack.getType();
 
         for (int slot = minSlot; slot < maxSlot; slot++) {
             // Changes to this ItemStack are synchronized with the Item in the Inventory
@@ -402,6 +417,15 @@ final class CargoUtils {
                 if (!smartFill && currentAmount == maxStackSize) {
                     // Skip full stacks - Performance optimization for non-smartfill nodes
                     continue;
+                }
+
+                if (itemInSlot.getType() != type) {
+                    // isItemSimilar() checks the Material first and cannot match here
+                    continue;
+                }
+
+                if (wrapper == null) {
+                    wrapper = ItemStackWrapper.wrap(stack);
                 }
 
                 if (SlimefunUtils.isItemSimilar(itemInSlot, wrapper, true, false)) {

@@ -27,7 +27,6 @@ import be.seeseemelk.mockbukkit.WorldMock;
 import io.github.thebusybiscuit.slimefun4.api.network.NetworkComponent;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.test.TestUtilities;
-import io.github.thebusybiscuit.slimefun4.utils.itemstack.ItemStackWrapper;
 
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenuPreset;
@@ -207,7 +206,7 @@ class TestCargoFailsClosed {
         DirtyChestMenu menu = createHookedMenu(target, "VETO_INSERT_MACHINE", (previous, next) -> previous);
         ItemStack stack = new ItemStack(Material.DIAMOND, 5);
 
-        ItemStack rest = CargoUtils.insert(allowAllNetwork(node), new HashMap<>(), node, target, false, stack, ItemStackWrapper.wrap(stack));
+        ItemStack rest = CargoUtils.insert(allowAllNetwork(node), new HashMap<>(), node, target, false, stack);
 
         Assertions.assertNotNull(rest, "A vetoed insert must return the stack to the transit pipeline");
         Assertions.assertEquals(5, rest.getAmount(), "Nothing may be reported as inserted");
@@ -228,7 +227,7 @@ class TestCargoFailsClosed {
         });
         ItemStack stack = new ItemStack(Material.DIAMOND, 5);
 
-        ItemStack rest = CargoUtils.insert(allowAllNetwork(node), new HashMap<>(), node, target, false, stack, ItemStackWrapper.wrap(stack));
+        ItemStack rest = CargoUtils.insert(allowAllNetwork(node), new HashMap<>(), node, target, false, stack);
 
         Assertions.assertNotNull(rest, "The uninserted part must stay in transit");
         Assertions.assertEquals(3, rest.getAmount(), "Only the 2 items actually committed may be subtracted");
