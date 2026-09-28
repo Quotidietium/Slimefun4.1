@@ -1,0 +1,53 @@
+NOTE|r6-base7|Slimefun version under test: 5.1.14
+NOTE|r6-base7|Java: 21.0.10 (Oracle Corporation)
+RESULT|r6-base7|blockstorage|charge-write|median_ns_per_write|ns|227.760
+RESULT|r6-base7|blockstorage|charge-write|min_ns_per_write|ns|206.840
+RESULT|r6-base7|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|36.722
+RESULT|r6-base7|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|31.306
+RESULT|r6-base7|machine-idle-scan|empty-input|median_ns_per_tick|ns|355.500
+RESULT|r6-base7|machine-idle-scan|empty-input|min_ns_per_tick|ns|301.000
+RESULT|r6-base7|machine-idle-scan|junk-input|median_ns_per_tick|ns|313.000
+RESULT|r6-base7|machine-idle-scan|junk-input|min_ns_per_tick|ns|309.800
+RESULT|r6-base7|machine-processing|active|median_ns_per_tick|ns|598.200
+RESULT|r6-base7|machine-processing|active|min_ns_per_tick|ns|482.100
+RESULT|r6-base7|energy-settlement|charging-write|median_ns_per_component|ns|80.300
+RESULT|r6-base7|energy-settlement|charging-write|min_ns_per_component|ns|79.500
+RESULT|r6-base7|energy-settlement|saturated-skip|median_ns_per_component|ns|91.200
+RESULT|r6-base7|energy-settlement|saturated-skip|min_ns_per_component|ns|51.000
+RESULT|r6-base7|charge-api|take-charge-hit|median_ns_per_call|ns|114.400
+RESULT|r6-base7|charge-api|take-charge-hit|min_ns_per_call|ns|104.100
+RESULT|r6-base7|charge-api|take-charge-miss|median_ns_per_call|ns|55.300
+RESULT|r6-base7|charge-api|take-charge-miss|min_ns_per_call|ns|54.700
+RESULT|r6-base7|charge-api|single-arg-remove|median_ns_per_call|ns|115.900
+RESULT|r6-base7|charge-api|single-arg-remove|min_ns_per_call|ns|111.800
+RESULT|r6-base7|generator-tick|burning|median_ns_per_call|ns|328.400
+RESULT|r6-base7|generator-tick|burning|min_ns_per_call|ns|312.000
+RESULT|r6-base7|recipe-scan|junk-10|median_ns_per_scan|ns|301.500
+RESULT|r6-base7|recipe-scan|junk-10|min_ns_per_scan|ns|296.000
+RESULT|r6-base7|recipe-scan|junk-150|median_ns_per_scan|ns|4515.000
+RESULT|r6-base7|recipe-scan|junk-150|min_ns_per_scan|ns|4480.500
+RESULT|r6-base7|cargo-route|idle|median_ns_per_tick|ns|1457900.000
+RESULT|r6-base7|cargo-route|idle|min_ns_per_tick|ns|1111500.000
+RESULT|r6-base7|cargo-route|happy-merge|median_ns_per_tick|ns|2496000.000
+RESULT|r6-base7|cargo-route|happy-merge|min_ns_per_tick|ns|2067500.000
+RESULT|r6-base7|cargo-route|mixed-bounce|median_ns_per_tick|ns|4336200.000
+RESULT|r6-base7|cargo-route|mixed-bounce|min_ns_per_tick|ns|3921300.000
+RESULT|r6-base7|cargo-route|mixed-bounce-smartfill|median_ns_per_tick|ns|3817200.000
+RESULT|r6-base7|cargo-route|mixed-bounce-smartfill|min_ns_per_tick|ns|3523600.000
+RESULT|r6-base7|cargo-route|machine-bounce|median_ns_per_tick|ns|2390600.000
+RESULT|r6-base7|cargo-route|machine-bounce|min_ns_per_tick|ns|2365600.000
+RESULT|r6-base7|player-interaction|place-block|median_ns_per_op|ns|1087.000
+RESULT|r6-base7|player-interaction|place-block|min_ns_per_op|ns|662.500
+RESULT|r6-base7|player-interaction|break-block|median_ns_per_op|ns|956.500
+RESULT|r6-base7|player-interaction|break-block|min_ns_per_op|ns|479.500
+NOTE|r6-base7|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|r6-base7|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|232.750
+RESULT|r6-base7|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|230.350
+RESULT|r6-base7|hologram-label|unchanged-label|median_ns_per_call|ns|79.800
+RESULT|r6-base7|hologram-label|unchanged-label|min_ns_per_call|ns|77.700
+NOTE|r6-base7|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|r6-base7|ticker-run: first chunk isLoaded=true
+NOTE|r6-base7|ticker-run: 5000 blocks ticked per run
+RESULT|r6-base7|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|1.020
+RESULT|r6-base7|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|0.886
+RESULT|r6-base7|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|204.000
