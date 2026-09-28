@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -36,6 +37,14 @@ public class BenchHeftyMachine extends BenchMachine {
      */
     public static final Material JUNK_MATERIAL = junkMaterial();
 
+    /**
+     * The input {@link Material} of recipe #75. A plain (meta-less) stack of it
+     * passes the Material prefilter but fails every meta comparison, so the
+     * scan walks the whole recipe list doing full {@code isItemSimilar} calls -
+     * the "near miss" guard shape that a prefilter shortcut must not degrade.
+     */
+    public static final Material NEAR_MISS_MATERIAL = recipeMaterials(RECIPE_COUNT * 2 + 1).get(74);
+
     BenchHeftyMachine(ItemGroup itemGroup, SlimefunItemStack item) {
         super(itemGroup, item);
     }
@@ -50,7 +59,14 @@ public class BenchHeftyMachine extends BenchMachine {
         List<Material> itemMaterials = recipeMaterials(RECIPE_COUNT * 2 + 1);
 
         for (int i = 0; i < RECIPE_COUNT; i++) {
-            registerRecipe(10, new ItemStack(itemMaterials.get(i)), new ItemStack(itemMaterials.get(i + 1)));
+            ItemStack input = new ItemStack(itemMaterials.get(i));
+            // A distinctive custom model data value makes the recipe input differ
+            // from a plain stack of the same Material (isItemSimilar compares CMD),
+            // enabling the near-miss variant without Adventure dependencies.
+            ItemMeta meta = input.getItemMeta();
+            meta.setCustomModelData(i + 1000);
+            input.setItemMeta(meta);
+            registerRecipe(10, input, new ItemStack(itemMaterials.get(i + 1)));
         }
     }
 

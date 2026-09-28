@@ -42,6 +42,10 @@ public final class RecipeScanBench {
         scan(ctx, results, BenchItems.machine, Material.BEDROCK, "junk-10");
         Bench.gcSettle();
         scan(ctx, results, BenchItems.heftyMachine, BenchHeftyMachine.JUNK_MATERIAL, "junk-150");
+        Bench.gcSettle();
+        // Guard shape: the Material is known to the recipe list, so any whole-list
+        // index shortcut must still run the real scan - and must not degrade it.
+        scan(ctx, results, BenchItems.heftyMachine, BenchHeftyMachine.NEAR_MISS_MATERIAL, "near-miss-150");
     }
 
     private void scan(BenchContext ctx, Results results, BenchMachine machine, Material junk, String variant) {
