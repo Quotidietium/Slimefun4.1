@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -50,6 +51,35 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
 
     protected final Map<Location, Integer> roundRobin = new HashMap<>();
     private int tickDelayThreshold = 0;
+
+    /**
+     * Cached routing maps for {@link #mapInputNodes()}/{@link #mapOutputNodes()}.
+     * With the default {@code cargo-ticker-delay: 0} these maps would otherwise be
+     * rebuilt from BlockStorage on every single game tick, even though they only
+     * change when a node is added, removed or reconfigured.
+     *
+     * <p>Invalidated by {@link #markCargoNodeConfigurationDirty(Location)} (node
+     * configuration change - the same contract the {@link ItemFilter} cache and
+     * the channel selectors use) and by {@link #onClassificationChange} (node
+     * added/removed). A null value means "stale, rebuild on next use".
+     *
+     * <p>Copy-on-write handoff: a rebuild always publishes fresh map instances,
+     * so a {@link CargoNetworkTask} that was already scheduled onto the main
+     * thread with the previous maps never observes mutation. The maps are only
+     * ever read by the task, never written. A rebuild that races an
+     * invalidation (node data changed mid-build on the main thread) detects
+     * this via {@link #routingGeneration} and discards its result, so the next
+     * tick rebuilds from the fresh data instead of publishing stale routing.
+     */
+    private volatile Map<Location, Integer> cachedInputs = null;
+    private volatile Map<Integer, List<Location>> cachedOutputs = null;
+
+    /**
+     * Bumped by every routing-cache invalidation. The rebuild reads it before
+     * and after building: if it changed, BlockStorage was written concurrently
+     * and the built maps are stale - they are dropped instead of published.
+     */
+    private final AtomicInteger routingGeneration = new AtomicInteger();
 
     public static @Nullable CargoNet getNetworkFromLocation(@Nonnull Location l) {
         return Slimefun.getNetworkManager().getNetworkFromLocation(l, CargoNet.class).orElse(null);
@@ -108,6 +138,12 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
     @Override
     public void onClassificationChange(Location l, NetworkComponent from, NetworkComponent to) {
         connectorCache.remove(l);
+
+        /*
+         * The node sets below decide the routing maps - any classification change
+         * (node placed, broken or switched to another node type) invalidates them.
+         */
+        invalidateRoutingCache();
 
         if (from == NetworkComponent.TERMINUS) {
             inputNodes.remove(l);
@@ -173,7 +209,51 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Also drops the cached routing maps on this override: a node configuration
+     * change (channel, filter, ...) can alter both the input→channel and the
+     * channel→outputs grouping, so the next tick rebuilds them from fresh data.
+     */
+    @Override
+    public void markCargoNodeConfigurationDirty(@Nonnull Location node) {
+        super.markCargoNodeConfigurationDirty(node);
+        invalidateRoutingCache();
+    }
+
     private @Nonnull Map<Location, Integer> mapInputNodes() {
+        updateRoutingCache();
+        return cachedInputs;
+    }
+
+    private @Nonnull Map<Integer, List<Location>> mapOutputNodes() {
+        updateRoutingCache();
+        return cachedOutputs;
+    }
+
+    /**
+     * Marks the cached routing maps as stale. Called from the main thread
+     * (menu clicks, node placement/removal classification).
+     */
+    private void invalidateRoutingCache() {
+        routingGeneration.incrementAndGet();
+        cachedInputs = null;
+    }
+
+    /**
+     * Rebuilds {@link #cachedInputs}/{@link #cachedOutputs} if a previous
+     * invalidation marked them stale. Both maps are rebuilt together (they share
+     * the frequency reads) and published as fresh instances - see the field docs
+     * for the copy-on-write handoff contract.
+     */
+    private void updateRoutingCache() {
+        if (cachedInputs != null) {
+            return;
+        }
+
+        int generation = routingGeneration.get();
+
         Map<Location, Integer> inputs = new HashMap<>();
 
         for (Location node : inputNodes) {
@@ -184,10 +264,6 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
             }
         }
 
-        return inputs;
-    }
-
-    private @Nonnull Map<Integer, List<Location>> mapOutputNodes() {
         Map<Integer, List<Location>> output = new HashMap<>();
 
         List<Location> list = new LinkedList<>();
@@ -196,7 +272,7 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
         for (Location node : outputNodes) {
             int frequency = getFrequency(node);
 
-            // Symmetric with mapInputNodes: only the 16 valid channels (0-15) are routed. An
+            // Symmetric with the input side: only the 16 valid channels (0-15) are routed. An
             // out-of-range frequency (corrupted/NBT-edited data) would otherwise be grouped under
             // a key no input node ever uses, silently disabling that output forever.
             if (frequency < 0 || frequency >= 16) {
@@ -223,7 +299,17 @@ public class CargoNet extends AbstractItemNetwork implements HologramOwner {
             });
         }
 
-        return output;
+        /*
+         * An invalidation raced this build (node data changed on the main thread
+         * while we were reading it): the maps are stale, drop them and let the
+         * next tick rebuild from the fresh data.
+         */
+        if (routingGeneration.get() != generation) {
+            return;
+        }
+
+        cachedOutputs = output;
+        cachedInputs = inputs;
     }
 
     /**

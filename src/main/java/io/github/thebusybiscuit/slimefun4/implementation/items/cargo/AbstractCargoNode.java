@@ -19,6 +19,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
+import io.github.thebusybiscuit.slimefun4.core.networks.cargo.CargoNet;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
 import io.github.thebusybiscuit.slimefun4.utils.ChatUtils;
@@ -162,6 +163,20 @@ abstract class AbstractCargoNode extends SimpleSlimefunItem<BlockPlaceHandler> i
         }
 
         BlockStorage.addBlockInfo(b, FREQUENCY, String.valueOf(newChannel));
+
+        /*
+         * Invalidate the network's routing cache immediately so the new channel
+         * takes effect on the very next tick, exactly like the pre-cache
+         * always-fresh reads did. Without this, a channel change would only
+         * become visible when the menu is closed (the menu-close handler marks
+         * the node dirty too, but that runs later).
+         */
+        CargoNet network = CargoNet.getNetworkFromLocation(b.getLocation());
+
+        if (network != null) {
+            network.markCargoNodeConfigurationDirty(b.getLocation());
+        }
+
         return true;
     }
 
