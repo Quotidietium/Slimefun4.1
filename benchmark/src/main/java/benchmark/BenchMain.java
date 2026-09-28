@@ -17,6 +17,7 @@ import benchmark.scenarios.CargoTransportBench;
 import benchmark.scenarios.ChargeApiBench;
 import benchmark.scenarios.EnergySettlementBench;
 import benchmark.scenarios.GeneratorTickBench;
+import benchmark.scenarios.GuideRenderBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
 import benchmark.scenarios.MachineProcessingBench;
@@ -123,6 +124,14 @@ public final class BenchMain {
             // Calibration anchor for the ticker-structure optimization: times
             // the per-block resolution chain TickerTask pays before dispatch.
             new TickerResolutionBench().run(ctx, results);
+            Bench.gcSettle();
+
+            // Survival guide rendering (category page opens + localization reads)
+            try {
+                new GuideRenderBench().run(ctx, results);
+            } catch (Exception | LinkageError x) {
+                results.note("guide-render: scenario failed: " + x);
+            }
             Bench.gcSettle();
 
             // Must run last: registers thousands of ticking locations.
