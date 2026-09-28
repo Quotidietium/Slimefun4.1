@@ -107,3 +107,13 @@
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
 - 增量基线 worktree（各轮建、各轮清）：r2base/r3base/r4base/r5base 均已用毕移除；r6base（3fcd3a75d）本轮用毕移除。
+
+## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
+
+**方向**：CargoNet.tick 的 mapInputNodes/mapOutputNodes（默认 cargo-ticker-delay=0 下每 tick 每 network 全量重建，每节点一次 BlockStorage 读 + 频道解析）。A/B：base=10388e681（r7 bench 提交，worktree `../sf-perf-r7base`）vs opt=本轮。新场景 `cargo-mapping`（真实 CargoNet + 同包桥反射驱动，变体 mapping-100/400）。
+
+**改动**：cachedInputs/cachedOutputs 缓存；三点失效（markCargoNodeConfigurationDirty 既有契约 / onClassificationChange 节点集变化 / applyChannelChange 点击即失效保语义）；copy-on-write 交接（重建发布新实例，已交接任务只读）；routingGeneration 代数计数闭合发布竞态（重建期间失效则结果作废下 tick 重建）。分组与损坏上报逻辑逐字保留。
+
+**量化（交错 5 对，详见 [benchmark-perf-r7-routing-cache.md](../report/perf/benchmark-perf-r7-routing-cache.md)）**：mapping-100 **-98%**、mapping-400 **-99.9%**（47µs→0.9µs、93µs→0.1µs/tick），5 对全一致；非目标场景带内。新增 `TestCargoRoutingCache` 5 项判别（真实网络发现路径驱动）。全量 **3239 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**契约记录**：带外 BlockStorage 直写 frequency 在下次失效前不生效——与 ItemFilter 缓存同契约；第一方路径全部即时失效。
