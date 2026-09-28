@@ -1,4 +1,13 @@
 # Contributing to Slimefun
+
+> **本仓库为非官方维护分支（SlimeFun4.1）——请先阅读本节，再参考下文继承自官方的指南。**
+>
+> - **Issue 与 Pull Request 请直接提交到本仓库**；请勿提交到官方 Slimefun4 的 Issue Tracker、Discord 或 Crowdin（官方不会处理本分支的问题，README 免责声明同样适用）。下文所有指向官方仓库/Discord/Crowdin 的链接仅作背景参考。
+> - **翻译**：本分支的 zh-CN 本地化是仓库内置资源（`src/main/resources/languages/zh/`），不走 Crowdin——直接以 PR 修改语言文件与 `SlimefunItems` 等显示层定义即可；注意 5.1.0 汉化的两条红线（存档兼容/交互一致，见 [note/release/5.1.0.md](note/release/5.1.0.md)）。
+> - **构建/测试**：`mvn clean package`、`mvn test`（JUnit 5 + MockBukkit，全量 3221 项，须以 **Java 21** 运行——`JAVA_HOME` 指向 JDK 21，否则 MockBukkit 会级联报错）；产物为 `target/SlimeFun4.1-<version>.jar`。
+> - **发布流程**：见 [note/report/runbook-1.21.11-regression.md](note/report/runbook-1.21.11-regression.md) §5 与 [note/release/](note/release/) 既有版本记录；审计规范见 [note/audit/](note/audit/)。
+> - 下文的代码风格、Javadoc、单元测试规范照常适用。
+
 This document outlines various ways how you can help contribute to Slimefun and make this a bigger and better project.<br>
 All contributions must be inline with our [Code of Conduct](https://github.com/Slimefun/Slimefun4/blob/master/.github/CODE_OF_CONDUCT.md) and [License](https://github.com/Slimefun/Slimefun4/blob/master/LICENSE).
 Please also follow the templates for Issues and Pull Requests we provide.
