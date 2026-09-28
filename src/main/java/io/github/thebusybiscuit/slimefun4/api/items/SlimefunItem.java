@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentMap;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -22,6 +23,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.Permission;
 
 import io.github.bakedlibs.dough.collections.OptionalMap;
@@ -48,6 +50,8 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.enchanting.AutoEnchanter;
 
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
+
+import com.google.common.collect.MapMaker;
 
 /**
  * A {@link SlimefunItem} is a custom item registered by a {@link SlimefunAddon}.
@@ -77,6 +81,27 @@ public class SlimefunItem implements Placeable {
      * It is immutable and should always be cloned, never used directly.
      */
     private final ItemStack itemStackTemplate;
+
+    /**
+     * The {@link ItemMeta} of {@link #itemStackTemplate}, computed once for
+     * read-only comparisons. The template is strictly immutable (see
+     * {@link #itemStackTemplate} and {@link #getItemName()}), so this cache has
+     * no invalidation hooks - the same contract as the cached item name.
+     */
+    private volatile ItemMeta cachedTemplateMeta;
+
+    /**
+     * An identity-keyed memo of {@link ItemStack} resolutions.
+     *
+     * Keys are compared by identity ({@code ==}, via {@link MapMaker#weakKeys()}),
+     * so mutable stacks can never alias each other, and both keys and values are
+     * held weakly so entries die with their stacks. A resolution only goes stale
+     * when the slimefun-id persistent data of that exact instance is rewritten
+     * out-of-band, or when an item registers after a stack was already resolved
+     * to null - the first requires {@link #invalidateItemResolutionCache()}, the
+     * second is handled by the hook in {@link #register(SlimefunAddon)}.
+     */
+    private static final ConcurrentMap<ItemStack, Optional<SlimefunItem>> itemResolutionCache = new MapMaker().weakKeys().weakValues().makeMap();
 
     /**
      * This is a reference to the {@link SlimefunAddon} that registered this
@@ -508,6 +533,14 @@ public class SlimefunItem implements Placeable {
             if (research != null) {
                 research.invalidateItemsCache();
             }
+
+            /*
+             * A late registration (post-startup addon enables do this) can turn a
+             * previously-null item resolution non-null: a stack holding this item's
+             * persistent id may already have been resolved to null. Registrations
+             * are rare, so a full clear beats tracking affected stacks.
+             */
+            itemResolutionCache.clear();
 
             // Now we can be certain this item should be enabled
             if (state == ItemState.ENABLED) {
@@ -1263,6 +1296,32 @@ public class SlimefunItem implements Placeable {
         }
 
         /*
+         * Identity-memoized resolution: the same long-lived stack instance is resolved
+         * over and over (cargo filters, recipe caches, held items, menus), and every
+         * miss pays a meta clone for the persistent-data read. Keys are identity-based
+         * and weakly held, so mutable or short-lived stacks never alias or leak.
+         */
+        Optional<SlimefunItem> memoized = itemResolutionCache.get(item);
+
+        if (memoized != null) {
+            return memoized.orElse(null);
+        }
+
+        SlimefunItem resolved = resolveByItem(item);
+        itemResolutionCache.put(item, Optional.ofNullable(resolved));
+        return resolved;
+    }
+
+    /**
+     * The uncached resolution behind {@link #getByItem(ItemStack)}.
+     *
+     * @param item
+     *            The {@link ItemStack} to resolve (non-null, non-air)
+     *
+     * @return The resolved {@link SlimefunItem}, or null
+     */
+    private static @Nullable SlimefunItem resolveByItem(@Nonnull ItemStack item) {
+        /*
          * Fast negative lookup: if no registered SlimefunItem template uses this Material,
          * no item of this type can ever resolve to a SlimefunItem (see the Material check
          * further below), so we can skip the PersistentDataContainer read entirely. This
@@ -1297,5 +1356,38 @@ public class SlimefunItem implements Placeable {
      */
     public static @Nonnull Optional<SlimefunItem> getOptionalByItem(@Nullable ItemStack item) {
         return Optional.ofNullable(getByItem(item));
+    }
+
+    /**
+     * Clears the identity-keyed memo behind {@link #getByItem(ItemStack)}.
+     *
+     * Only needed for out-of-band rewrites of the slimefun-id persistent data
+     * on an already-resolved stack (e.g. an addon retagging an existing
+     * {@link ItemStack} via {@code CustomItemDataService#setItemData}); first-party
+     * paths never rewrite the id after creation, and item registrations clear
+     * the memo on their own.
+     */
+    public static void invalidateItemResolutionCache() {
+        itemResolutionCache.clear();
+    }
+
+    /**
+     * Returns the {@link ItemMeta} of this item's template for read-only
+     * comparisons. The instance is computed once and shared; callers must
+     * treat it as immutable and never mutate it. The underlying template is
+     * strictly immutable (see {@link #getItemName()}), so this cache carries
+     * no invalidation hooks.
+     *
+     * @return The template's {@link ItemMeta}, or null if the template has none
+     */
+    public @Nullable ItemMeta getTemplateItemMeta() {
+        ItemMeta cached = cachedTemplateMeta;
+
+        if (cached == null) {
+            cached = itemStackTemplate.getItemMeta();
+            cachedTemplateMeta = cached;
+        }
+
+        return cached;
     }
 }

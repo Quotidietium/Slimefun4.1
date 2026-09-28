@@ -427,7 +427,10 @@ public final class SlimefunUtils {
                     return id.equals((sf_sfitem.getId()));
                 }
 
-                ItemMeta meta = sf_sfitem.getItem().getItemMeta();
+                // The registered template's meta, cached on the item (the template is
+                // immutable) - this path used to pay a template clone plus a meta clone
+                // on every single comparison.
+                ItemMeta meta = sf_sfitem.getTemplateItemMeta();
                 return equalsItemMeta(itemMeta, meta, checkLore);
             } else if (sfitem instanceof ItemStackWrapper && sfitem.hasItemMeta()) {
                 Debug.log(TestCase.CARGO_INPUT_TESTING, "  is wrapper");
