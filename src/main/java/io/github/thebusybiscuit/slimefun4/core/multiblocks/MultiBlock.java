@@ -90,6 +90,23 @@ public class MultiBlock {
         return trigger;
     }
 
+    /**
+     * The structure cell a player actually clicks for this multiblock,
+     * derived from the trigger face: {@code center = clicked.getRelative(trigger)},
+     * so the clicked block is the bottom cell for {@link BlockFace#UP}, the
+     * top cell for {@link BlockFace#DOWN} and the center cell otherwise.
+     *
+     * @return The material at the clicked position, or null if that cell is a
+     *         wildcard (any material matches there)
+     */
+    public @Nullable Material getClickMaterial() {
+        return switch (trigger) {
+            case UP -> blocks[7];
+            case DOWN -> blocks[1];
+            default -> blocks[4];
+        };
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof MultiBlock)) {

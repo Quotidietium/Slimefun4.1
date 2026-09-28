@@ -102,6 +102,13 @@ public abstract class MultiBlockMachine extends SlimefunItem implements NotPlace
     @Override
     public void postRegister() {
         Slimefun.getRegistry().getMultiBlocks().add(multiblock);
+
+        /*
+         * Keep the interaction listener's trigger-material buckets in sync.
+         * Registrations happen at (and shortly after) startup; a full rebuild
+         * per registration is cheap and immune to ordering issues.
+         */
+        Slimefun.getRegistry().rebuildMultiblockBuckets();
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +14,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
+import org.bukkit.Tag;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Piglin;
@@ -74,6 +77,33 @@ public final class SlimefunRegistry {
 
     private final List<ItemGroup> categories = new ArrayList<>();
     private final List<MultiBlock> multiblocks = new LinkedList<>();
+
+    /**
+     * Multiblocks bucketed by the {@link Material} a player must click to trigger
+     * them (the structure cell at the trigger face, tag-expanded). Lets the
+     * interaction listener skip every multiblock whose trigger cell can never
+     * match the clicked block. Rebuilt via {@link #rebuildMultiblockBuckets()}.
+     */
+    private final Map<Material, List<MultiBlock>> multiblockTriggerBuckets = new EnumMap<>(Material.class);
+
+    /**
+     * Multiblocks whose trigger structure cell is a null wildcard - they cannot
+     * be pre-filtered by material and are always fully compared.
+     */
+    private final List<MultiBlock> unbinnedMultiblocks = new ArrayList<>();
+
+    /**
+     * Registry order of every binned/unbinned multiblock, so the listener can
+     * keep the "last matching multiblock in registry order wins" selection
+     * while iterating the (order-fragmented) buckets.
+     */
+    private final Map<MultiBlock, Integer> multiblockOrder = new IdentityHashMap<>();
+
+    /**
+     * The registry size the buckets were built from; a mismatch means someone
+     * added to {@link #multiblocks} directly and the buckets must be rebuilt.
+     */
+    private int bucketedMultiblockCount = -1;
 
     private final List<Research> researches = new LinkedList<>();
     private final List<String> researchRanks = new ArrayList<>();
@@ -253,6 +283,104 @@ public final class SlimefunRegistry {
     @Nonnull
     public List<MultiBlock> getMultiBlocks() {
         return multiblocks;
+    }
+
+    /**
+     * Rebuilds the trigger-material buckets for the multiblock interaction
+     * listener from the current {@link #getMultiBlocks()} list.
+     *
+     * Multiblocks whose trigger structure cell is a null wildcard are
+     * collected separately (they always require a full comparison) and the
+     * registry order of every multiblock is recorded so the listener's
+     * "last match in registry order wins" selection stays intact.
+     */
+    public void rebuildMultiblockBuckets() {
+        multiblockTriggerBuckets.clear();
+        unbinnedMultiblocks.clear();
+        multiblockOrder.clear();
+
+        int index = 0;
+
+        for (MultiBlock mb : multiblocks) {
+            multiblockOrder.put(mb, index++);
+
+            Material clickMaterial = mb.getClickMaterial();
+
+            if (clickMaterial == null) {
+                unbinnedMultiblocks.add(mb);
+                continue;
+            }
+
+            addToBucket(clickMaterial, mb);
+
+            // Tag equivalence: a wooden structure must trigger on every wood variant
+            for (Tag<Material> tag : MultiBlock.getSupportedTags()) {
+                if (tag.isTagged(clickMaterial)) {
+                    for (Material variant : tag.getValues()) {
+                        addToBucket(variant, mb);
+                    }
+                }
+            }
+        }
+
+        bucketedMultiblockCount = multiblocks.size();
+    }
+
+    /**
+     * Whether the trigger-material buckets were built from a different
+     * registry size than the current one (i.e. someone added multiblocks
+     * directly to the list instead of going through a registration hook).
+     * The listener checks this before every lookup and rebuilds on demand.
+     *
+     * @return Whether the buckets are stale
+     */
+    public boolean isMultiblockBucketStale() {
+        return bucketedMultiblockCount != multiblocks.size();
+    }
+
+    @ParametersAreNonnullByDefault
+    private void addToBucket(Material material, MultiBlock mb) {
+        multiblockTriggerBuckets.computeIfAbsent(material, key -> new ArrayList<>()).add(mb);
+    }
+
+    /**
+     * The multiblocks that can possibly trigger when a player clicks a block
+     * of the given {@link Material} (never null, possibly empty).
+     *
+     * @param material
+     *            The clicked block's {@link Material}
+     *
+     * @return The candidate multiblocks for that material
+     */
+    @Nonnull
+    public List<MultiBlock> getMultiblockCandidates(@Nonnull Material material) {
+        List<MultiBlock> candidates = multiblockTriggerBuckets.get(material);
+        return candidates != null ? candidates : Collections.emptyList();
+    }
+
+    /**
+     * The multiblocks with a null-wildcard trigger cell; compared on every
+     * click regardless of material (never null, usually empty).
+     *
+     * @return The unfilterable multiblocks
+     */
+    @Nonnull
+    public List<MultiBlock> getUnbinnedMultiblocks() {
+        return unbinnedMultiblocks;
+    }
+
+    /**
+     * The registry order of a multiblock as recorded by the last
+     * {@link #rebuildMultiblockBuckets()}.
+     *
+     * @param mb
+     *            The multiblock to look up
+     *
+     * @return Its registry index, or -1 if unknown
+     */
+    public int getMultiblockOrder(@Nonnull MultiBlock mb) {
+        Integer order = multiblockOrder.get(mb);
+        return order != null ? order : -1;
     }
 
     /**
