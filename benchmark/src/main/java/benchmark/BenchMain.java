@@ -11,6 +11,7 @@ import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
 import benchmark.scenarios.BlockStorageWriteBench;
 import benchmark.scenarios.CapacitorTextureBench;
+import benchmark.scenarios.CargoTransportBench;
 import benchmark.scenarios.ChargeApiBench;
 import benchmark.scenarios.EnergySettlementBench;
 import benchmark.scenarios.GeneratorTickBench;
@@ -90,6 +91,9 @@ public final class BenchMain {
             Bench.gcSettle();
 
             new RecipeScanBench().run(ctx, results);
+            Bench.gcSettle();
+
+            new CargoTransportBench().run(ctx, results);
             Bench.gcSettle();
 
             new PlayerInteractionBench().run(ctx, results);

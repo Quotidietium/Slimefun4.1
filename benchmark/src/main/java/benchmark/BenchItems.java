@@ -89,5 +89,23 @@ public final class BenchItems {
         heftyMachine = new BenchHeftyMachine(itemGroup,
             new SlimefunItemStack(BenchHeftyMachine.ID, Material.SMOKER, "Bench Hefty Machine"));
         heftyMachine.register(Slimefun.instance());
+
+        /*
+         * Cargo stand-ins under the production item ids: CargoNetworkTask#run()
+         * feeds the profiler with the input-node and manager items, and the
+         * profiler rejects null items. Registering plain items under those ids
+         * (environment setup, not code under test) lets the cargo scenario
+         * drive the task's real run() method end to end. Note the ids follow
+         * the SlimefunItems constants (the input node's id is CARGO_NODE_INPUT).
+         */
+        SlimefunItem cargoInputNode = new SlimefunItem(itemGroup,
+            new SlimefunItemStack("CARGO_NODE_INPUT", Material.PLAYER_HEAD, "Bench Cargo Input Node"),
+            RecipeType.NULL, new ItemStack[9]);
+        cargoInputNode.register(Slimefun.instance());
+
+        SlimefunItem cargoManager = new SlimefunItem(itemGroup,
+            new SlimefunItemStack("CARGO_MANAGER", Material.PLAYER_HEAD, "Bench Cargo Manager"),
+            RecipeType.NULL, new ItemStack[9]);
+        cargoManager.register(Slimefun.instance());
     }
 }
