@@ -41,8 +41,30 @@ public class LegacyStorage implements Storage {
 
         // Load research
         Set<Research> researches = new HashSet<>();
+
+        /*
+         * Read the unlocked ids once and match them against the registry in memory.
+         * Probing "researches.<id>" per registry entry walks the config section for
+         * every registered research on every load; a single key listing turns that
+         * into O(1) set lookups. Keys must be canonical numeric forms to count
+         * ("007" or "+7" never matched a research id in the old per-path probe).
+         */
+        Set<Integer> unlockedIds = new HashSet<>();
+
+        for (String key : playerFile.getKeys("researches")) {
+            try {
+                int id = Integer.parseInt(key);
+
+                if (Integer.toString(id).equals(key)) {
+                    unlockedIds.add(id);
+                }
+            } catch (NumberFormatException ignored) {
+                // Not a numeric research id, skip it
+            }
+        }
+
         for (Research research : Slimefun.getRegistry().getResearches()) {
-            if (playerFile.contains("researches." + research.getID())) {
+            if (unlockedIds.contains(research.getID())) {
                 researches.add(research);
             }
         }
@@ -54,7 +76,7 @@ public class LegacyStorage implements Storage {
          * present we restore both so no player loses an unlock they already had. From the next
          * save onward each research is persisted under its own id.
          */
-        if (playerFile.contains("researches.173")) {
+        if (unlockedIds.contains(173)) {
             Research.getResearch(new NamespacedKey(Slimefun.instance(), "coal_generator")).ifPresent(researches::add);
             Research.getResearch(new NamespacedKey(Slimefun.instance(), "bio_reactor")).ifPresent(researches::add);
         }
@@ -76,9 +98,27 @@ public class LegacyStorage implements Storage {
                     size = inferBackpackSize(playerFile, "backpacks." + key + ".contents");
                 }
 
+                /*
+                 * Deserialize only the slots that are actually present. Probing every
+                 * slot from 0 to size-1 pays a config path walk even for empty slots;
+                 * iterating the section keys reads the same items (an absent entry and
+                 * a null one both load as an empty slot in PlayerBackpack#setContents)
+                 * while skipping out-of-range or non-canonical keys the old probe
+                 * never read either.
+                 */
+                String contentsPath = "backpacks." + key + ".contents";
                 HashMap<Integer, ItemStack> items = new HashMap<>();
-                for (int i = 0; i < size; i++) {
-                    items.put(i, playerFile.getItem("backpacks." + key + ".contents." + i));
+
+                for (String contentKey : playerFile.getKeys(contentsPath)) {
+                    try {
+                        int slot = Integer.parseInt(contentKey);
+
+                        if (slot >= 0 && slot < size && Integer.toString(slot).equals(contentKey)) {
+                            items.put(slot, playerFile.getItem(contentsPath + "." + contentKey));
+                        }
+                    } catch (NumberFormatException ignored) {
+                        // Not a slot key, skip it
+                    }
                 }
 
                 PlayerBackpack backpack = PlayerBackpack.load(uuid, id, size, items);
@@ -176,21 +216,16 @@ public class LegacyStorage implements Storage {
         // Save research
         playerFile.setValue("researches", null);
         for (Research research : Slimefun.getRegistry().getResearches()) {
-            // Save the research if it's researched
+            /*
+             * Save the research if it's researched. The section pre-clear above means a
+             * locked research is simply absent afterwards - there is no per-key removal
+             * left to do (and no removal branch to evaluate per registry entry, which
+             * used to walk the config section for every locked research on every save).
+             * Addon-introduced duplicate ids stay safe by construction: a key exists if
+             * any research with that id is unlocked, so the other one re-loads unlocked.
+             */
             if (data.getResearches().contains(research)) {
                 playerFile.setValue("researches." + research.getID(), true);
-
-            // Remove the research if it's no longer researched
-            // ----
-            // Built-in researches have unique ids now (bio_reactor was renumbered off the
-            // shared 173), but this guard remains for addon-introduced duplicates: if any
-            // research with this id is still unlocked, the persisted key must not be removed
-            // (it would re-lock the other one on the next load).
-            } else if (
-                playerFile.contains("researches." + research.getID())
-                && !data.getResearches().stream().anyMatch((r) -> r.getID() == research.getID())
-            ) {
-                playerFile.setValue("researches." + research.getID(), null);
             }
         }
 
@@ -214,15 +249,14 @@ public class LegacyStorage implements Storage {
              * snapshot fall back to the live read, which is safe on the main thread.
              */
             ItemStack[] snapshot = backpackSnapshots != null ? backpackSnapshots.get(backpack.getId()) : null;
+            String contentsPath = "backpacks." + backpack.getId() + ".contents";
 
             for (int i = 0; i < backpack.getSize(); i++) {
                 ItemStack item = snapshot != null && i < snapshot.length ? snapshot[i] : backpack.getInventory().getItem(i);
-                if (item != null) {
-                    playerFile.setValue("backpacks." + backpack.getId() + ".contents." + i, item);
 
-                // Remove the item if it's no longer in the inventory
-                } else if (playerFile.contains("backpacks." + backpack.getId() + ".contents." + i)) {
-                    playerFile.setValue("backpacks." + backpack.getId() + ".contents." + i, null);
+                // Empty slots are already gone from the pre-cleared section - no key to remove
+                if (item != null) {
+                    playerFile.setValue(contentsPath + "." + i, item);
                 }
             }
         }
