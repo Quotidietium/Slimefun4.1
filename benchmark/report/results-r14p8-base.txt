@@ -1,0 +1,138 @@
+NOTE|r14p8-base|Slimefun version under test: 5.1.15
+NOTE|r14p8-base|Java: 21.0.10 (Oracle Corporation)
+RESULT|r14p8-base|blockstorage|charge-write|median_ns_per_write|ns|197.280
+RESULT|r14p8-base|blockstorage|charge-write|min_ns_per_write|ns|190.580
+RESULT|r14p8-base|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|34.243
+RESULT|r14p8-base|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|30.396
+RESULT|r14p8-base|machine-idle-scan|empty-input|median_ns_per_tick|ns|517.900
+RESULT|r14p8-base|machine-idle-scan|empty-input|min_ns_per_tick|ns|430.800
+RESULT|r14p8-base|machine-idle-scan|junk-input|median_ns_per_tick|ns|526.800
+RESULT|r14p8-base|machine-idle-scan|junk-input|min_ns_per_tick|ns|451.400
+RESULT|r14p8-base|machine-processing|active|median_ns_per_tick|ns|858.700
+RESULT|r14p8-base|machine-processing|active|min_ns_per_tick|ns|694.100
+RESULT|r14p8-base|energy-settlement|charging-write|median_ns_per_component|ns|77.300
+RESULT|r14p8-base|energy-settlement|charging-write|min_ns_per_component|ns|76.000
+RESULT|r14p8-base|energy-settlement|saturated-skip|median_ns_per_component|ns|225.300
+RESULT|r14p8-base|energy-settlement|saturated-skip|min_ns_per_component|ns|78.500
+RESULT|r14p8-base|charge-api|take-charge-hit|median_ns_per_call|ns|188.600
+RESULT|r14p8-base|charge-api|take-charge-hit|min_ns_per_call|ns|186.200
+RESULT|r14p8-base|charge-api|take-charge-miss|median_ns_per_call|ns|122.000
+RESULT|r14p8-base|charge-api|take-charge-miss|min_ns_per_call|ns|116.800
+RESULT|r14p8-base|charge-api|single-arg-remove|median_ns_per_call|ns|118.800
+RESULT|r14p8-base|charge-api|single-arg-remove|min_ns_per_call|ns|107.000
+RESULT|r14p8-base|generator-tick|burning|median_ns_per_call|ns|582.600
+RESULT|r14p8-base|generator-tick|burning|min_ns_per_call|ns|539.200
+RESULT|r14p8-base|recipe-scan|junk-10|median_ns_per_scan|ns|518.000
+RESULT|r14p8-base|recipe-scan|junk-10|min_ns_per_scan|ns|486.000
+RESULT|r14p8-base|recipe-scan|junk-150|median_ns_per_scan|ns|4595.000
+RESULT|r14p8-base|recipe-scan|junk-150|min_ns_per_scan|ns|4569.500
+RESULT|r14p8-base|cargo-route|idle|median_ns_per_tick|ns|1993300.000
+RESULT|r14p8-base|cargo-route|idle|min_ns_per_tick|ns|1460500.000
+RESULT|r14p8-base|cargo-route|happy-merge|median_ns_per_tick|ns|3514900.000
+RESULT|r14p8-base|cargo-route|happy-merge|min_ns_per_tick|ns|2736400.000
+RESULT|r14p8-base|cargo-route|mixed-bounce|median_ns_per_tick|ns|6342800.000
+RESULT|r14p8-base|cargo-route|mixed-bounce|min_ns_per_tick|ns|5701900.000
+RESULT|r14p8-base|cargo-route|mixed-bounce-smartfill|median_ns_per_tick|ns|5415100.000
+RESULT|r14p8-base|cargo-route|mixed-bounce-smartfill|min_ns_per_tick|ns|5052200.000
+RESULT|r14p8-base|cargo-route|machine-bounce|median_ns_per_tick|ns|3421900.000
+RESULT|r14p8-base|cargo-route|machine-bounce|min_ns_per_tick|ns|3060200.000
+RESULT|r14p8-base|cargo-mapping|mapping-100|median_ns_per_tick|ns|820.000
+RESULT|r14p8-base|cargo-mapping|mapping-100|min_ns_per_tick|ns|414.000
+NOTE|r14p8-base|cargo-mapping mapping-100: z-base 500, nodes/side 100
+RESULT|r14p8-base|cargo-mapping|mapping-400|median_ns_per_tick|ns|682.000
+RESULT|r14p8-base|cargo-mapping|mapping-400|min_ns_per_tick|ns|440.000
+NOTE|r14p8-base|cargo-mapping mapping-400: z-base 600, nodes/side 400
+RESULT|r14p8-base|player-interaction|place-block|median_ns_per_op|ns|1462.500
+RESULT|r14p8-base|player-interaction|place-block|min_ns_per_op|ns|1223.000
+RESULT|r14p8-base|player-interaction|break-block|median_ns_per_op|ns|1432.000
+RESULT|r14p8-base|player-interaction|break-block|min_ns_per_op|ns|705.000
+RESULT|r14p8-base|research-progress|unlock-cycle|min_ns_per_unlock|ns|4277.550
+RESULT|r14p8-base|research-progress|unlock-cycle|median_ns_per_unlock|ns|4507.800
+RESULT|r14p8-base|research-progress|title|min_ns_per_call|ns|685.560
+RESULT|r14p8-base|research-progress|title|median_ns_per_call|ns|745.540
+RESULT|r14p8-base|research-progress|has-unlocked|min_ns_per_call|ns|0.640
+RESULT|r14p8-base|research-progress|has-unlocked|median_ns_per_call|ns|7.082
+NOTE|r14p8-base|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|r14p8-base|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|135.300
+RESULT|r14p8-base|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|128.850
+RESULT|r14p8-base|hologram-label|unchanged-label|median_ns_per_call|ns|121.100
+RESULT|r14p8-base|hologram-label|unchanged-label|min_ns_per_call|ns|118.550
+RESULT|r14p8-base|ticker-resolution|info-get|min_ns_per_block|ns|23.201
+RESULT|r14p8-base|ticker-resolution|info-get|median_ns_per_block|ns|42.059
+RESULT|r14p8-base|ticker-resolution|full-chain|min_ns_per_block|ns|23.531
+RESULT|r14p8-base|ticker-resolution|full-chain|median_ns_per_block|ns|23.783
+NOTE|r14p8-base|guide-render default language: zh-CN
+RESULT|r14p8-base|guide-render|category-open|min_ns_per_open|ns|1254445.250
+RESULT|r14p8-base|guide-render|category-open|median_ns_per_open|ns|1443927.000
+RESULT|r14p8-base|guide-render|localized-item|min_ns_per_call|ns|37809.480
+RESULT|r14p8-base|guide-render|localized-item|median_ns_per_call|ns|40727.125
+RESULT|r14p8-base|guide-render|item-name-lookup|min_ns_per_call|ns|55.535
+RESULT|r14p8-base|guide-render|item-name-lookup|median_ns_per_call|ns|115.075
+RESULT|r14p8-base|guide-render|item-clone|min_ns_per_call|ns|415.465
+RESULT|r14p8-base|guide-render|item-clone|median_ns_per_call|ns|484.520
+RESULT|r14p8-base|guide-render|lore-translate|min_ns_per_call|ns|46.426
+RESULT|r14p8-base|guide-render|lore-translate|median_ns_per_call|ns|49.464
+RESULT|r14p8-base|guide-render|message-lookup|min_ns_per_call|ns|13.491
+RESULT|r14p8-base|guide-render|message-lookup|median_ns_per_call|ns|13.680
+RESULT|r14p8-base|guide-search|search-miss|min_ns_per_search|ns|52733.500
+RESULT|r14p8-base|guide-search|search-miss|median_ns_per_search|ns|66912.500
+RESULT|r14p8-base|guide-search|search-hit|min_ns_per_search|ns|405279.000
+RESULT|r14p8-base|guide-search|search-hit|median_ns_per_search|ns|588759.000
+RESULT|r14p8-base|guide-search|item-name|min_ns_per_call|ns|1.617
+RESULT|r14p8-base|guide-search|item-name|median_ns_per_call|ns|10.021
+RESULT|r14p8-base|player-data|save-research-heavy|min_us_per_save|us|3767.000
+RESULT|r14p8-base|player-data|save-research-heavy|median_us_per_save|us|4017.235
+RESULT|r14p8-base|player-data|save-research-sparse|min_us_per_save|us|2785.395
+RESULT|r14p8-base|player-data|save-research-sparse|median_us_per_save|us|2927.540
+RESULT|r14p8-base|player-data|save-backpacks|min_us_per_save|us|14803.558
+RESULT|r14p8-base|player-data|save-backpacks|median_us_per_save|us|15290.448
+RESULT|r14p8-base|player-data|load-research|min_us_per_load|us|525.283
+RESULT|r14p8-base|player-data|load-research|median_us_per_load|us|531.373
+RESULT|r14p8-base|player-data|load-backpacks|min_us_per_load|us|6775.582
+RESULT|r14p8-base|player-data|load-backpacks|median_us_per_load|us|7819.115
+RESULT|r14p8-base|player-data|save-scale-sparse|min_us_per_save|us|2522.947
+RESULT|r14p8-base|player-data|save-scale-sparse|median_us_per_save|us|2782.603
+RESULT|r14p8-base|player-data|load-scale-sparse|min_us_per_load|us|231.575
+RESULT|r14p8-base|player-data|load-scale-sparse|median_us_per_load|us|268.518
+RESULT|r14p8-base|item-compare|sim-vanilla-miss|min_ns_per_compare|ns|1862.080
+RESULT|r14p8-base|item-compare|sim-vanilla-miss|median_ns_per_compare|ns|2327.627
+RESULT|r14p8-base|item-compare|sim-sf-hit|min_ns_per_compare|ns|322.135
+RESULT|r14p8-base|item-compare|sim-sf-hit|median_ns_per_compare|ns|344.587
+RESULT|r14p8-base|item-compare|resolve-template|min_ns_per_resolve|ns|125.429
+RESULT|r14p8-base|item-compare|resolve-template|median_ns_per_resolve|ns|133.565
+RESULT|r14p8-base|item-compare|resolve-vanilla-shared|min_ns_per_resolve|ns|64.317
+RESULT|r14p8-base|item-compare|resolve-vanilla-shared|median_ns_per_resolve|ns|87.440
+RESULT|r14p8-base|item-compare|resolve-vanilla-foreign|min_ns_per_resolve|ns|48.905
+RESULT|r14p8-base|item-compare|resolve-vanilla-foreign|median_ns_per_resolve|ns|51.738
+RESULT|r14p8-base|item-compare|resolve-fresh|min_ns_per_resolve|ns|256.095
+RESULT|r14p8-base|item-compare|resolve-fresh|median_ns_per_resolve|ns|265.295
+NOTE|r14p8-base|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|r14p8-base|ticker-run: first chunk isLoaded=true
+NOTE|r14p8-base|ticker-run: 5000 blocks ticked per run
+RESULT|r14p8-base|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|2.309
+RESULT|r14p8-base|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|1.135
+RESULT|r14p8-base|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|461.840
+RESULT|r14p8-base|cargo-protection|prot-bounce-1owner|median_ns_per_tick|ns|11927700.000
+RESULT|r14p8-base|cargo-protection|prot-bounce-1owner|min_ns_per_tick|ns|10986300.000
+NOTE|r14p8-base|cargo-protection prot-bounce-1owner: module queries per tick without caching = 144
+RESULT|r14p8-base|cargo-protection|prot-bounce-4owners|median_ns_per_tick|ns|4144500.000
+RESULT|r14p8-base|cargo-protection|prot-bounce-4owners|min_ns_per_tick|ns|3685100.000
+NOTE|r14p8-base|cargo-protection prot-bounce-4owners: module queries per tick without caching = 144
+RESULT|r14p8-base|protection-query|cheap-module|min_ns_per_query|ns|237.869
+RESULT|r14p8-base|protection-query|cheap-module|median_ns_per_query|ns|251.087
+RESULT|r14p8-base|protection-query|heavy-module-stack|min_ns_per_query|ns|350.631
+RESULT|r14p8-base|protection-query|heavy-module-stack|median_ns_per_query|ns|512.432
+RESULT|r14p8-base|cargo-protection|prot-bounce-1owner-heavy|median_ns_per_tick|ns|2111800.000
+RESULT|r14p8-base|cargo-protection|prot-bounce-1owner-heavy|min_ns_per_tick|ns|1992700.000
+NOTE|r14p8-base|cargo-protection prot-bounce-1owner-heavy: module queries per tick without caching = 144
+RESULT|r14p8-base|cargo-protection|prot-bounce-4owners-heavy|median_ns_per_tick|ns|3362700.000
+RESULT|r14p8-base|cargo-protection|prot-bounce-4owners-heavy|min_ns_per_tick|ns|2754900.000
+NOTE|r14p8-base|cargo-protection prot-bounce-4owners-heavy: module queries per tick without caching = 144
+RESULT|r14p8-base|protection-query|xheavy-module-stack|min_ns_per_query|ns|2230.841
+RESULT|r14p8-base|protection-query|xheavy-module-stack|median_ns_per_query|ns|3009.998
+RESULT|r14p8-base|cargo-protection|prot-bounce-1owner-xheavy|median_ns_per_tick|ns|3500800.000
+RESULT|r14p8-base|cargo-protection|prot-bounce-1owner-xheavy|min_ns_per_tick|ns|3149200.000
+NOTE|r14p8-base|cargo-protection prot-bounce-1owner-xheavy: module queries per tick without caching = 144
+RESULT|r14p8-base|cargo-protection|prot-bounce-4owners-xheavy|median_ns_per_tick|ns|2049600.000
+RESULT|r14p8-base|cargo-protection|prot-bounce-4owners-xheavy|min_ns_per_tick|ns|2007100.000
+NOTE|r14p8-base|cargo-protection prot-bounce-4owners-xheavy: module queries per tick without caching = 144
