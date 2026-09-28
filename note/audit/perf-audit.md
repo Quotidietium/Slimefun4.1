@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base/r3base/r4base/r5base 均已用毕移除；r6base（3fcd3a75d）本轮用毕移除。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r8base 均已用毕移除（r7base=10388e681、r8base=1df91ea49）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -117,3 +117,13 @@
 **量化（交错 5 对，详见 [benchmark-perf-r7-routing-cache.md](../report/perf/benchmark-perf-r7-routing-cache.md)）**：mapping-100 **-98%**、mapping-400 **-99.9%**（47µs→0.9µs、93µs→0.1µs/tick），5 对全一致；非目标场景带内。新增 `TestCargoRoutingCache` 5 项判别（真实网络发现路径驱动）。全量 **3239 测试 0 失败**；`mvn package` BUILD SUCCESS。
 
 **契约记录**：带外 BlockStorage 直写 frequency 在下次失效前不生效——与 ItemFilter 缓存同契约；第一方路径全部即时失效。
+
+## 第 8 轮（2026-09-28）：cargo 保护查询逐对缓存——每路由一查改每 (owner, target) 对一查
+
+**方向**：CargoNetworkTask 对保护模块的 hasPermission 查询（输入侧每输入一次 + 输出侧每输出×每输入一次）。A/B：base=1df91ea49（r8 bench 提交，worktree `../sf-perf-r8base`）vs opt=本轮。新场景 `cargo-protection`（反射注入真实 ProtectionManager + 可控拒绝/成本模块）与 `protection-query` 微基准（三档模块栈成本标定）。
+
+**改动**：任务实例内 `HashMap<PermissionQuery, Boolean>`，键 = (owner UUID, target Location) record；`isAllowed()` 收拢两个原内联查询点；null-owner 短路逐字保留。**正确性论证**：任务在主线程同步执行，同 run 内无插件代码可变更保护状态（缓存值恒等于新鲜查询）；缓存生命周期 = 单 tick（跨 tick 权限变化下一 tick 生效，判别测试 4 钉死）。
+
+**量化（交错 9 对——含 idle 守卫信号加测 4 对，lean 校正配对统计，详见 [benchmark-perf-r8-permission-cache.md](../report/perf/benchmark-perf-r8-permission-cache.md)）**：模块查询 144 → 24（**-83%**，判别测试计数钉死：4×2 布局 12→6）；现实档（cheap ~40ns/查）持平（0.992–1.017）；应力档（xheavy ~3µs/查）端到端 **-20%**（1owner min 0.798 / median 0.775），验证"节省 = 120 × 单查成本"线性缩放律。守卫全带内；idle +6.5% 经 diff 归因（无主路径指令级未变）+ mixed-bounce（同早期路径更重负载）-3% 反号交叉检查判为噪声。新增 `TestCargoPermissionCache` 5 项判别。全量 **3245 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**方法论注记**：(1) 微基准标定 + 应力点的组合——当优化收益与目标成本线性相关而现实档成本低于噪声底时，用标定值锚定现实、用应力点验证机制，比强行加对更诚实；(2) MockBukkit 环境注记：`closeEntry` 的非空校验先于 no-op 早退，单测直接驱动 `CargoNetworkTask#run()` 需注册 CARGO_NODE_INPUT/CARGO_MANAGER 替身物品（`classifyLocation` 走字符串 ID，此前测试从未暴露此依赖）。
