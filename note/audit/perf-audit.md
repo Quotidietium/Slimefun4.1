@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r9base 均已用毕移除（r8base=1df91ea49、r9base=f09cd2e57）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r10base 均已用毕移除（r9base=f09cd2e57、r10base=ef3ccab2a）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -137,3 +137,13 @@
 **量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r9-ticker-dispatch.md](../report/perf/benchmark-perf-r9-ticker-dispatch.md)）**：ticker-run **-17%（min）/ -15%（median）**，原始比值 9/9 全部 <1.0；微基准钉死下界 ≥7%（12ns/块），超额部分归因于被移除链的延迟受限性（紧凑微基准的迭代重叠掩盖依赖延迟）。守卫带内（idle +22% 为会话噪声极值——diff 仅 TickerTask，cargo 代码逐字未动，代码归因排除）。新增 `TestTickerResolutionCache` 6 项判别（含活数据三连改写钉死 Config 不缓存）。全量 **3251 测试 0 失败**；`mvn package` BUILD SUCCESS。
 
 **方法论沉淀**：单场景 lean 本会话失稳（目标场景不可自校；亚微秒场景量化抖动 ±40%）——改用**未触及场景组逐对原始比值的中位数（复合 lean）**，稳健性显著提升；"微基准下界 + 端到端实测"的双锚点继续生效（本轮端到端超出下界，差异方向有物理解释：依赖链延迟 vs 吞吐重叠）。
+
+## 第 10 轮（2026-09-29）：科研簿记路径——hasEnabledItems 计算一次缓存 + 玩家科研集合免拷贝计数
+
+**方向**：解锁/头衔/统计的簿记链。A/B：base=ef3ccab2a（r10 bench 提交，worktree `../sf-perf-r10base`）vs opt=本轮。新场景 `research-progress`（100 科研 × 5 已注册物品；unlock-cycle 2000 次真实拥有权翻转 / title 5000 次 / has-unlocked 200000 次门禁）。
+
+**改动（4 文件）**：(1) `Research.hasEnabledItems()` 计算一次 `volatile Boolean` 缓存——原实现处于 `countNonEmptyResearches` 最内层，对注册表每科研每次调用都全量走 items LinkedList；(2) 失效钩子：`SlimefunItem.setResearch` 摘除/挂接两端 + `register()` 状态定稿后保险钩子（覆盖先绑定后注册的非规范顺序，第一方路径均为先注册后绑定）；(3) PlayerProfile 的 setResearched×2/getTitle/sendStats 改 `data.getResearches()` 活集合计数，公开 `getResearches()` 防御拷贝契约原样保留；(4) PlaceholderAPI 3 个占位符改 `getPlayerData().getResearches()` 活视图，消除记分板轮询期整集合拷贝。
+
+**量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r10-research-bookkeeping.md](../report/perf/benchmark-perf-r10-research-bookkeeping.md)）**：unlock-cycle **-62%（min，10.1µs→3.8µs）/ -71%（median）**，原始比值 9/9 全部 <0.5；title **-73% / -80%**（2.5µs→0.66µs），9/9 同向；has-unlocked 门禁持平（0.8ns，亚 ns 量化噪声）。守卫无系统性回归（本会话复合 lean 逐对 0.957–1.029，离群值双侧分布）。新增 `TestResearchProgressCaching` 4 项判别（活集合计数 ≡ 公开拷贝计数的不变式、三路失效、头衔阶梯与 RankChangeEvent 边界）。全量 **3254 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**契约记录**：ItemState 注册后不可变是缓存前提（判别测试钉死非 ENABLED 状态不计入）；插件直接 `getAffectedItems()` 变异属带外操作不触发失效（与 ItemFilter/routing 缓存同族契约，javadoc 已声明）。
