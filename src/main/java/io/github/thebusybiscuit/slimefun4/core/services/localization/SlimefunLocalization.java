@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
@@ -69,6 +70,33 @@ public abstract class SlimefunLocalization implements Keyed {
      * A per-{@link Language} cache of colorized lore phrases (English -> localized), sorted longest-first.
      */
     private final Map<Language, List<String[]>> lorePhraseCache = new ConcurrentHashMap<>();
+
+    /**
+     * Read-through memo for translated {@link String}s, keyed by
+     * {@link Language} and {@link LanguageFile} and then by the config path.
+     * {@code null} results (a translation that does not exist) are memoized
+     * as {@link Optional#empty()} so a miss costs one probe instead of a
+     * full config walk with fallback.
+     *
+     * <p>
+     * The memoized values are the return values of pure read paths
+     * ({@code getStringOrNull}); the underlying {@link Language} files are
+     * loaded once at startup and never rewritten by first-party code. An
+     * add-on that swaps a language's files at runtime (via
+     * {@code Language#setFile}) must call {@link #invalidateTranslationCaches()}
+     * afterwards - the same out-of-band contract the {@link #lorePhraseCache}
+     * family has always had.
+     * </p>
+     */
+    private final Map<Language, Map<LanguageFile, ConcurrentHashMap<String, Optional<String>>>> translationCache = new ConcurrentHashMap<>();
+
+    /**
+     * Per-{@link Language} memo of already-translated lore lines. Lore lines
+     * repeat heavily across items (every machine of the same tier shares its
+     * LoreBuilder labels), so the phrase-replacement scan only ever runs once
+     * per distinct line per language.
+     */
+    private final Map<Language, ConcurrentHashMap<String, String>> loreLineCache = new ConcurrentHashMap<>();
 
     protected SlimefunLocalization(@Nonnull Slimefun plugin) {
         this.defaultConfig = new Config(plugin, "messages.yml");
@@ -196,6 +224,23 @@ public abstract class SlimefunLocalization implements Keyed {
             return "Error: No language present";
         }
 
+        return cachedString(language, file, path);
+    }
+
+    /**
+     * Read-through memo around the raw config walk (the language's own file,
+     * then the fallback file). A repeated read costs three map probes; a miss
+     * populates the memo including a memoized {@code null}.
+     */
+    @ParametersAreNonnullByDefault
+    private @Nullable String cachedString(@Nonnull Language language, LanguageFile file, String path) {
+        ConcurrentHashMap<String, Optional<String>> fileCache = translationCache.computeIfAbsent(language, key -> new ConcurrentHashMap<>()).computeIfAbsent(file, key -> new ConcurrentHashMap<>());
+        Optional<String> cached = fileCache.get(path);
+
+        if (cached != null) {
+            return cached.orElse(null);
+        }
+
         FileConfiguration config = language.getFile(file);
 
         if (config != null) {
@@ -203,6 +248,7 @@ public abstract class SlimefunLocalization implements Keyed {
 
             // Return the found value (unless null)
             if (value != null) {
+                fileCache.put(path, Optional.of(value));
                 return value;
             }
         }
@@ -212,7 +258,20 @@ public abstract class SlimefunLocalization implements Keyed {
         String defaultValue = defaults.getString(path);
 
         // Return the default value or an error message
-        return defaultValue != null ? defaultValue : null;
+        String result = defaultValue != null ? defaultValue : null;
+        fileCache.put(path, Optional.ofNullable(result));
+        return result;
+    }
+
+    /**
+     * Drops every memoized translation (string lookups, lore lines and lore
+     * phrases). Only needed when a language's underlying files were swapped
+     * at runtime out-of-band - startup-loaded languages never change.
+     */
+    public void invalidateTranslationCaches() {
+        translationCache.clear();
+        loreLineCache.clear();
+        lorePhraseCache.clear();
     }
 
     @ParametersAreNonnullByDefault
@@ -370,44 +429,71 @@ public abstract class SlimefunLocalization implements Keyed {
         Validate.notNull(p, "Player must not be null!");
         Validate.notNull(lore, "Lore must not be null!");
 
-        return translateLore(getLorePhrases(getLanguage(p)), lore);
+        Language language = getLanguage(p);
+        return translateLore(language, getLorePhrases(language), lore);
     }
 
     /**
-     * This applies the given (colorized) lore phrases to the given lore lines.
+     * Applies the given (colorized) lore phrases to the given lore lines,
+     * memoizing each distinct line per {@link Language}.
      *
-     * Phrases are matched longest-first so that a more specific phrase (e.g. " J Buffer") is replaced
-     * before a shorter prefix of it could interfere.
+     * <p>
+     * Lore lines repeat heavily across items (every machine of the same tier
+     * produces the same LoreBuilder labels), so the phrase scan only runs
+     * once per distinct line - repeated displays (every guide page open)
+     * become map probes.
+     * </p>
      *
+     * @param language
+     *            The {@link Language} whose phrases (and line memo) to use
      * @param phrases
      *            The colorized phrases, each a {@code String[]} of {@code {english, localized}}
      * @param lore
-     *            The original lore lines
+     *            The original (English) lore lines
      *
      * @return A new list with all matching phrases replaced
      */
-    private @Nonnull List<String> translateLore(@Nonnull List<String[]> phrases, @Nonnull List<String> lore) {
+    private @Nonnull List<String> translateLore(@Nullable Language language, @Nonnull List<String[]> phrases, @Nonnull List<String> lore) {
         if (phrases.isEmpty()) {
             return new ArrayList<>(lore);
         }
 
+        ConcurrentHashMap<String, String> lineCache = language != null ? loreLineCache.computeIfAbsent(language, key -> new ConcurrentHashMap<>()) : null;
         List<String> result = new ArrayList<>(lore.size());
 
         for (String line : lore) {
-            String translated = line;
+            String translated = lineCache != null ? lineCache.get(line) : null;
 
-            for (String[] phrase : phrases) {
-                String english = phrase[0];
+            if (translated == null) {
+                translated = translateLine(phrases, line);
+                result.add(translated);
 
-                if (translated.contains(english)) {
-                    translated = translated.replace(english, phrase[1]);
+                if (lineCache != null) {
+                    lineCache.put(line, translated);
                 }
+            } else {
+                result.add(translated);
             }
-
-            result.add(translated);
         }
 
         return result;
+    }
+
+    /**
+     * Scans a single lore line against the phrase table (longest-first).
+     */
+    private @Nonnull String translateLine(@Nonnull List<String[]> phrases, @Nonnull String line) {
+        String translated = line;
+
+        for (String[] phrase : phrases) {
+            String english = phrase[0];
+
+            if (translated.contains(english)) {
+                translated = translated.replace(english, phrase[1]);
+            }
+        }
+
+        return translated;
     }
 
     /**
@@ -506,7 +592,8 @@ public abstract class SlimefunLocalization implements Keyed {
         Validate.notNull(item, "SlimefunItem must not be null!");
 
         String name = getItemName(p, item);
-        List<String[]> lorePhrases = getLorePhrases(getLanguage(p));
+        Language language = getLanguage(p);
+        List<String[]> lorePhrases = getLorePhrases(language);
 
         // No name translation and no lore phrases -> nothing to localize.
         if (name == null && lorePhrases.isEmpty()) {
@@ -519,7 +606,7 @@ public abstract class SlimefunLocalization implements Keyed {
             }
 
             if (!lorePhrases.isEmpty() && meta.hasLore()) {
-                meta.setLore(translateLore(lorePhrases, meta.getLore()));
+                meta.setLore(translateLore(language, lorePhrases, meta.getLore()));
             }
         });
     }
