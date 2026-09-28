@@ -20,6 +20,7 @@ import benchmark.scenarios.GeneratorTickBench;
 import benchmark.scenarios.GuideRenderBench;
 import benchmark.scenarios.GuideSearchBench;
 import benchmark.scenarios.ItemCompareBench;
+import benchmark.scenarios.MultiblockInteractBench;
 import benchmark.scenarios.PlayerDataBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
@@ -158,6 +159,14 @@ public final class BenchMain {
                 new ItemCompareBench().run(ctx, results);
             } catch (Exception | LinkageError x) {
                 results.note("item-compare: scenario failed: " + x);
+            }
+            Bench.gcSettle();
+
+            // Multiblock interaction scan (right-click structure matching)
+            try {
+                new MultiblockInteractBench().run(ctx, results);
+            } catch (Exception | LinkageError x) {
+                results.note("multiblock-interact: scenario failed: " + x);
             }
             Bench.gcSettle();
 
