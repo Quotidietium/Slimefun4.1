@@ -7,7 +7,7 @@
 
 ## 状态（Status）
 
-进行中（Work in progress）
+进行中（上游历史快照——本 fork 现状见下方「Fork status」节）
 
 ## Fork status (SlimeFun4.1, 2026-09)
 
