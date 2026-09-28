@@ -32,7 +32,7 @@ The next step is making sure our tests are still working correctly as is. This c
 
 If there are any failures you will need to investigate these, it's best to run them one at a time, so you don't have the potential for cross-test contamination. If you find any issues with the tests, please fix them and make sure to add a comment to the PR explaining why the test was changed.
 
-If you need any help fixing tests feel free to join the [Discord](https://discord.gg/slimefun).
+If you need any help fixing tests, open an Issue on this repository with the failure output.
 
 Once all the tests are passed, check to see if there's a new version of [MockBukkit](https://github.com/MockBukkit/MockBukkit), this is the framework handling the Bukkit side of our tests. There very well may not be a new version, they usually lag updates a bit. If not, that's perfectly ok, just make sure to note it on the PR.
 
@@ -54,7 +54,7 @@ To do this, you will need to build the plugin with `mvn clean package` and then 
   * Ore washer
   * Coal generator
 
-It is important to verify heads are still working (part of the energy network and the coal generator). If head skins are not loading, consider it as a bug: try figuring out what the issue is, and ask in the [Discord](https://discord.gg/slimefun) if you are not sure what the cause may be.
+It is important to verify heads are still working (part of the energy network and the coal generator). If head skins are not loading, consider it as a bug: try figuring out what the issue is, and open an Issue on this repository if you are not sure what the cause may be.
 
 Also make sure to verify that there are no errors in the console, any errors here should be investigated and fixed.
 
