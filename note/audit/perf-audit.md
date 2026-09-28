@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r12base 均已用毕移除（r11base=322cd4b62、r12base=3ae83e3f7）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r13base 均已用毕移除（r11base=322cd4b62、r12base=3ae83e3f7、r13base=3a52e23be bench 修订版）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -165,3 +165,13 @@
 **改动**：(1) `getItemName()` 计算一次 volatile 缓存（原每调用 ItemUtils.getItemName → getItemMeta 往返 + getDisplayName，dough 字节码证实）；(2) 新增 `getSearchableName()` = stripColor+toLowerCase(ROOT) 规范化形式，同样计算一次，`isSearchFilterApplicable` 改用之；(3) **零失效钩子**——`itemStackTemplate` 为 private final 且无 setter，缓存输入严格不可变（比 r10 hasEnabledItems 的前提更强）。
 
 **量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r12-guide-search-names.md](../report/perf/benchmark-perf-r12-guide-search-names.md)）**：search-miss **-93.7/-93.1%**（775µs→57µs/500 物品，9/9 对 0.052–0.094）；search-hit **-70.5/-69.1%**；item-name **-99.4%**（940ns→5.3ns，meta 往返消除）。3000 物品服线性外推 ~4.6ms→~0.34ms/搜索。守卫双侧 0.73–1.23（会话噪声特征，diff 不触及守卫路径）。新增 `TestSearchNameCaching` 3 项判别（缓存≡直算、可搜索名性质、40 物品稀疏 needle 功能等价——注记：单测环境显示名经本地化层为既有 "Error: No language present" 上游行为）。全量 **3261 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+## 第 13 轮（2026-09-29）：玩家数据 load/save 配置走查消除——注册表探测改键集匹配 + 死分支删除
+
+**方向**：LegacyStorage 玩家数据持久化（每玩家每自动保存周期一次 save + 登录一次 load；原实现 load 侧按注册表逐科研 `contains` 探测 + 背包逐槽 0..size-1 `getItem` 探测，save 侧预清空后仍保留两处恒 false 的 `contains` else-if 死分支每锁定科研/每空槽走查一次）。A/B：base=3a52e23be（r13 bench 修订版提交，worktree `../sf-perf-r13base`）vs opt=本轮。新场景 `player-data`（save-research-heavy/sparse、save-backpacks、load-research/backpacks + 规模放大 save/load-scale-sparse@2500 科研表）。
+
+**改动（单文件 LegacyStorage）**：(1) load 科研段一次 `getKeys("researches")` 建 HashSet、注册表匹配 O(1)（173 兼容分支改集合成员判断）；(2) load 背包 contents 改迭代在键、只反序列化存在槽位（缺键≡null 值在 `PlayerBackpack#setContents` 下同义；越界/非规范键按原探测语义跳过）；(3) save 侧两个死分支删除（字节码验证：dough `setValue(path,null)` 直通 `FileConfiguration.set` = 移除节点语义，预清空后 `contains` 恒 false）——插件重复 id 守卫意图由"预清空+只写解锁项"构造性保留。**明确不做**：跨 save 缓存 Config（丢弃运行期外部手改/恢复文件的键，行为变更，红线否决）。
+
+**量化（交错 9 对 ×2 版，复合 lean 校正，详见 [benchmark-perf-r13-player-data-walks.md](../report/perf/benchmark-perf-r13-player-data-walks.md)）**：load-scale-sparse **-51.6%**（523µs→249µs，**9/9 全部同向**）；save-scale-sparse **-10.5%**（8/9）；现实 250 科研形态 -4~-7%（6-7/9 同向，与机制推算 ~40µs 相符）；背包变体处噪声平面。**首版 9 对噪声发现**：现实形态机制差异（数十 µs）被 ms 级磁盘 I/O 噪声吞没（load-backpacks 单次运行间摆动 3×），按协议补充规模放大变体（走查成本随注册表线性放大）重跑——bench 修订先提交再重建 base worktree，方法论闭环。新增 `TestLegacyPlayerDataWalkEquivalence` 8 项判别，**在新旧两侧实现均全绿**（直接等价性证明；背包内容断言用 snakeyaml 裸解析+字符串值存活键策略绕开 mock 缺口）。全量 **3272 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**MockBukkit 缺口注记（本轮新发现，pre-existing、新旧实现同样命中）**：(1) `ItemStackMock` 活库存路径序列化为类名形态 `==` 标签，paper-api YamlConstructor 解析期按类名找不到注册抛 "Could not deserialize object"（MockBukkit 仅注册别名）；(2) dough Config 重载**静默丢弃 item 节点**（contents 段变空、无异常）——凡涉玩家文件 ItemStack 往返的 mock 断言，须用文件键级（snakeyaml 裸解析）或非 item 值策略。
