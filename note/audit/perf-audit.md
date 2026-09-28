@@ -93,7 +93,17 @@
 
 **教训**：装箱键在高频路径不可用；"更便宜的键"必须配原语键容器（类路径上没有）；打包布局与范围守卫设计已入 git 历史（af9c68b7b），未来引入原语键容器可直接复用。红线 1 优先于理论收益——基准体系正是为此存在。
 
+## 第 6 轮（2026-09-28）：cargo 插入扫描——Material 预检 + 惰性 wrapper + 免拷贝分配
+
+**方向**：货运网络分配/插入路径。A/B：base=v5.1.14 发布提交（3fcd3a75d，worktree `../sf-perf-r6base`）vs opt=本轮。新场景 `cargo-route`（真实 CargoNetworkTask 驱动：同包桥 BenchCargoRoute + CARGO_NODE_INPUT/CARGO_MANAGER 占位物品），5 变体（idle/happy-merge/mixed-bounce/mixed-bounce-smartfill/machine-bounce）。
+
+**改动**：vanilla 与菜单两条插入路径在 `isItemSimilar` 前加 Material 预检（isItemSimilar 首查即 Material，逐位等价——R3 证明模式复用）；`ItemStackWrapper` 从每输出尝试的急切分配改为 vanilla 分支遇同 Material 占用槽才惰性创建（bounce 插入零 wrapper）；非 round-robin 分配免 `ArrayList` 拷贝（逐 tick 局部列表、同步任务内无并发修改）。
+
+**量化（交错 14 对——本轮噪声 ±40%/对，逐对 lean 校正配对统计为准，详见 [benchmark-perf-r6-cargo-insert-scan.md](../report/perf/benchmark-perf-r6-cargo-insert-scan.md)）**：mixed-bounce **-9%**、mixed-bounce-smartfill **-9%**（目标路径，不利漂移下稳定为负）；happy-merge 0%；idle -5%；machine-bounce 0%（首轮校正 +6% 触发定向加测 4 对，中位归 1.0，判估计器噪声）。新增 `TestCargoInsertScanSemantics` 7 项判别（含 lore 敏感匹配钉住惰性 wrapper 语义——cargo 的 isItemSimilar 忽略附魔、比较 lore）。全量 **3234 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**过程记录**：判别测试初版 4 败全为测试自身缺陷（输出节点坐标与箱子坐标重叠致 `setType(STONE)` 覆盖箱子、附魔/lore 语义记错、余量算错、world 未注册 BlockStorage），经探针逐层定位修正；产品代码 diff 自始未变——判别测试同样会"发现"测试自己的 bug，修复要先归因再动手。
+
 ## 环境清单（滚动）
 
-- 基线 worktree：`../sf-perf-baseline`（HEAD=315df00fb，即 v5.1.13）——多轮复用，循环收尾时移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base（Round 1 收官）/ r3base（Round 2 收官）——均已用毕移除。
+- 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
+- 增量基线 worktree（各轮建、各轮清）：r2base/r3base/r4base/r5base 均已用毕移除；r6base（3fcd3a75d）本轮用毕移除。
