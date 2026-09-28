@@ -1,11 +1,11 @@
-# ADR
+# ADR（架构决策记录）
 
-An ADR (Architecture Decision Record) is a document describing large changes, why we made them, etc.
+ADR（Architecture Decision Record，架构决策记录）是一类用于描述重大变更及其动机等内容的文档。
 
-## Making a new ADR
+## 新建一份 ADR
 
-If you're making a large change to Slimefun, we recommend creating an ADR
-in order to document why this is being made and how it works for future contributors.
+如果你要对 Slimefun 做出重大变更，我们建议创建一份 ADR，
+记录这次变更的动机与工作机制，方便以后的贡献者理解。
 
-Please follow the general format of the former ADRs or use a tool 
-such as [`adr-tools`](https://github.com/npryce/adr-tools) to generate a new document.
+请遵循既有 ADR 的一般格式，或使用
+[`adr-tools`](https://github.com/npryce/adr-tools) 之类的工具来生成新文档。
