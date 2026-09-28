@@ -422,6 +422,7 @@ public class BlockStorage {
 
             // 2. Serialize all dirty blocks (the live storage map is the source of truth)
             Map<String, Set<Location>> locationsById = new HashMap<>();
+            StringWriter serializer = new StringWriter();
 
             for (Location l : dirty) {
                 Config cfg = storage.get(l);
@@ -442,7 +443,7 @@ public class BlockStorage {
                     continue;
                 }
 
-                getBlockFile(id).setValue(serializeLocation(l), serializeBlockInfo(cfg));
+                getBlockFile(id).setValue(serializeLocation(l), serializeBlockInfo(cfg, serializer));
                 touchedIds.add(id);
                 locationsById.computeIfAbsent(id, key -> new HashSet<>()).add(l);
             }
@@ -791,7 +792,27 @@ public class BlockStorage {
     }
 
     private static String serializeBlockInfo(Config cfg) {
-        StringWriter string = new StringWriter();
+        return serializeBlockInfo(cfg, new StringWriter());
+    }
+
+    /**
+     * Serializes the given {@link Config} into its on-disk JSON form, reusing
+     * the caller's {@link StringWriter} buffer. The save loop serializes
+     * thousands of blocks back to back; reusing one buffer (its backing array
+     * settles at the largest block's size) avoids regrowing a fresh buffer for
+     * every block. The returned {@link String} is still an exact copy, so no
+     * aliasing with the buffer can occur.
+     *
+     * @param cfg
+     *            The block data to serialize
+     * @param string
+     *            A reusable {@link StringWriter} (any prior content is
+     *            discarded)
+     *
+     * @return The JSON string or null if serialization failed
+     */
+    private static String serializeBlockInfo(Config cfg, StringWriter string) {
+        string.getBuffer().setLength(0);
 
         try (JsonWriter writer = new JsonWriter(string)) {
             writer.setLenient(true);
