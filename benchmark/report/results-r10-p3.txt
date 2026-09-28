@@ -1,0 +1,93 @@
+NOTE|r10-p3|Slimefun version under test: 5.1.15
+NOTE|r10-p3|Java: 21.0.10 (Oracle Corporation)
+RESULT|r10-p3|blockstorage|charge-write|median_ns_per_write|ns|200.620
+RESULT|r10-p3|blockstorage|charge-write|min_ns_per_write|ns|195.620
+RESULT|r10-p3|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|36.543
+RESULT|r10-p3|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|30.545
+RESULT|r10-p3|machine-idle-scan|empty-input|median_ns_per_tick|ns|527.800
+RESULT|r10-p3|machine-idle-scan|empty-input|min_ns_per_tick|ns|487.800
+RESULT|r10-p3|machine-idle-scan|junk-input|median_ns_per_tick|ns|520.800
+RESULT|r10-p3|machine-idle-scan|junk-input|min_ns_per_tick|ns|492.400
+RESULT|r10-p3|machine-processing|active|median_ns_per_tick|ns|864.600
+RESULT|r10-p3|machine-processing|active|min_ns_per_tick|ns|721.200
+RESULT|r10-p3|energy-settlement|charging-write|median_ns_per_component|ns|133.200
+RESULT|r10-p3|energy-settlement|charging-write|min_ns_per_component|ns|123.700
+RESULT|r10-p3|energy-settlement|saturated-skip|median_ns_per_component|ns|204.900
+RESULT|r10-p3|energy-settlement|saturated-skip|min_ns_per_component|ns|70.100
+RESULT|r10-p3|charge-api|take-charge-hit|median_ns_per_call|ns|161.200
+RESULT|r10-p3|charge-api|take-charge-hit|min_ns_per_call|ns|152.900
+RESULT|r10-p3|charge-api|take-charge-miss|median_ns_per_call|ns|99.900
+RESULT|r10-p3|charge-api|take-charge-miss|min_ns_per_call|ns|86.700
+RESULT|r10-p3|charge-api|single-arg-remove|median_ns_per_call|ns|178.900
+RESULT|r10-p3|charge-api|single-arg-remove|min_ns_per_call|ns|133.200
+RESULT|r10-p3|generator-tick|burning|median_ns_per_call|ns|559.400
+RESULT|r10-p3|generator-tick|burning|min_ns_per_call|ns|369.200
+RESULT|r10-p3|recipe-scan|junk-10|median_ns_per_scan|ns|490.000
+RESULT|r10-p3|recipe-scan|junk-10|min_ns_per_scan|ns|475.500
+RESULT|r10-p3|recipe-scan|junk-150|median_ns_per_scan|ns|4686.000
+RESULT|r10-p3|recipe-scan|junk-150|min_ns_per_scan|ns|4636.000
+RESULT|r10-p3|cargo-route|idle|median_ns_per_tick|ns|1990200.000
+RESULT|r10-p3|cargo-route|idle|min_ns_per_tick|ns|1623200.000
+RESULT|r10-p3|cargo-route|happy-merge|median_ns_per_tick|ns|3991700.000
+RESULT|r10-p3|cargo-route|happy-merge|min_ns_per_tick|ns|3182000.000
+RESULT|r10-p3|cargo-route|mixed-bounce|median_ns_per_tick|ns|6937600.000
+RESULT|r10-p3|cargo-route|mixed-bounce|min_ns_per_tick|ns|6500600.000
+RESULT|r10-p3|cargo-route|mixed-bounce-smartfill|median_ns_per_tick|ns|5740700.000
+RESULT|r10-p3|cargo-route|mixed-bounce-smartfill|min_ns_per_tick|ns|5590100.000
+RESULT|r10-p3|cargo-route|machine-bounce|median_ns_per_tick|ns|3499500.000
+RESULT|r10-p3|cargo-route|machine-bounce|min_ns_per_tick|ns|3269400.000
+RESULT|r10-p3|cargo-mapping|mapping-100|median_ns_per_tick|ns|754.000
+RESULT|r10-p3|cargo-mapping|mapping-100|min_ns_per_tick|ns|644.000
+NOTE|r10-p3|cargo-mapping mapping-100: z-base 500, nodes/side 100
+RESULT|r10-p3|cargo-mapping|mapping-400|median_ns_per_tick|ns|702.000
+RESULT|r10-p3|cargo-mapping|mapping-400|min_ns_per_tick|ns|650.000
+NOTE|r10-p3|cargo-mapping mapping-400: z-base 600, nodes/side 400
+RESULT|r10-p3|player-interaction|place-block|median_ns_per_op|ns|1731.000
+RESULT|r10-p3|player-interaction|place-block|min_ns_per_op|ns|1169.500
+RESULT|r10-p3|player-interaction|break-block|median_ns_per_op|ns|1235.000
+RESULT|r10-p3|player-interaction|break-block|min_ns_per_op|ns|727.000
+RESULT|r10-p3|research-progress|unlock-cycle|min_ns_per_unlock|ns|4138.600
+RESULT|r10-p3|research-progress|unlock-cycle|median_ns_per_unlock|ns|4677.750
+RESULT|r10-p3|research-progress|title|min_ns_per_call|ns|686.200
+RESULT|r10-p3|research-progress|title|median_ns_per_call|ns|1049.100
+RESULT|r10-p3|research-progress|has-unlocked|min_ns_per_call|ns|0.630
+RESULT|r10-p3|research-progress|has-unlocked|median_ns_per_call|ns|7.245
+NOTE|r10-p3|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|r10-p3|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|140.300
+RESULT|r10-p3|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|129.200
+RESULT|r10-p3|hologram-label|unchanged-label|median_ns_per_call|ns|128.550
+RESULT|r10-p3|hologram-label|unchanged-label|min_ns_per_call|ns|123.200
+RESULT|r10-p3|ticker-resolution|info-get|min_ns_per_block|ns|21.705
+RESULT|r10-p3|ticker-resolution|info-get|median_ns_per_block|ns|48.046
+RESULT|r10-p3|ticker-resolution|full-chain|min_ns_per_block|ns|22.910
+RESULT|r10-p3|ticker-resolution|full-chain|median_ns_per_block|ns|23.442
+NOTE|r10-p3|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|r10-p3|ticker-run: first chunk isLoaded=true
+NOTE|r10-p3|ticker-run: 5000 blocks ticked per run
+RESULT|r10-p3|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|1.079
+RESULT|r10-p3|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|0.803
+RESULT|r10-p3|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|215.880
+RESULT|r10-p3|cargo-protection|prot-bounce-1owner|median_ns_per_tick|ns|3955600.000
+RESULT|r10-p3|cargo-protection|prot-bounce-1owner|min_ns_per_tick|ns|3206400.000
+NOTE|r10-p3|cargo-protection prot-bounce-1owner: module queries per tick without caching = 144
+RESULT|r10-p3|cargo-protection|prot-bounce-4owners|median_ns_per_tick|ns|3082200.000
+RESULT|r10-p3|cargo-protection|prot-bounce-4owners|min_ns_per_tick|ns|2489200.000
+NOTE|r10-p3|cargo-protection prot-bounce-4owners: module queries per tick without caching = 144
+RESULT|r10-p3|protection-query|cheap-module|min_ns_per_query|ns|57.964
+RESULT|r10-p3|protection-query|cheap-module|median_ns_per_query|ns|79.020
+RESULT|r10-p3|protection-query|heavy-module-stack|min_ns_per_query|ns|566.393
+RESULT|r10-p3|protection-query|heavy-module-stack|median_ns_per_query|ns|902.458
+RESULT|r10-p3|cargo-protection|prot-bounce-1owner-heavy|median_ns_per_tick|ns|3005000.000
+RESULT|r10-p3|cargo-protection|prot-bounce-1owner-heavy|min_ns_per_tick|ns|2975800.000
+NOTE|r10-p3|cargo-protection prot-bounce-1owner-heavy: module queries per tick without caching = 144
+RESULT|r10-p3|cargo-protection|prot-bounce-4owners-heavy|median_ns_per_tick|ns|3451800.000
+RESULT|r10-p3|cargo-protection|prot-bounce-4owners-heavy|min_ns_per_tick|ns|2118900.000
+NOTE|r10-p3|cargo-protection prot-bounce-4owners-heavy: module queries per tick without caching = 144
+RESULT|r10-p3|protection-query|xheavy-module-stack|min_ns_per_query|ns|3472.632
+RESULT|r10-p3|protection-query|xheavy-module-stack|median_ns_per_query|ns|4004.984
+RESULT|r10-p3|cargo-protection|prot-bounce-1owner-xheavy|median_ns_per_tick|ns|2056000.000
+RESULT|r10-p3|cargo-protection|prot-bounce-1owner-xheavy|min_ns_per_tick|ns|2024800.000
+NOTE|r10-p3|cargo-protection prot-bounce-1owner-xheavy: module queries per tick without caching = 144
+RESULT|r10-p3|cargo-protection|prot-bounce-4owners-xheavy|median_ns_per_tick|ns|2102900.000
+RESULT|r10-p3|cargo-protection|prot-bounce-4owners-xheavy|min_ns_per_tick|ns|2020400.000
+NOTE|r10-p3|cargo-protection prot-bounce-4owners-xheavy: module queries per tick without caching = 144
