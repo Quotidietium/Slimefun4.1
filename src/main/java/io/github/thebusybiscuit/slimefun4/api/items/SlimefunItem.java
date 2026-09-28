@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -15,6 +16,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -915,13 +917,62 @@ public class SlimefunItem implements Placeable {
     }
 
     /**
+     * The display name of {@link #itemStackTemplate}, computed once on first
+     * use. The template is {@code private final} and never replaced after
+     * construction, so the name is immutable and the cache needs no
+     * invalidation - {@link ItemUtils#getItemName(ItemStack)} performs a full
+     * {@link org.bukkit.inventory.meta.ItemMeta} round-trip per call, which
+     * the guide search pays for every enabled item on every search.
+     */
+    private volatile String cachedItemName;
+
+    /**
+     * The color-stripped, lower-cased form of {@link #getItemName()} used for
+     * guide search matching, computed once on first use (same immutability
+     * argument as {@link #cachedItemName}).
+     */
+    private volatile String cachedSearchableName;
+
+    /**
      * This method will return this Item's Name (The name that is displayed when
      * hovering over this {@link ItemStack} in an {@link Inventory}).
-     * 
+     *
      * @return This item's name in {@link ItemStack} form
      */
     public final @Nonnull String getItemName() {
-        return ItemUtils.getItemName(itemStackTemplate);
+        String cached = cachedItemName;
+
+        if (cached == null) {
+            cached = ItemUtils.getItemName(itemStackTemplate);
+            cachedItemName = cached;
+        }
+
+        return cached;
+    }
+
+    /**
+     * This method returns the search-compatible form of this item's display
+     * name: color codes stripped and lower-cased with {@link Locale#ROOT}.
+     *
+     * <p>
+     * Used by the guide search, which previously performed the
+     * {@link ChatColor#stripColor(String)} (regex) and
+     * {@link String#toLowerCase(Locale)} normalization on every walk of every
+     * enabled item. The result is cached - both inputs are immutable after
+     * construction.
+     * </p>
+     *
+     * @return The color-stripped, lower-cased display name of this item
+     */
+    public final @Nonnull String getSearchableName() {
+        String cached = cachedSearchableName;
+
+        if (cached == null) {
+            cached = ChatColor.stripColor(getItemName()).toLowerCase(Locale.ROOT);
+            cachedSearchableName = cached;
+        }
+
+        return cached;
     }
 
     /**

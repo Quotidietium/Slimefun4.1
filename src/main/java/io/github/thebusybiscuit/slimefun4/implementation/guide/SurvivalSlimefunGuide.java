@@ -473,7 +473,7 @@ public class SurvivalSlimefunGuide implements SlimefunGuideImplementation {
 
     @ParametersAreNonnullByDefault
     private boolean isSearchFilterApplicable(SlimefunItem slimefunItem, String searchTerm) {
-        String itemName = ChatColor.stripColor(slimefunItem.getItemName()).toLowerCase(Locale.ROOT);
+        String itemName = slimefunItem.getSearchableName();
         return !itemName.isEmpty() && (itemName.equals(searchTerm) || itemName.contains(searchTerm));
     }
 
