@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Code of Conduct
-    url: https://github.com/Slimefun/Slimefun4/blob/master/.github/CODE_OF_CONDUCT.md
-    about: Please read this before posting
-  - name: Bug Report Guidelines
+  - name: 行为准则（Code of Conduct）
+    url: https://github.com/Quotidietium/Slimefun4.1/blob/Main/.github/CODE_OF_CONDUCT.md
+    about: 发帖之前请先阅读
+  - name: Bug 报告指南
     url: https://github.com/Slimefun/Slimefun4/wiki/How-to-report-bugs
-    about: Guidelines on how to make good Bug reports
+    about: 如何写出高质量 Bug 报告的指南
   - name: Fork README（本分支说明与免责声明）
     url: https://github.com/Quotidietium/Slimefun4.1
     about: 本仓库为非官方维护分支——问题与建议请直接在本仓库 Issues 提出，勿使用官方 Discord/Issue Tracker。
