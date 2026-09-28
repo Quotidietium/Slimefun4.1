@@ -220,13 +220,48 @@ public class Research implements Keyed {
      * @return whether there is at least one enabled {@link SlimefunItem}
      * included in this {@link Research}.
      */
+    /**
+     * Cached result of {@link #hasEnabledItems()}: {@code null} until first computed.
+     * The affected-items list only ever changes through
+     * {@link SlimefunItem#setResearch(Research)} (which invalidates this cache), and
+     * item states are fixed once their registration completed - so between two
+     * invalidations the answer cannot change. Progress bookkeeping (rank titles,
+     * research counts) walks this for every registry research, which is what the
+     * cache eliminates.
+     */
+    private volatile Boolean hasEnabledItems;
+
     public boolean hasEnabledItems() {
+        Boolean cached = hasEnabledItems;
+
+        if (cached != null) {
+            return cached;
+        }
+
+        boolean result = false;
+
         for (SlimefunItem item : items) {
             if (item.getState() == ItemState.ENABLED) {
-                return true;
+                result = true;
+                break;
             }
         }
-        return false;
+
+        hasEnabledItems = result;
+        return result;
+    }
+
+    /**
+     * Drops the cached {@link #hasEnabledItems()} result so the next call
+     * re-walks the affected items.
+     * <strong>For internal use by {@link SlimefunItem#setResearch(Research)}:
+     * called whenever this research's affected-items list changed.</strong>
+     * Add-ons mutating the list returned by {@link #getAffectedItems()}
+     * directly bypass this invalidation (same out-of-band contract as the
+     * other registration-time caches).
+     */
+    public void invalidateItemsCache() {
+        hasEnabledItems = null;
     }
 
     /**

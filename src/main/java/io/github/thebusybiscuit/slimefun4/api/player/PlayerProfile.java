@@ -311,7 +311,7 @@ public class PlayerProfile {
         // A genuine ownership flip is the only case worth announcing as fine-grained progress
         // (unlocking an already-unlocked research or locking a never-unlocked one is a no-op).
         boolean willActuallyChange = (unlock && !presentBefore) || (!unlock && presentBefore);
-        int previousProgressCount = willActuallyChange ? countNonEmptyResearches(getResearches()) : 0;
+        int previousProgressCount = willActuallyChange ? countNonEmptyResearches(data.getResearches()) : 0;
 
         // Mutate first, then mark dirty. markDirty() bumps the modification epoch which save()
         // uses to detect concurrent mutations - the epoch must always reflect the state of the
@@ -325,7 +325,7 @@ public class PlayerProfile {
         markDirty();
 
         if (willActuallyChange) {
-            int newProgressCount = countNonEmptyResearches(getResearches());
+            int newProgressCount = countNonEmptyResearches(data.getResearches());
             int totalResearches = countNonEmptyResearches(Slimefun.getRegistry().getResearches());
             Bukkit.getPluginManager().callEvent(new ResearchProgressEvent(this, research, unlock, previousProgressCount, newProgressCount, totalResearches));
         }
@@ -538,7 +538,11 @@ public class PlayerProfile {
         List<String> titles = Slimefun.getRegistry().getResearchRanks();
 
         int allResearches = countNonEmptyResearches(Slimefun.getRegistry().getResearches());
-        float fraction = (float) countNonEmptyResearches(getResearches()) / allResearches;
+
+        // Counts the live set directly: the defensive copy of getResearches() is
+        // pure allocation overhead on this per-unlock path (the elements, and
+        // therefore the count, are identical).
+        float fraction = (float) countNonEmptyResearches(data.getResearches()) / allResearches;
         int index = (int) (fraction * (titles.size() - 1));
 
         return titles.get(index);
@@ -552,8 +556,8 @@ public class PlayerProfile {
      * @param sender The {@link CommandSender} for which to get the statistics and send them to.
      */
     public void sendStats(@Nonnull CommandSender sender) {
-        int unlockedResearches = countNonEmptyResearches(getResearches());
-        int levels = getResearches().stream().mapToInt(Research::getCost).sum();
+        int unlockedResearches = countNonEmptyResearches(data.getResearches());
+        int levels = data.getResearches().stream().mapToInt(Research::getCost).sum();
         int allResearches = countNonEmptyResearches(Slimefun.getRegistry().getResearches());
 
         float progress = Math.round(((unlockedResearches * 100.0F) / allResearches) * 100.0F) / 100.0F;

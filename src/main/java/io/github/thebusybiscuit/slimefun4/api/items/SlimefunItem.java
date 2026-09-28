@@ -497,6 +497,16 @@ public class SlimefunItem implements Placeable {
                 state = ItemState.DISABLED;
             }
 
+            /*
+             * The item's state just got decided. A research that already bound this
+             * item (bound before registration - not the canonical order, but
+             * nothing forbids it) must not keep a hasEnabledItems() result that
+             * was computed from the transient UNREGISTERED state.
+             */
+            if (research != null) {
+                research.invalidateItemsCache();
+            }
+
             // Now we can be certain this item should be enabled
             if (state == ItemState.ENABLED) {
                 onEnable();
@@ -672,10 +682,12 @@ public class SlimefunItem implements Placeable {
     public void setResearch(@Nullable Research research) {
         if (this.research != null) {
             this.research.getAffectedItems().remove(this);
+            this.research.invalidateItemsCache();
         }
 
         if (research != null) {
             research.getAffectedItems().add(this);
+            research.invalidateItemsCache();
         }
 
         this.research = research;

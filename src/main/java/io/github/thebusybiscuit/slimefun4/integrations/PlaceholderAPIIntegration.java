@@ -80,7 +80,7 @@ class PlaceholderAPIIntegration extends PlaceholderExpansion {
             Optional<PlayerProfile> profile = PlayerProfile.find(p);
 
             if (profile.isPresent()) {
-                Stream<Research> stream = profile.get().getResearches().stream();
+                Stream<Research> stream = profile.get().getPlayerData().getResearches().stream();
                 return String.valueOf(stream.mapToInt(Research::getCost).sum());
             } else if (p instanceof Player player) {
                 return getProfilePlaceholder(player);
@@ -91,7 +91,7 @@ class PlaceholderAPIIntegration extends PlaceholderExpansion {
             Optional<PlayerProfile> profile = PlayerProfile.find(p);
 
             if (profile.isPresent()) {
-                Set<Research> set = profile.get().getResearches();
+                Set<Research> set = profile.get().getPlayerData().getResearches();
                 return String.valueOf(set.size());
             } else if (p instanceof Player player) {
                 return getProfilePlaceholder(player);
@@ -106,7 +106,7 @@ class PlaceholderAPIIntegration extends PlaceholderExpansion {
             Optional<PlayerProfile> profile = PlayerProfile.find(p);
 
             if (profile.isPresent()) {
-                Set<Research> set = profile.get().getResearches();
+                Set<Research> set = profile.get().getPlayerData().getResearches();
                 return String.valueOf(Math.round(((set.size() * 100.0F) / Slimefun.getRegistry().getResearches().size()) * 100.0F) / 100.0F);
             } else if (p instanceof Player player) {
                 return getProfilePlaceholder(player);
