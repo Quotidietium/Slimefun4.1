@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r13base 均已用毕移除（r11base=322cd4b62、r12base=3ae83e3f7、r13base=3a52e23be bench 修订版）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r14base 均已用毕移除（r12base=3ae83e3f7、r13base=3a52e23be、r14base=286f85a83）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -175,3 +175,13 @@
 **量化（交错 9 对 ×2 版，复合 lean 校正，详见 [benchmark-perf-r13-player-data-walks.md](../report/perf/benchmark-perf-r13-player-data-walks.md)）**：load-scale-sparse **-51.6%**（523µs→249µs，**9/9 全部同向**）；save-scale-sparse **-10.5%**（8/9）；现实 250 科研形态 -4~-7%（6-7/9 同向，与机制推算 ~40µs 相符）；背包变体处噪声平面。**首版 9 对噪声发现**：现实形态机制差异（数十 µs）被 ms 级磁盘 I/O 噪声吞没（load-backpacks 单次运行间摆动 3×），按协议补充规模放大变体（走查成本随注册表线性放大）重跑——bench 修订先提交再重建 base worktree，方法论闭环。新增 `TestLegacyPlayerDataWalkEquivalence` 8 项判别，**在新旧两侧实现均全绿**（直接等价性证明；背包内容断言用 snakeyaml 裸解析+字符串值存活键策略绕开 mock 缺口）。全量 **3272 测试 0 失败**；`mvn package` BUILD SUCCESS。
 
 **MockBukkit 缺口注记（本轮新发现，pre-existing、新旧实现同样命中）**：(1) `ItemStackMock` 活库存路径序列化为类名形态 `==` 标签，paper-api YamlConstructor 解析期按类名找不到注册抛 "Could not deserialize object"（MockBukkit 仅注册别名）；(2) dough Config 重载**静默丢弃 item 节点**（contents 段变空、无异常）——凡涉玩家文件 ItemStack 往返的 mock 断言，须用文件键级（snakeyaml 裸解析）或非 item 值策略。
+
+## 第 14 轮（2026-09-29）：item 身份解析记忆化 + 模板比较元缓存
+
+**方向**：物品身份解析与比较路径（cargo 路由/配方匹配/背包校验共用的工作horse——r6-r9 只在其外围优化）。A/B：base=286f85a83（r14 bench 提交，worktree `../sf-perf-r14base`）vs opt=本轮。新场景 `item-compare`（sim-vanilla-miss/sim-sf-hit/resolve-template/resolve-vanilla-shared/resolve-vanilla-foreign/resolve-fresh 六变体）。
+
+**改动（SlimefunItem + SlimefunUtils 两文件）**：(1) `getByItem(ItemStack)` 身份记忆化——Guava `MapMaker().weakKeys().weakValues()` 并发 map，键==比较（可变堆栈不互串）、键值弱引用（随 GC 不泄漏）、null 也 memo；稳定长寿命实例（cargo 过滤器/配方缓存/手持 live 引用）反复解析从"meta 克隆+PDC 读"降为单次 map get；(2) `getTemplateItemMeta()` 模板比较元计算一次缓存（r12 严格不可变前提同族，零失效钩子）——isItemSimilar 香草-同材质分支原每次比较 `getItem().getItemMeta()` 双重克隆；(3) **失效钩子**：register() 尾部全清（晚注册翻转 null 解析）+ 公开 `invalidateItemResolutionCache()`（带外重打标，r11 家族契约）；(4) **明确不做**：`equalsItemMeta(ItemMeta, ItemMetaSnapshot)` 快照重载缺药水基类型检查（#3133）——采用即功能丢失，红线否决。
+
+**前提修正记录**：SlimefunItemStack 为独立包装类**非** ItemStack 子类——"instanceof 快路径"候选在类型上不可达，定向阶段推翻重来；最终 B1+C 形态。
+
+**量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r14-item-identity-memo.md](../report/perf/benchmark-perf-r14-item-identity-memo.md)）**：resolve-template **-78.4%**（129ns→28ns，9/9 对，区间 0.197-0.262 极紧）；sim-sf-hit **-67.8%**（9/9）；resolve-vanilla-shared -62.6%/-56.7%（9/9）；sim-vanilla-miss -20.9%（8/9）；**守卫 resolve-fresh +62.4%（0/9）**——纯 churn 形态每次解析多付 ~190ns 弱键插入，MockBukkit 下 meta 克隆仅 ~120ns 故占比显大，真实 Paper NBT 深拷（µs 级）下 <20% of miss 成本，测量学注记：**mock 保守下界方向性对分配类守卫成本反转**（克隆消除收益 mock 偏小 vs 插入成本 mock 偏大），双向均需锚点分解。新增 `TestItemIdentityResolutionMemo` 6 项判别（解析等价/晚注册失效/带外契约/isItemSimilar 全语义含药水检查存活/DistinctiveItem 上游语义文档化）。全量 **3278 测试 0 失败**；`mvn package` BUILD SUCCESS。
