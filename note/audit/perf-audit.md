@@ -77,6 +77,14 @@
 
 **判别测试**：`TestRecipeScanMaterialPrefilter` 6 项（不虚构匹配/不漏配/同 Material 优先序/多输入部分在场/同 Material 异 meta 仍拒绝/空输入）。全量 **3227 测试 0 失败**；`mvn clean package` BUILD SUCCESS。新增 `BenchHeftyMachine`（150 配方档）与 `recipe-scan` 场景。
 
+## 第 4 轮（2026-09-28）：保存路径序列化缓冲复用
+
+**方向**：自动保存的逐块序列化。A/B：base=Round 3 收官（20f3a7a0b，worktree `../sf-perf-r4base`）vs opt=本轮（f8bd712f0）。
+
+**改动**：`BlockStorage.save()` 脏块循环复用单个 `StringWriter`（`serializeBlockInfo(cfg, string)` 重载，背衬数组稳定在最大块大小）；单参版本保留给 `getBlockInfoAsJson`。**格式红线记录**：.sfb 的 snakeyaml 全文件转储是剩余大头，自研转储器需逐字节复刻其引号/转义策略，判为锁死项不做。
+
+**量化（交错 5+5，详见 [benchmark-perf-r4-save-buffer.md](../report/perf/benchmark-perf-r4-save-buffer.md)）**：save-5000 min **-3.7%**/中位 **-9.1%**（逆风：指示器 +5.6% 逆向漂移，真实改善估计 4-14%）；零改动场景全部经代码归因隔离（machine-processing +17% 判环境噪声——序列化仅在 save 周期运行，加工测量不触发）。全量 **3227 测试 0 失败**；`mvn clean package` BUILD SUCCESS。
+
 ## 环境清单（滚动）
 
 - 基线 worktree：`../sf-perf-baseline`（HEAD=315df00fb，即 v5.1.13）——多轮复用，循环收尾时移除。
