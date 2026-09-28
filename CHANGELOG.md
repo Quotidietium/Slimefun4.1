@@ -29,7 +29,6 @@
 # 官方 Slimefun4 历史变更记录（继承）
 
 ## Table of contents
-- [Release Candidate 38 (TBD)](#release-candidate-38-tbd)
 - [Release Candidate 37 (25 Feb 2024)](#release-candidate-37-25-feb-2024)
 - [Release Candidate 36 (20 Dec 2023)](#release-candidate-36-20-dec-2023)
 - [Release Candidate 35 (07 Jul 2023)](#release-candidate-35-07-jul-2023)
@@ -67,8 +66,6 @@
 - [Release Candidate 3 (21 Nov 2019)](#release-candidate-3-21-nov-2019)
 - [Release Candidate 2 (29 Sep 2019)](#release-candidate-2-29-sep-2019)
 - [Release Candidate 1 (26 Sep 2019)](#release-candidate-1-26-sep-2019)
-
-## Release Candidate 38 (TBD)
 
 ## Release Candidate 37 (25 Feb 2024)
 
