@@ -1,7 +1,7 @@
-# Update Procedure
+# 更新流程（Update Procedure）
 
-Date: 2024-01-15
-Last updated: 2026-09-28（SlimeFun4.1 fork 适配）
+日期：2024-01-15
+最后更新：2026-09-28（SlimeFun4.1 fork 适配）
 
 > **Fork notice (SlimeFun4.1)：** 本 SOP 继承自官方 Slimefun4 仓库，仅作流程参考。在本 fork 中实际约定为：
 > - pom 中的版本属性是 **`paper.version`**（当前 `1.21.1`），不存在 `spigot.version`；
@@ -10,69 +10,69 @@ Last updated: 2026-09-28（SlimeFun4.1 fork 适配）
 > - 测试须以 **Java 21** 运行（`JAVA_HOME` 指向 JDK 21；系统默认 PATH 若为其它大版本会触发 MockBukkit "No jar file selected" 级联失败）；
 > - PR/Issue 只提交到本仓库，不走官方 Discord/PR 流程。
 
-## Goal
+## 目标
 
-This SOP will go over updating Slimefun to the newest Minecraft version, most of this will only apply to major versions, but we have also seen minor versions break things. So please read through the whole SOP and make sure you do everything applicable.
+本 SOP 讲解如何将 Slimefun 更新到最新的 Minecraft 版本。其中大部分内容只适用于大版本更新，但我们也见过小版本更新导致破坏的情况，因此请通读整个 SOP，并确保完成所有适用步骤。
 
-## Updating
+## 更新
 
-### Updating Bukkit/Spigot
+### 更新 Bukkit/Spigot
 
-The first step is just updating Spigot in the pom.xml. This should only be done in 2 cases:
-* There's a new major version (well, MC major - 1.19 -> 1.20 is a major)
-* There was a change within MC or Bukkit/Spigot that broke the API
+第一步只需在 pom.xml 中更新 Spigot 依赖版本。只有以下两种情况才应这么做：
+* 出现了新的大版本（指 MC 意义上的大版本，例如 1.19 -> 1.20）；
+* MC 或 Bukkit/Spigot 内部发生了破坏 API 的变更。
 
-To update the Spigot version, you will need to go to the `pom.xml` and find the `paper.version` property (this fork compiles against paper-api; upstream called it `spigot.version`), this will be within the `properties` property. Simply make this the MC version (e.g. `1.20` or in the case of minor `1.20.4`).
+要更新版本，请打开 `pom.xml` 找到 `paper.version` 属性（本 fork 基于 paper-api 编译；上游称之为 `spigot.version`），它位于 `properties` 属性块中。将其改为目标 MC 版本即可（如 `1.20`，小版本则为 `1.20.4`）。
 
-Once updated, **make sure to run a build** to check for compilation failures with `mvn clean package -DskipTests=true`. We will go over the tests next.
+更新之后，**务必执行一次构建**以检查编译失败：`mvn clean package -DskipTests=true`。测试的问题我们下一步再谈。
 
-### Updating tests
+### 更新测试
 
-The next step is making sure our tests are still working correctly as is. This can be done by running `mvn test` and verifying that all tests pass correctly without any failures or errors.
+下一步是确认现有测试仍然正常工作。运行 `mvn test` 并验证所有测试全部通过、无失败或错误。
 
-If there are any failures you will need to investigate these, it's best to run them one at a time, so you don't have the potential for cross-test contamination. If you find any issues with the tests, please fix them and make sure to add a comment to the PR explaining why the test was changed.
+如果出现失败，需要逐一排查——最好一次只跑一个测试，避免测试间相互污染的可能。如果发现测试本身有问题，请修复它，并记得在 PR 中添加评论说明该测试为何被修改。
 
-If you need any help fixing tests, open an Issue on this repository with the failure output.
+如果你在修测试时需要帮助，请在**本仓库**提交 Issue 并附上失败输出。
 
-Once all the tests are passed, check to see if there's a new version of [MockBukkit](https://github.com/MockBukkit/MockBukkit), this is the framework handling the Bukkit side of our tests. There very well may not be a new version, they usually lag updates a bit. If not, that's perfectly ok, just make sure to note it on the PR.
+全部测试通过后，检查 [MockBukkit](https://github.com/MockBukkit/MockBukkit) 是否发布了新版本——它是承担我们测试中 Bukkit 侧的框架。很可能没有新版本（他们通常滞后一段时间），这完全没问题，只需在 PR 中注明即可。
 
-### Testing in game
+### 游戏内测试
 
-The final and most important step is testing this in game. While I'd love for our tests to be perfect, they are not (especially if MockBukkit hasn't had an update yet). We need to ensure that everything is working in-game before we can ship a new version release.
+最后也是最关键的一步：在游戏内实测。虽然我们希望测试尽善尽美，但它们做不到（在 MockBukkit 尚未跟进更新时尤其如此）。在发布新版本之前，必须确保一切在游戏内正常工作。
 
-To do this, you will need to build the plugin with `mvn clean package` and then copy the jar from `target/` to your server's `plugins/` folder. Once you've done this, start the server. You will want to test various things but the things we always want covered are:
-* Commands, verify running a few commands work
+具体做法：用 `mvn clean package` 构建插件，把 `target/` 下的 jar 复制到服务器的 `plugins/` 目录，然后启动服务器。需要测试的内容很多，但以下几项必须覆盖：
+* 命令：验证若干命令可用
   * `/sf versions`
   * `/sf cheat`
   * `/sf search`
-* Items, verify you can use a few items (you can grab these from `/sf cheat`)
-  * Wind staff
-  * One of the talismans
-  * One of the backpacks
-* Blocks, verify you can place, break and ensure they all work
-  * Ancient altar
-  * Ore washer
-  * Coal generator
+* 物品：验证若干物品可用（可从 `/sf cheat` 获取）
+  * 风之法杖（Wind staff）
+  * 任一护符（talisman）
+  * 任一背包（backpack）
+* 方块：验证可放置、可破坏，且全部正常工作
+  * 远古祭坛（Ancient altar）
+  * 洗矿机（Ore washer）
+  * 煤炭发电机（Coal generator）
 
-It is important to verify heads are still working (part of the energy network and the coal generator). If head skins are not loading, consider it as a bug: try figuring out what the issue is, and open an Issue on this repository if you are not sure what the cause may be.
+务必验证头颅（heads）仍然正常（属于能源网络和煤炭发电机的一部分）。如果头颅皮肤没有加载，应视为 bug：尝试定位问题原因；若不确定成因，请在**本仓库**提交 Issue。
 
-Also make sure to verify that there are no errors in the console, any errors here should be investigated and fixed.
+同时确保控制台没有任何报错——此处出现的任何错误都应排查并修复。
 
-If you find any issues, please fix them and make sure to add a comment to the PR explaining why the fix was needed.
+如果发现问题，请修复它，并记得在 PR 中添加评论说明为何需要该修复。
 
-> **Note**
-> An issue here usually means that we need to update Dough. If this is the case, please open a PR to Dough and then update the Dough version in the `pom.xml` to the new version. Once you've done this, make sure to run a build to verify everything is working correctly.
+> **注意**
+> 这一类问题通常意味着我们需要更新 Dough。若是如此，请先向 Dough 提交 PR，然后将 `pom.xml` 中的 Dough 版本号更新为新版本。完成后，务必再执行一次构建确认一切正常。
 
-### Final steps
+### 收尾步骤
 
-Once you've verified everything is working, you can go ahead and open the PR. We will get to this as soon as we can :)
+一切验证通过后，即可提交 PR。我们会尽快处理 :)
 
-While the PR is open, make sure to verify the E2E tests are passing, and you should also verify the output of these. If the E2E tests look good then finally we will update these.
+PR 开启期间，请确认 E2E 测试通过，并核对它们的输出。E2E 测试结果无误后，最后我们再更新它们。
 
-#### Updating E2E tests
+#### 更新 E2E 测试
 
-**This is only needed in a major version**
+**仅在 MC 大版本更新时需要**
 
-In the `e2e-testing.yml` file you will need to update the matrix strategy, please add the latest version of the old major (e.g. if 1.21 came out, add 1.20.x where x is the latest released version). If MC is requiring a new Java version make sure that is updated too in the `latest` version.
+在 `e2e-testing.yml` 文件中更新矩阵策略：请把旧大版本的最新小版本加进去（例如 1.21 发布后，加入 1.20.x，x 取该系列已发布的最新版本）。如果 MC 要求新的 Java 版本，也请一并更新 `latest` 一项。
 
-Once updated, push and re-verify that the E2E tests are still passing.
+更新完成后推送，并再次确认 E2E 测试仍然通过。
