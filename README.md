@@ -31,6 +31,7 @@ Slimefun 是一个为 Spigot / Paper 服务器提供"**无需安装任何 mod �
 - 编译产物改名为 `SlimeFun4.1-<version>`，避免被官方构建覆盖
 - 修复了一些边界条件下的空指针与数据校验问题
 - 近期做了一点性能上的小优化（有兴致可自行查看 [benchmark/](benchmark/) 目录下的对比数据）
+- 建立了逐轮审计与发布流程（全程记录与实机回归证据见 [note/](note/) 目录），全量单元测试 3221 项全绿
 
 ---
 
@@ -44,7 +45,7 @@ Slimefun 是一个为 Spigot / Paper 服务器提供"**无需安装任何 mod �
 | **Java（运行）** | **16 及以上**（推荐 17+） |
 | **Java（测试）** | 21 |
 
-> 说明：本环境未做端到端的 1.21.11 实机回归。完成判据为"源码层不再引用 1.21.11 已移除的符号 + 编译与全部单元测试通过"。第三方 shaded 依赖（旧版 `dough-api`、`paperlib` 1.0.8）若内部引用了 1.21.2+ 已移除的符号，仍可能在实机上报错，需上真实服务器后观察日志。
+> 说明：1.21.11 已完成实机回归（真实 Paper 1.21.11 + Java 21）：加载日志判据全过、shaded 依赖残留符号风险实证排除、协议机器人客户端冒烟（SF 方块放置/机器 GUI/太阳能发电→充电→持久化全链）、最长 10 分钟浸泡全日志零 ERROR/SEVERE。证据与操作手册见 [note/report/](note/report/)（[runbook](note/report/runbook-1.21.11-regression.md)），此后 v5.1.2 起历次发布均沿用 §1 + 浸泡作为实机门槛。
 
 ---
 
@@ -59,7 +60,7 @@ mvn clean package
 构建成功后，产物位于：
 
 ```
-target/SlimeFun4.1-5.0.0.jar
+target/SlimeFun4.1-5.1.13.jar
 ```
 
 将该 jar 放入服务器的 `plugins/` 目录，重启服务器即可。
@@ -68,7 +69,7 @@ target/SlimeFun4.1-5.0.0.jar
 > ```bash
 > mvn clean package -DskipTests=true
 > ```
-> 运行单元测试：`mvn test`（基于 MockBukkit）。
+> 运行单元测试：`mvn test`（基于 MockBukkit，全量 3221 项、0 失败、7 跳过）。
 
 ---
 
