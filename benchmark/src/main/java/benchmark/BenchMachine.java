@@ -1,5 +1,6 @@
 package benchmark;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -28,6 +29,17 @@ public class BenchMachine extends AContainer {
     @Override
     public String getMachineIdentifier() {
         return ID;
+    }
+
+    /**
+     * Widens the protected {@code AContainer#takeCharge} to public so the
+     * {@code charge-api} scenario can isolate it. Dispatches to the
+     * under-test implementation, so baseline and optimized builds measure
+     * their own code.
+     */
+    @Override
+    public boolean takeCharge(Location l) {
+        return super.takeCharge(l);
     }
 
     @Override

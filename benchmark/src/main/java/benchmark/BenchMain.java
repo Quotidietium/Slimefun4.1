@@ -11,6 +11,7 @@ import be.seeseemelk.mockbukkit.MockBukkit;
 import be.seeseemelk.mockbukkit.ServerMock;
 import benchmark.scenarios.BlockStorageWriteBench;
 import benchmark.scenarios.CapacitorTextureBench;
+import benchmark.scenarios.ChargeApiBench;
 import benchmark.scenarios.EnergySettlementBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
@@ -78,6 +79,9 @@ public final class BenchMain {
             Bench.gcSettle();
 
             new EnergySettlementBench().run(ctx, results);
+            Bench.gcSettle();
+
+            new ChargeApiBench().run(ctx, results);
             Bench.gcSettle();
 
             new PlayerInteractionBench().run(ctx, results);
