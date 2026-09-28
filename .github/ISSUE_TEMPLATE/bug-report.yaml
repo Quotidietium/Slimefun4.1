@@ -6,9 +6,9 @@ body:
 - type: markdown
   attributes:
     value: |
-      ## 👋 Welcome to the Slimefun Bug Tracker
-      If you need any help to identify the problem, visit our [Discord server](https://discord.gg/slimefun) and see if others experience a similar issue.
-      Also take a look at our [Troubleshooting Guide](https://github.com/Slimefun/Slimefun4/wiki/How-to-report-bugs) and the list of [existing Issues](https://github.com/Slimefun/Slimefun4/issues).
+      ## 👋 欢迎使用 SlimeFun4.1（非官方维护分支）Bug Tracker
+      本仓库与官方 Slimefun 团队无隶属关系——本分支的问题请在此报告，勿提交到官方 Issue Tracker 或 Discord。
+      提交前请先查看[已有 Issues](https://github.com/Quotidietium/Slimefun4.1/issues) 是否已有人报告相同问题；排障指引可参考官方 wiki 的 [How to report bugs](https://github.com/Slimefun/Slimefun4/wiki/How-to-report-bugs)。
       <br /><strong><i>Fields marked with an asterisk (*) are required.</i></strong>
       <br />
 
@@ -18,11 +18,11 @@ body:
     label: '❗ Checklist'
     description: Please go through this checklist before creating the issue.
     options:
-    - label: I am using the official english version of Slimefun and did not modify the jar.
+    - label: 我使用的是本仓库构建的 SlimeFun4.1（非官方 Slimefun4 分支），且未自行修改 jar。
       required: true
-    - label: I downloaded the official version from the new build site [Blob Builds](https://blob.build/).
+    - label: jar 来自本仓库 Release 或按 README 自行构建，版本以 /sf versions 输出为准（当前发布线 5.1.x）。
       required: true
-    - label: I am using an up to date "DEV" (not "RC") version of Slimefun.
+    - label: 我已尝试升级到本仓库最新发布版本，问题仍然存在。
       required: true
     - label: I am aware that issues related to Slimefun addons need to be reported on their bug trackers and not here.
       required: true
@@ -115,12 +115,8 @@ body:
     label: '🎮 Minecraft Version'
     description: 'Please select the Minecraft version of the server'
     options:
-      - 1.20.x
-      - 1.19.x
-      - 1.18.x
-      - 1.17.x
-      - 1.16.x
-      - (Older versions are not supported)
+      - 1.21.1 ~ 1.21.11（本分支支持范围）
+      - 其它版本（不受支持，请在描述中注明）
 
 - id: slimefun-version
   type: textarea
@@ -148,5 +144,3 @@ body:
       ## ❤️ Thank you for submitting your bug report!
       If you find any additional info that can help to identify this problem, don't hesitate to comment on your issue!
       Any additional info can help us fix this bug faster.
-      In the meantime, try visiting our [Discord server](https://discord.gg/slimefun).
-      Perhaps someone else has experienced a similar issue.

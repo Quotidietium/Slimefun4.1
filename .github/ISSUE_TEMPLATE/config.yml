@@ -6,6 +6,6 @@ contact_links:
   - name: Bug Report Guidelines
     url: https://github.com/Slimefun/Slimefun4/wiki/How-to-report-bugs
     about: Guidelines on how to make good Bug reports
-  - name: Discord Server (for Questions and Suggestions)
-    url: https://discord.gg/slimefun
-    about: Please ask and answer questions here.
+  - name: Fork README（本分支说明与免责声明）
+    url: https://github.com/Quotidietium/Slimefun4.1
+    about: 本仓库为非官方维护分支——问题与建议请直接在本仓库 Issues 提出，勿使用官方 Discord/Issue Tracker。
