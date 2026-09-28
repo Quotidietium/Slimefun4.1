@@ -1,5 +1,5 @@
-name: Bug Report
-description: Report a Bug or an Issue with Slimefun 4.
+name: Bug 报告
+description: 报告 SlimeFun4.1（Slimefun 4）的 Bug 或问题。
 labels: ['🎯 Needs testing', '🐞 Bug Report']
 
 body:
@@ -9,14 +9,14 @@ body:
       ## 👋 欢迎使用 SlimeFun4.1（非官方维护分支）Bug Tracker
       本仓库与官方 Slimefun 团队无隶属关系——本分支的问题请在此报告，勿提交到官方 Issue Tracker 或 Discord。
       提交前请先查看[已有 Issues](https://github.com/Quotidietium/Slimefun4.1/issues) 是否已有人报告相同问题；排障指引可参考官方 wiki 的 [How to report bugs](https://github.com/Slimefun/Slimefun4/wiki/How-to-report-bugs)。
-      <br /><strong><i>Fields marked with an asterisk (*) are required.</i></strong>
+      <br /><strong><i>带星号（*）的字段为必填项。</i></strong>
       <br />
 
 - id: checklist
   type: checkboxes
   attributes:
-    label: '❗ Checklist'
-    description: Please go through this checklist before creating the issue.
+    label: '❗ 检查清单'
+    description: 创建 Issue 之前，请先逐项确认以下内容。
     options:
     - label: 我使用的是本仓库构建的 SlimeFun4.1（非官方 Slimefun4 分支），且未自行修改 jar。
       required: true
@@ -24,9 +24,9 @@ body:
       required: true
     - label: 我已尝试升级到本仓库最新发布版本，问题仍然存在。
       required: true
-    - label: I am aware that issues related to Slimefun addons need to be reported on their bug trackers and not here.
+    - label: 我知晓与 Slimefun 附加插件（addons）相关的问题需要报告到各自的 Bug Tracker，而不是这里。
       required: true
-    - label: I searched for similar open issues and could not find an existing bug report on this.
+    - label: 我搜索过相似的开放 Issues，没有找到已有的相同 Bug 报告。
       required: true
 
 - id: description
@@ -34,63 +34,63 @@ body:
   validations:
     required: true
   attributes:
-    label: '📍 Description'
+    label: '📍 问题描述'
     description: |
-      A clear and detailed description of what went wrong.
-      The more information you can provide, the easier we can handle this problem.
+      请清晰、详细地描述出了什么问题。
+      你能提供的信息越多，我们处理这个问题就越容易。
     placeholder: |
-      When doing [...] I experienced [...], I am pretty sure this is not intended and should be fixed.
+      在做 [...] 的时候遇到了 [...]，我确信这不是预期行为，应当被修复。
 
 - id: reproduction-steps
   type: textarea
   validations:
     required: true
   attributes:
-    label: '📑 Reproduction Steps'
+    label: '📑 复现步骤'
     description: |
-      Tell us the exact steps to reproduce this issue, the more detailed the easier we can reproduce it.
+      请告诉我们复现该问题的确切步骤，写得越详细，我们就越容易复现。
     placeholder: |
-      1. Do [...]
-      2. Then do [...]
-      3. Now [...] happens
+      1. 做 [...]
+      2. 接着做 [...]
+      3. 此时出现了 [...]
 
 - id: expected-behaviour
   type: textarea
   validations:
     required: true
   attributes:
-    label: '💡 Expected Behavior'
+    label: '💡 预期行为'
     description: |
-      What were you expecting to happen?
-      What do you think would have been the correct behaviour?
+      你原本期望发生什么？
+      你认为正确的行为应该是什么？
     placeholder: |
-      I expected [...] to happen.
+      我期望发生 [...]。
 
 - id: media
   type: textarea
   attributes:
-    label: '📷 Screenshots / Videos'
+    label: '📷 截图 / 视频'
     description: |
-      The best way to illustrate in an issue is by recording a Video or taking a Screenshot.
-      If you can capture any footage of the bug happening, it would help us out a lot!
+      在 Issue 里最直观的说明方式就是录一段视频或截一张图。
+      如果你能抓拍到 bug 发生的画面，会对我们帮助很大！
     placeholder: |
-      Drag and drop an image or video onto this field to upload it.
+      将图片或视频拖拽到此字段即可上传。
 
 - id: server-log
   type: input
   attributes:
-    label: '📜 Server Log'
+    label: '📜 服务器日志'
     description: |
-      Take a look at your Server Log and upload any error messages from Slimefun to a pasting site (e.g. https://pastebin.com/).
-      If you are unsure about it, post your full log, you can find it under /logs/latest.log
+      查看你的服务器日志，并把 Slimefun 相关的报错信息上传到粘贴站（如 https://pastebin.com/）。
+      如果拿不准，直接上传完整日志即可，文件位于 /logs/latest.log
     placeholder: https://pastebin.com/...
 
 - id: error-reports
   type: input
   attributes:
-    label: '📂 `/error-reports/` folder'
+    label: '📂 `/error-reports/` 文件夹'
     description: |
-      Check the folder `/plugins/Slimefun/error-reports/` and upload any files inside that folder to a pasting site (e.g. https://pastebin.com/).
+      检查 `/plugins/Slimefun/error-reports/` 文件夹，把其中的文件上传到粘贴站（如 https://pastebin.com/）。
     placeholder: https://pastebin.com/...
 
 - id: server-software
@@ -98,22 +98,22 @@ body:
   validations:
     required: true
   attributes:
-    label: '💻 Server Software'
-    description: 'Please select the software your Server is running on'
+    label: '💻 服务端软件'
+    description: '请选择你的服务器正在使用的软件'
     options:
       - Spigot
       - Paper
       - Purpur
       - Airplane
-      - Other (please specify in your description)
+      - 其它（请在描述中注明）
 
 - id: minecraft-version
   type: dropdown
   validations:
     required: true
   attributes:
-    label: '🎮 Minecraft Version'
-    description: 'Please select the Minecraft version of the server'
+    label: '🎮 Minecraft 版本'
+    description: '请选择服务器的 Minecraft 版本'
     options:
       - 1.21.1 ~ 1.21.11（本分支支持范围）
       - 其它版本（不受支持，请在描述中注明）
@@ -123,24 +123,24 @@ body:
   validations:
     required: true
   attributes:
-    label: '⭐ Slimefun version'
+    label: '⭐ Slimefun 版本'
     description: |
-      **"latest" is not a version number, we need the exact version.**
-      We recommend running "/sf versions" and uploading a screenshot of that.
-      Make sure that the screenshot covers the entire output of that command.
-    placeholder: Slimefun version [...]
+      **"latest"（最新版）不是版本号，我们需要确切的版本。**
+      建议运行 "/sf versions" 并上传其输出的截图。
+      请确保截图覆盖该命令的完整输出。
+    placeholder: Slimefun 版本 [...]
 
 - id: other-versions
   type: textarea
   attributes:
-    label: '🧭 Other plugins'
+    label: '🧭 其它插件'
     description: |
-      If your issue is related to another plugin, make sure to include this here!
-    placeholder: The issue is related to plugin [...], version [...]
+      如果你的问题与其它插件相关，请务必在此一并列出！
+    placeholder: 问题与插件 [...] 相关，版本 [...]
 
 - type: markdown
   attributes:
     value: |
-      ## ❤️ Thank you for submitting your bug report!
-      If you find any additional info that can help to identify this problem, don't hesitate to comment on your issue!
-      Any additional info can help us fix this bug faster.
+      ## ❤️ 感谢你提交 Bug 报告！
+      如果之后发现了任何有助于定位该问题的补充信息，请随时在你的 Issue 下留言！
+      任何补充信息都能帮助我们更快修复这个 bug。
