@@ -2,114 +2,59 @@
 
 > **本仓库为非官方维护分支（SlimeFun4.1）——请先阅读本节，再参考下文继承自官方的指南。**
 >
-> - **Issue 与 Pull Request 请直接提交到本仓库**；请勿提交到官方 Slimefun4 的 Issue Tracker、Discord 或 Crowdin（官方不会处理本分支的问题，README 免责声明同样适用）。下文所有指向官方仓库/Discord/Crowdin 的链接仅作背景参考。
+> - **Issue 与 Pull Request 请直接提交到本仓库**；请勿提交到官方 Slimefun4 的 Issue Tracker、Discord 或 Crowdin（官方不会处理本分支的问题，README 免责声明同样适用）。
 > - **翻译**：本分支的 zh-CN 本地化是仓库内置资源（`src/main/resources/languages/zh/`），不走 Crowdin——直接以 PR 修改语言文件与 `SlimefunItems` 等显示层定义即可；注意 5.1.0 汉化的两条红线（存档兼容/交互一致，见 [note/release/5.1.0.md](note/release/5.1.0.md)）。
 > - **构建/测试**：`mvn clean package`、`mvn test`（JUnit 5 + MockBukkit，全量 3221 项，须以 **Java 21** 运行——`JAVA_HOME` 指向 JDK 21，否则 MockBukkit 会级联报错）；产物为 `target/SlimeFun4.1-<version>.jar`。
 > - **发布流程**：见 [note/report/runbook-1.21.11-regression.md](note/report/runbook-1.21.11-regression.md) §5 与 [note/release/](note/release/) 既有版本记录；审计规范见 [note/audit/](note/audit/)。
 > - 下文的代码风格、Javadoc、单元测试规范照常适用。
 
 This document outlines various ways how you can help contribute to Slimefun and make this a bigger and better project.<br>
-All contributions must be inline with our [Code of Conduct](https://github.com/Slimefun/Slimefun4/blob/master/.github/CODE_OF_CONDUCT.md) and [License](https://github.com/Slimefun/Slimefun4/blob/master/LICENSE).
+All contributions must be inline with our [Code of Conduct](.github/CODE_OF_CONDUCT.md) and [License](LICENSE).
 Please also follow the templates for Issues and Pull Requests we provide.
 
-## :beetle: 1. Issues: Bug Reports
-One of the foundations for good software is reliability. To facilitate this reliability, our community must work together to crush bugs that arise. 
-This of course requires good information and knowledge about ongoing bugs and issues though.
+> **已清理章节说明（2026-09-28）**：原文档的"社区参与方式"章节（官方 Issue Tracker 报 bug / Discord 建议投票 / Crowdin 翻译与语言组长 / 官方 Wiki 贡献 / sonarcloud 代码质量入口）描述的是官方 Slimefun4 仓库的流程，对本分支不适用，已整体移除——历史内容可在 git 中找回：`git log -- CONTRIBUTING.md` 后 `git show <提交>:CONTRIBUTING.md`。本分支的参与方式即顶部说明：发现问题 → 本仓库 Issue；修复/改进 → 本仓库 PR（全量测试通过 + 遵循下方风格规范）。
 
-You can help this project by reporting a bug on our [Issues Tracker](https://github.com/Slimefun/Slimefun4/issues).<br>
-Please adhere to the provided template and provide as much information as possible.
-For more info on how to make good and helpful bug reports, check out our article on [How to report bugs](https://github.com/Slimefun/Slimefun4/wiki/How-to-report-bugs).
+## :toolbox: How to compile SlimeFun4.1
+Slimefun is written in Java and uses [Maven](https://maven.apache.org/) for compilation.<br>
+To compile it yourself, follow these steps:
 
-If you encounter an issue which has already been reported, please don't open a new one.<br>
-It would be awesome though if you could post a comment on the existing issue which explains how you were able to reproduce this yourself.
-The more context and information we get, the easier we can fix it.
+1. Clone the project via git<br>
+`$ git clone https://github.com/Quotidietium/Slimefun4.1/`
+2. Compile the project using Maven（需 JDK 21 作为 `JAVA_HOME`）<br>
+`$ mvn clean package`
+3. Extract the compiled `SlimeFun4.1-<version>.jar` from your `/target/` directory.
 
-## :hammer_and_wrench: 2. Pull Requests: Bug Fixes
-Bugs that have been reported need to be fixed of course.<br>
-Any open Issue on our [Issues Tracker](https://github.com/Slimefun/Slimefun4/issues) is waiting to be fixed.
+If you are already using an IDE, make sure to import the project via git and set it up as a *Maven project*.
+Then you should be able build it via Maven using the goals `clean package`.
 
-This is an Open-Source project and we love Pull Requests. 
-So if you have an idea on how to approach a known issue, feel free to make a [Pull Request](https://github.com/Slimefun/Slimefun4/pulls) which fixes this bug.
-You can also comment on the existing Issue, proposing your idea or communicating that you wanna work on this.
+If you have any further questions, please open an Issue on this repository.
 
-## :wrench: 3. Pull Requests: Additions/Changes
-Slimefun is an Open-Source project and anyone is allowed to make changes or add content to this plugin!
-
-Please visit our [Discord Server](https://discord.gg/slimefun) and share your ideas first, we hate to reject changes because the community disagrees.<br>
-So communicating your intended changes before-hand will ensure that you don't put too much work into something that might get rejected.
-
-We also have a suggestions section in our Discord Server too. Suggestions can be placed in the `#suggestions` channel and community members can vote on a suggestion.
-Suggestions which gotten enough votes will be moved to `#approved`.
-Therefore our `#approved` is a great place to start looking for ideas on what to add or change, since it will definitely be something a large number of people agree with.
-
-Also consider making an addon for your additions when they get too large, too abstract or too "niche".
-You can check out our [Developer Guide](https://github.com/Slimefun/Slimefun4/wiki/Developer-Guide) for a guide on how to create a Slimefun addon..
-
-## :earth_africa: 4. Pull Requests: Translations
-Another great way to contribute to Slimefun is by working on translations for the project.
-Slimefun's translation is available on [Crowdin](https://crowdin.com/project/slimefun).
-Just find a language you are fluent in and translate away. But make sure to submit a "Review Request" when you are done.
-One of our Language Moderators will review the changes and submit a Pull Request to the project for you.
-
-#### Language Moderation
-Very active community translators will have the option to become a "Language Moderator". 
-Language Moderators are responsible for proof-reading any new translations for their designated language and correct it when they see a mistake.
-
-For more info on how or what to translate, check out our article on [How to translate Slimefun](https://github.com/Slimefun/Slimefun4/wiki/Translating-Slimefun).
-
-## :scroll: 5. Pull Requests: Wiki contributions
-Slimefun is a very large project and might be quite intimidating for new players.
-That's why good documentation is always nice and helpful.
-If you have played with Slimefun for a while and gotten yourself familiar with how things work, please consider contributing your experiences and knowledge to others via the wiki!
-It would help out a lot :heart:
-
-You can find a tutorial on how to contribute to our wiki right here:<br>
-https://github.com/Slimefun/Slimefun4/wiki/Expanding-the-Wiki
-
-## :star: 6. Pull Requests: Code Quality
-Slimefun uses [sonarcloud.io](https://sonarcloud.io/dashboard?id=Slimefun_Slimefun4) to monitor Code Quality.
-
-We always welcome quality improvements to the code and the "Code Smells" section on [sonarcloud.io](https://sonarcloud.io/dashboard?id=Slimefun_Slimefun4) is a great place to start.
-But please keep in mind that some design patterns may not be changed too abruptly if an addon depends on them. 
-To prevent any accidents from happening, please contact us on our [Discord Server](https://discord.gg/slimefun) before-hand and state your intended changes.
+## :star: Pull Requests: Code Quality
+We always welcome quality improvements to the code.
+But please keep in mind that some design patterns may not be changed too abruptly if an addon depends on them.
+If you plan a larger refactor, consider opening an Issue first to discuss the intended changes.
 
 #### Documentation
 Code documentation is also a great way to improve the maintainability of the project.
-1. Every class and every public method should have a Javadocs section assigned to it. 
+1. Every class and every public method should have a Javadocs section assigned to it.
 2. Classes should also include an `@author` tag to indicate who worked on that class.
 3. Methods and parameters should be annotated with `@Nullable` or `@Nonnull` to indicate whether or not null values are accepted.
 
-Feel free to visit our [Javadocs](https://slimefun.github.io/javadocs/Slimefun4/docs/overview-summary.html)
+You can generate the Javadocs locally via `mvn javadoc:javadoc`.
 
 #### Unit Tests
 Unit Tests help us test the project to work as intended in an automated manner.<br>
-More or better Unit Tests are always good to have, so feel free to submit a Test and place it in our [src/test/java](https://github.com/Slimefun/Slimefun4/tree/master/src/test/java/io/github/thebusybiscuit/slimefun4/testing) directory
+More or better Unit Tests are always good to have, so feel free to submit a Test and place it in our [src/test/java](src/test/java) directory.
 
-We are using [Junit 5 - Jupiter](https://github.com/junit-team/junit5/) and [MockBukkit](https://github.com/seeseemelk/MockBukkit) as our testing environment.<br>
+We are using [Junit 5 - Jupiter](https://github.com/junit-team/junit5/) and [MockBukkit](https://github.com/MockBukkit/MockBukkit) as our testing environment.<br>
 Every new Unit Test should have a `@DisplayName` annotation with a plain text description on what the Unit Test tests.
-
-## :toolbox: How to compile Slimefun4
-Slimefun is written in Java and uses [Maven](https://maven.apache.org/) for compilation.<br>
-To compile Slimefun yourself, follow these steps:
-
-1. Clone the project via git<br>
-`$ git clone https://github.com/Slimefun/Slimefun4/`
-2. Compile the project using Maven<br>
-`$ mvn clean package`
-3. Extract the compiled `Slimefun-v4.X-UNOFFICIAL.jar` from your `/target/` directory.
-
-If you are already using an IDE, make sure to import the project via git and set it up as a *Maven project*. 
-Then you should be able build it via Maven using the goals `clean package`.
-
-If you have any further questions, then please join our [Discord Support Server](https://discord.gg/slimefun) and ask your questions in the `#programming-help` channel.<br>
-**Note that we will not accept any bug reports from custom-compiled versions of Slimefun**.
 
 ## :black_nib: Code Style guidelines
 The general gist when it comes to code style: **Try to be consistent!**.<br>
 Try to stay inline with the code that surrounds you, having an entire package or even a single file that's filled with plenty of different and inconsistent code styles is just hard to read or maintain. That's why we wanna make sure everyone follows these principles.
 
-*Note that these are just guidelines, we may request changes on your pull request if we think there are changes necessary. 
-But we won't reject your Pull Request completely due to a few styling inconsistencies, we can always refactor code later. 
+*Note that these are just guidelines, we may request changes on your pull request if we think there are changes necessary.
+But we won't reject your Pull Request completely due to a few styling inconsistencies, we can always refactor code later.
 But do try to follow our code style as best as you can.*
 
 #### 1. Imports
@@ -183,7 +128,7 @@ public @Nullable String getString() {
 String[] arrays = {
     "1", "2", "3",
     "4", "5", "6",
-    "7", "8", "9"
+    "7", "8", "9",
 };
 // @formatter:on
 ```
