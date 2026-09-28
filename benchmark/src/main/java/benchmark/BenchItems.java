@@ -36,6 +36,15 @@ public final class BenchItems {
      */
     public static final java.util.concurrent.atomic.AtomicLong TICK_COUNTER = new java.util.concurrent.atomic.AtomicLong();
 
+    /**
+     * The registered machine instances. The {@code recipe-scan} scenario
+     * needs the concrete types to call their widened
+     * {@code findNextRecipe(BlockMenu)} bridges.
+     */
+    public static BenchMachine machine;
+    public static BenchGenerator generator;
+    public static BenchHeftyMachine heftyMachine;
+
     private BenchItems() {}
 
     public static void register(Plugin plugin) {
@@ -69,12 +78,16 @@ public final class BenchItems {
 
         ticking.register(Slimefun.instance());
 
-        BenchMachine machine = new BenchMachine(itemGroup,
+        machine = new BenchMachine(itemGroup,
             new SlimefunItemStack(BenchMachine.ID, Material.FURNACE, "Bench Machine"));
         machine.register(Slimefun.instance());
 
-        BenchGenerator generator = new BenchGenerator(itemGroup,
+        generator = new BenchGenerator(itemGroup,
             new SlimefunItemStack(BenchGenerator.ID, Material.BLAST_FURNACE, "Bench Generator"));
         generator.register(Slimefun.instance());
+
+        heftyMachine = new BenchHeftyMachine(itemGroup,
+            new SlimefunItemStack(BenchHeftyMachine.ID, Material.SMOKER, "Bench Hefty Machine"));
+        heftyMachine.register(Slimefun.instance());
     }
 }

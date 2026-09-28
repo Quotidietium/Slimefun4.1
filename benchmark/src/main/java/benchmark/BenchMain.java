@@ -18,6 +18,7 @@ import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
 import benchmark.scenarios.MachineProcessingBench;
 import benchmark.scenarios.PlayerInteractionBench;
+import benchmark.scenarios.RecipeScanBench;
 import benchmark.scenarios.TickerRunBench;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -86,6 +87,9 @@ public final class BenchMain {
             Bench.gcSettle();
 
             new GeneratorTickBench().run(ctx, results);
+            Bench.gcSettle();
+
+            new RecipeScanBench().run(ctx, results);
             Bench.gcSettle();
 
             new PlayerInteractionBench().run(ctx, results);

@@ -8,6 +8,8 @@ import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.AContainer;
+import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineRecipe;
+import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 
 /**
  * A minimal electric machine with a realistic recipe count, standing in for
@@ -40,6 +42,17 @@ public class BenchMachine extends AContainer {
     @Override
     public boolean takeCharge(Location l) {
         return super.takeCharge(l);
+    }
+
+    /**
+     * Widens the protected {@code AContainer#findNextRecipe} so the
+     * {@code recipe-scan} scenario can drive the full recipe scan directly
+     * (this entry point bypasses the negative-scan cache, which is exactly
+     * what a hopper-fed input change forces every tick).
+     */
+    @Override
+    public MachineRecipe findNextRecipe(BlockMenu inv) {
+        return super.findNextRecipe(inv);
     }
 
     @Override
