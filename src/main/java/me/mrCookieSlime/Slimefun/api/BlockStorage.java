@@ -61,8 +61,24 @@ public class BlockStorage {
     private static final EmptyBlockData emptyBlockData = new EmptyBlockData();
 
     private final World world;
-    private final Map<Location, Config> storage = new ConcurrentHashMap<>();
-    private final Map<Location, BlockMenu> inventories = new ConcurrentHashMap<>();
+
+    /*
+     * The per-block maps below are keyed by a packed representation of the
+     * block coordinates (see #blockKey). BlockStorage is per-world, so the
+     * world does not take part in the key. A packed long hashes and compares
+     * in a couple of instructions; a Location key pays for
+     * Double.doubleToLongBits-based hashCode/equals on five fields on every
+     * single map operation, and these maps are touched several times per
+     * block per tick (data read, menu lookup, dirty marking).
+     *
+     * Semantically this aligns the in-memory keying with what the on-disk
+     * format already does: serializeLocation writes block-aligned coordinates
+     * (getBlockX/Y/Z), so a yaw/pitch-carrying Location and its block-aligned
+     * twin share one disk entry already. The packed key gives them one
+     * in-memory entry too.
+     */
+    private final Map<Long, Config> storage = new ConcurrentHashMap<>();
+    private final Map<Long, BlockMenu> inventories = new ConcurrentHashMap<>();
 
     /*
      * Deferred persistence: block data writes are pure in-memory operations.
@@ -70,6 +86,10 @@ public class BlockStorage {
      * (deleted blocks / id changes) are recorded, so the JSON serialization
      * and the per-id .sfb file update only happen once per save() cycle
      * instead of on every single value change.
+     *
+     * These two collections stay Location-keyed on purpose: they are written
+     * once per change (not per read) and the save cycle needs real Location
+     * objects for serialization - repacking them would only add work.
      */
     private final Set<Location> dirtyBlocks = ConcurrentHashMap.newKeySet();
     private final Map<Location, Set<String>> pendingFileDeletions = new ConcurrentHashMap<>();
@@ -147,6 +167,76 @@ public class BlockStorage {
 
     private static String serializeLocation(Location l) {
         return l.getWorld().getName() + ';' + l.getBlockX() + ';' + l.getBlockY() + ';' + l.getBlockZ();
+    }
+
+    /**
+     * Packs the block-aligned coordinates of the given {@link Location} into
+     * the long key used by this world's block maps: 26 bits x, 26 bits z,
+     * 12 bits y (each signed). The ranges cover every coordinate a Minecraft
+     * block can legitimately have (the world border caps x/z at ±30,000,000
+     * and the dimension height is protocol-capped within ±2048), so a block
+     * outside these bounds cannot exist. The guard turns a would-be silent
+     * key collision into a loud, attributable exception instead - read paths
+     * pre-check with {@link #isStorable(Location)} and treat such Locations
+     * as "no block data", writes fail loudly.
+     *
+     * @param l
+     *            The {@link Location} to pack
+     *
+     * @return The packed key
+     */
+    private static long blockKey(@Nonnull Location l) {
+        int x = l.getBlockX();
+        int y = l.getBlockY();
+        int z = l.getBlockZ();
+
+        if (x < -(1 << 25) || x >= (1 << 25) || z < -(1 << 25) || z >= (1 << 25) || y < -(1 << 11) || y >= (1 << 11)) {
+            throw new IllegalArgumentException("Block coordinates outside the storable range: " + x + " / " + y + " / " + z + " in world \"" + l.getWorld().getName() + '"');
+        }
+
+        return ((x & 0x3FF_FFFFL) << 38) | ((z & 0x3FF_FFFFL) << 12) | (y & 0xFFFL);
+    }
+
+    /**
+     * Checks whether the given {@link Location} lies within the coordinate
+     * range representable by {@link #blockKey(Location)}. Reads for
+     * non-storable Locations (e.g. an entity far above the build limit)
+     * report "no block data" instead of throwing - matching what a Location
+     * without data always returned.
+     *
+     * @param l
+     *            The {@link Location} to check
+     *
+     * @return Whether the coordinates can be used as a block key
+     */
+    private static boolean isStorable(@Nullable Location l) {
+        if (l == null) {
+            return false;
+        }
+
+        int x = l.getBlockX();
+        int y = l.getBlockY();
+        int z = l.getBlockZ();
+
+        return x >= -(1 << 25) && x < (1 << 25) && z >= -(1 << 25) && z < (1 << 25) && y >= -(1 << 11) && y < (1 << 11);
+    }
+
+    /**
+     * Unpacks a block key produced by {@link #blockKey(Location)} back into a
+     * {@link Location} of this world.
+     *
+     * @param key
+     *            The packed key
+     *
+     * @return The block-aligned {@link Location}
+     */
+    @Nonnull
+    private Location blockLocation(long key) {
+        int x = (int) (key >> 38) << 6 >> 6;
+        int z = (int) ((key >> 12) & 0x3FF_FFFFL) << 6 >> 6;
+        int y = (int) (key & 0xFFFL) << 20 >> 20;
+
+        return new Location(world, x, y, z);
     }
 
     private static String serializeChunk(World world, int x, int z) {
@@ -269,14 +359,14 @@ public class BlockStorage {
             Config blockInfo = parseBlockInfo(l, json);
 
             if (blockInfo != null && blockInfo.contains("id")) {
-                if (storage.putIfAbsent(l, blockInfo) != null) {
+                if (storage.putIfAbsent(blockKey(l), blockInfo) != null) {
                     /*
                      * It should not be possible to have two blocks on the same location.
                      * Ignore the new entry if a block is already present and print an
                      * error to the console (if enabled).
                      */
                     if (Slimefun.getRegistry().logDuplicateBlockEntries()) {
-                        Slimefun.logger().log(Level.INFO, "Ignoring duplicate block @ %d, %d, %d (%s -> %s)".formatted(l.getBlockX(), l.getBlockY(), l.getBlockZ(), blockInfo.getString("id"), storage.get(l).getString("id")));
+                        Slimefun.logger().log(Level.INFO, "Ignoring duplicate block @ %d, %d, %d (%s -> %s)".formatted(l.getBlockX(), l.getBlockY(), l.getBlockZ(), blockInfo.getString("id"), storage.get(blockKey(l)).getString("id")));
                     }
 
                     return;
@@ -331,7 +421,7 @@ public class BlockStorage {
                     }
 
                     if (preset != null) {
-                        inventories.put(l, new BlockMenu(preset, l, cfg));
+                        inventories.put(blockKey(l), new BlockMenu(preset, l, cfg));
                     }
                 } catch (Exception x) {
                     Slimefun.logger().log(Level.SEVERE, x, () -> "An Error occurred while loading this Block Inventory: " + file.getName());
@@ -366,8 +456,8 @@ public class BlockStorage {
             changes = dirtyBlocks.size() + pendingFileDeletions.size();
         }
 
-        Map<Location, BlockMenu> inventories2 = new HashMap<>(inventories);
-        for (Map.Entry<Location, BlockMenu> entry : inventories2.entrySet()) {
+        Map<Long, BlockMenu> inventories2 = new HashMap<>(inventories);
+        for (Map.Entry<Long, BlockMenu> entry : inventories2.entrySet()) {
             changes += entry.getValue().getUnsavedChanges();
         }
 
@@ -425,7 +515,7 @@ public class BlockStorage {
             StringWriter serializer = new StringWriter();
 
             for (Location l : dirty) {
-                Config cfg = storage.get(l);
+                Config cfg = storage.get(blockKey(l));
 
                 if (cfg == null) {
                     // The block was deleted again after being marked dirty,
@@ -489,14 +579,19 @@ public class BlockStorage {
                 }
             }
 
-            Map<Location, BlockMenu> unsavedInventories = new HashMap<>(inventories);
+            Map<Location, BlockMenu> unsavedInventories = new HashMap<>();
+
+            for (Map.Entry<Long, BlockMenu> entry : inventories.entrySet()) {
+                unsavedInventories.put(blockLocation(entry.getKey()), entry.getValue());
+            }
+
             for (Map.Entry<Location, BlockMenu> entry : unsavedInventories.entrySet()) {
                 /*
                  * Skip menus that were removed after the snapshot was taken (e.g. the
                  * machine was broken in the meantime) - re-saving them would recreate
                  * an orphaned .sfi file whose contents would "resurrect" later.
                  */
-                if (inventories.get(entry.getKey()) == entry.getValue()) {
+                if (inventories.get(blockKey(entry.getKey())) == entry.getValue()) {
                     entry.getValue().save(entry.getKey());
                 }
             }
@@ -671,7 +766,17 @@ public class BlockStorage {
      */
     @Nonnull
     public Map<Location, Config> getRawStorage() {
-        return ImmutableMap.copyOf(this.storage);
+        /*
+         * The internal map is keyed by packed block coordinates (see #blockKey);
+         * this public snapshot view rebuilds the Location keys callers expect.
+         */
+        ImmutableMap.Builder<Location, Config> builder = ImmutableMap.builder();
+
+        for (Map.Entry<Long, Config> entry : storage.entrySet()) {
+            builder.put(blockLocation(entry.getKey()), entry.getValue());
+        }
+
+        return builder.build();
     }
 
     /**
@@ -730,13 +835,17 @@ public class BlockStorage {
 
     @Nonnull
     public static Config getLocationInfo(Location l) {
+        if (!isStorable(l)) {
+            return emptyBlockData;
+        }
+
         BlockStorage storage = getStorage(l.getWorld());
 
         if (storage == null) {
             return emptyBlockData;
         }
 
-        Config cfg = storage.storage.get(l);
+        Config cfg = storage.storage.get(blockKey(l));
         return cfg == null ? emptyBlockData : cfg;
     }
 
@@ -755,7 +864,11 @@ public class BlockStorage {
      */
     @Nonnull
     public static Config getLocationInfo(@Nonnull Location l, @Nonnull BlockStorage storage) {
-        Config cfg = storage.storage.get(l);
+        if (!isStorable(l)) {
+            return emptyBlockData;
+        }
+
+        Config cfg = storage.storage.get(blockKey(l));
         return cfg == null ? emptyBlockData : cfg;
     }
 
@@ -930,10 +1043,14 @@ public class BlockStorage {
     }
 
     public static boolean hasBlockInfo(Location l) {
+        if (!isStorable(l)) {
+            return false;
+        }
+
         BlockStorage storage = getStorage(l.getWorld());
 
         if (storage != null) {
-            Config cfg = storage.storage.get(l);
+            Config cfg = storage.storage.get(blockKey(l));
             return cfg != null && cfg.getString("id") != null;
         } else {
             return false;
@@ -958,10 +1075,10 @@ public class BlockStorage {
          * itself, and putIfAbsent semantics for newly stored blocks are preserved
          * (previous == null still routes into the preset branch below).
          */
-        Config previous = storage.storage.get(l);
+        Config previous = storage.storage.get(blockKey(l));
 
         if (previous != cfg) {
-            storage.storage.put(l, cfg);
+            storage.storage.put(blockKey(l), cfg);
         }
 
         String id = cfg.getString("id");
@@ -991,7 +1108,7 @@ public class BlockStorage {
 
                     if (file.exists()) {
                         BlockMenu inventory = new BlockMenu(preset, l, new io.github.bakedlibs.dough.config.Config(file));
-                        storage.inventories.put(l, inventory);
+                        storage.inventories.put(blockKey(l), inventory);
                     } else {
                         storage.loadInventory(l, preset);
                     }
@@ -1076,7 +1193,9 @@ public class BlockStorage {
         }
         Map<Location, Boolean> toClear = new HashMap<>();
         // Unsafe: get raw storage for this world
-        for (Location location : blockStorage.storage.keySet()) {
+        for (Long key : blockStorage.storage.keySet()) {
+            Location location = blockStorage.blockLocation(key);
+
             if (location.getBlockX() >> 4 == chunkX && location.getBlockZ() >> 4 == chunkZ) {
                 toClear.put(location, destroy);
             }
@@ -1109,7 +1228,7 @@ public class BlockStorage {
 
         // Read the block data once and reuse it, instead of looking it up
         // separately via hasBlockInfo(...) and getLocationInfo(...).
-        Config cfg = storage.storage.get(l);
+        Config cfg = isStorable(l) ? storage.storage.get(blockKey(l)) : null;
 
         if (cfg != null && cfg.getString("id") != null) {
             /*
@@ -1121,7 +1240,7 @@ public class BlockStorage {
             synchronized (storage.persistenceLock) {
                 storage.markForFileDeletion(l, cfg.getString("id"));
                 storage.dirtyBlocks.remove(l);
-                storage.storage.remove(l);
+                storage.storage.remove(blockKey(l));
             }
 
             // A new block at this spot must start with a clean error count
@@ -1163,7 +1282,7 @@ public class BlockStorage {
         // Read the block data once and reuse it, instead of looking it up
         // separately via hasBlockInfo(...) and getLocationInfo(...).
         BlockStorage storage = getStorage(from.getWorld());
-        Config previousData = storage == null ? null : storage.storage.get(from);
+        Config previousData = storage == null || !isStorable(from) ? null : storage.storage.get(blockKey(from));
 
         if (previousData == null || previousData.getString("id") == null) {
             return;
@@ -1171,9 +1290,9 @@ public class BlockStorage {
 
         setBlockInfo(to, previousData, true);
 
-        if (storage.inventories.containsKey(from)) {
-            BlockMenu menu = storage.inventories.get(from);
-            storage.inventories.put(to, menu);
+        if (storage.inventories.containsKey(blockKey(from))) {
+            BlockMenu menu = storage.inventories.get(blockKey(from));
+            storage.inventories.put(blockKey(to), menu);
             storage.clearInventory(from);
             menu.move(to);
         }
@@ -1183,7 +1302,7 @@ public class BlockStorage {
         synchronized (storage.persistenceLock) {
             storage.markForFileDeletion(from, previousData.getString("id"));
             storage.dirtyBlocks.remove(from);
-            storage.storage.remove(from);
+            storage.storage.remove(blockKey(from));
         }
 
         Slimefun.getTickerTask().disableTicker(from);
@@ -1265,7 +1384,7 @@ public class BlockStorage {
         }
 
         BlockMenu menu = new BlockMenu(preset, l);
-        inventories.put(l, menu);
+        inventories.put(blockKey(l), menu);
         return menu;
     }
 
@@ -1277,7 +1396,7 @@ public class BlockStorage {
      *            The location of the Block.
      */
     public void reloadInventory(Location l) {
-        BlockMenu menu = this.inventories.get(l);
+        BlockMenu menu = this.inventories.get(blockKey(l));
 
         if (menu != null) {
             menu.reload();
@@ -1294,13 +1413,13 @@ public class BlockStorage {
                 Slimefun.runSync(human::closeInventory);
             }
 
-            inventories.get(l).delete(l);
-            inventories.remove(l);
+            inventories.get(blockKey(l)).delete(l);
+            inventories.remove(blockKey(l));
         }
     }
 
     public boolean hasInventory(Location l) {
-        return inventories.containsKey(l);
+        return inventories.containsKey(blockKey(l));
     }
 
     public static boolean hasUniversalInventory(String id) {
@@ -1335,13 +1454,17 @@ public class BlockStorage {
     }
 
     public static BlockMenu getInventory(Location l) {
+        if (!isStorable(l)) {
+            return null;
+        }
+
         BlockStorage storage = getStorage(l.getWorld());
 
         if (storage == null) {
             return null;
         }
 
-        BlockMenu menu = storage.inventories.get(l);
+        BlockMenu menu = storage.inventories.get(blockKey(l));
 
         if (menu != null) {
             return menu;

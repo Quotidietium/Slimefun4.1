@@ -92,7 +92,13 @@ public final class TestUtilities {
 
     @ParametersAreNonnullByDefault
     public static @Nonnull int randomInt() {
-        return random.nextInt(Integer.MAX_VALUE);
+        /*
+         * This doubles as a source of random block coordinates, which must
+         * stay within the world border (±30,000,000): BlockStorage packs
+         * block coordinates into a fixed-width key, so a full-range int would
+         * be rejected as unstorable. ±15,000,000 keeps every usage legal.
+         */
+        return random.nextInt(30_000_001) - 15_000_000;
     }
 
     @ParametersAreNonnullByDefault
