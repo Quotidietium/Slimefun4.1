@@ -42,7 +42,7 @@ Slimefun 是一个为 Spigot / Paper 服务器提供"**无需安装任何 mod �
 | **服务端** | Spigot / Paper 或其分支 |
 | **Minecraft 版本** | **1.21.1 ~ 1.21.11**（同一份 jar） |
 | **编译目标** | paper-api 1.21.1 |
-| **Java（运行）** | **16 及以上**（推荐 17+） |
+| **Java（运行）** | **21**（MC 1.21.1+ 服务端自身要求；插件字节码目标为 16） |
 | **Java（测试）** | 21 |
 
 > 说明：1.21.11 已完成实机回归（真实 Paper 1.21.11 + Java 21）：加载日志判据全过、shaded 依赖残留符号风险实证排除、协议机器人客户端冒烟（SF 方块放置/机器 GUI/太阳能发电→充电→持久化全链）、最长 10 分钟浸泡全日志零 ERROR/SEVERE。证据与操作手册见 [note/report/](note/report/)（[runbook](note/report/runbook-1.21.11-regression.md)），此后 v5.1.2 起历次发布均沿用 §1 + 浸泡作为实机门槛。
