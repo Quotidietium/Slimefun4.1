@@ -12,6 +12,7 @@ import be.seeseemelk.mockbukkit.ServerMock;
 import benchmark.scenarios.BlockStorageWriteBench;
 import benchmark.scenarios.CapacitorTextureBench;
 import benchmark.scenarios.CargoMappingBench;
+import benchmark.scenarios.CargoProtectionBench;
 import benchmark.scenarios.CargoTransportBench;
 import benchmark.scenarios.ChargeApiBench;
 import benchmark.scenarios.EnergySettlementBench;
@@ -111,6 +112,10 @@ public final class BenchMain {
 
             // Must run last: registers thousands of ticking locations.
             new TickerRunBench().run(ctx, results);
+
+            // Must run after everything else: registers a protection module on
+            // the global ProtectionManager, which cannot be unregistered.
+            new CargoProtectionBench().run(ctx, results);
 
             MockBukkit.unmock();
         }
