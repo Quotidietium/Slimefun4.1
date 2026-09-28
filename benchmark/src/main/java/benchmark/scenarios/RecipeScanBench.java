@@ -35,7 +35,15 @@ import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 public final class RecipeScanBench {
 
     private static final int MACHINES = 200;
-    private static final int WARMUP = 3;
+    /*
+     * 25 warmup rounds = 5000 scan calls cross the C2 compilation threshold with
+     * headroom. A whole-list shortcut can keep one scan shape out of the JIT's
+     * reach during earlier variants (the junk shapes never reach the scan loop
+     * at all), so every variant must warm up its OWN code path - otherwise the
+     * measured rounds partly run on the interpreter/C1 climb and the variant
+     * shows a phantom regression that a steady-state run does not reproduce.
+     */
+    private static final int WARMUP = 25;
     private static final int ROUNDS = 9;
 
     public void run(BenchContext ctx, Results results) {
