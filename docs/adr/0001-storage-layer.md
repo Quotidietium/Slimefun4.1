@@ -1,13 +1,22 @@
 # 1. Storage layer
 
 Date: 2023-11-15
-Last update: 2023-12-27
+Last update: 2026-09-28（SlimeFun4.1 fork 状态补记）
 
 **DO NOT rely on any APIs introduced until we finish the work completely!**
 
 ## Status
 
 Work in progress
+
+## Fork status (SlimeFun4.1, 2026-09)
+
+Phase 1 has landed in this fork and is the **only active backend**:
+
+- Interface: [`io.github.thebusybiscuit.slimefun4.storage.Storage`](../../src/main/java/io/github/thebusybiscuit/slimefun4/storage/Storage.java)（`@Beta @ThreadSafe`，实际路径与上文设想的 `core.services.storage` 不同）
+- Backend: [`io.github.thebusybiscuit.slimefun4.storage.backend.legacy.LegacyStorage`](../../src/main/java/io/github/thebusybiscuit/slimefun4/storage/backend/legacy/LegacyStorage.java)，在 `Slimefun#onEnable` 装配为 `playerStorage`
+- Fork 侧加固：`savePlayerData` 增加主线程背包快照参数（异步保存不触碰活 Inventory）；全部 YAML 落盘走 tmp + 原子移入；研究按数字 id 持久化做了 173 冲突迁移兼容（详见 note/audit/）
+- Phases 2–6（binary 后端、BlockStorage 迁移等）在本 fork **未开始**；上游 PR #4065 的后续不在本仓库跟进
 
 ## Context
 
