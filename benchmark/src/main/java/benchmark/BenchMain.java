@@ -22,6 +22,7 @@ import benchmark.scenarios.MachineIdleScanBench;
 import benchmark.scenarios.MachineProcessingBench;
 import benchmark.scenarios.PlayerInteractionBench;
 import benchmark.scenarios.RecipeScanBench;
+import benchmark.scenarios.ResearchProgressBench;
 import benchmark.scenarios.TickerResolutionBench;
 import benchmark.scenarios.TickerRunBench;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -103,6 +104,14 @@ public final class BenchMain {
             Bench.gcSettle();
 
             new PlayerInteractionBench().run(ctx, results);
+            Bench.gcSettle();
+
+            // Research progression bookkeeping (per-unlock and rank-title paths)
+            try {
+                new ResearchProgressBench().run(ctx, results);
+            } catch (Exception | LinkageError x) {
+                results.note("research-progress: scenario failed: " + x);
+            }
             Bench.gcSettle();
 
             new CapacitorTextureBench().run(ctx, results);
