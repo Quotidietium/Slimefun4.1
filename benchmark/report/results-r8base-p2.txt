@@ -1,0 +1,65 @@
+NOTE|r8base-p2|Slimefun version under test: 5.1.15
+NOTE|r8base-p2|Java: 21.0.10 (Oracle Corporation)
+RESULT|r8base-p2|blockstorage|charge-write|median_ns_per_write|ns|213.320
+RESULT|r8base-p2|blockstorage|charge-write|min_ns_per_write|ns|198.840
+RESULT|r8base-p2|blockstorage|save-5000-dirty-blocks|median_ms_per_save|ms|39.007
+RESULT|r8base-p2|blockstorage|save-5000-dirty-blocks|min_ms_per_save|ms|35.818
+RESULT|r8base-p2|machine-idle-scan|empty-input|median_ns_per_tick|ns|424.900
+RESULT|r8base-p2|machine-idle-scan|empty-input|min_ns_per_tick|ns|319.700
+RESULT|r8base-p2|machine-idle-scan|junk-input|median_ns_per_tick|ns|420.300
+RESULT|r8base-p2|machine-idle-scan|junk-input|min_ns_per_tick|ns|319.100
+RESULT|r8base-p2|machine-processing|active|median_ns_per_tick|ns|577.400
+RESULT|r8base-p2|machine-processing|active|min_ns_per_tick|ns|535.100
+RESULT|r8base-p2|energy-settlement|charging-write|median_ns_per_component|ns|80.000
+RESULT|r8base-p2|energy-settlement|charging-write|min_ns_per_component|ns|76.700
+RESULT|r8base-p2|energy-settlement|saturated-skip|median_ns_per_component|ns|56.600
+RESULT|r8base-p2|energy-settlement|saturated-skip|min_ns_per_component|ns|54.800
+RESULT|r8base-p2|charge-api|take-charge-hit|median_ns_per_call|ns|127.300
+RESULT|r8base-p2|charge-api|take-charge-hit|min_ns_per_call|ns|124.400
+RESULT|r8base-p2|charge-api|take-charge-miss|median_ns_per_call|ns|69.100
+RESULT|r8base-p2|charge-api|take-charge-miss|min_ns_per_call|ns|68.400
+RESULT|r8base-p2|charge-api|single-arg-remove|median_ns_per_call|ns|113.000
+RESULT|r8base-p2|charge-api|single-arg-remove|min_ns_per_call|ns|110.100
+RESULT|r8base-p2|generator-tick|burning|median_ns_per_call|ns|397.600
+RESULT|r8base-p2|generator-tick|burning|min_ns_per_call|ns|380.200
+RESULT|r8base-p2|recipe-scan|junk-10|median_ns_per_scan|ns|319.000
+RESULT|r8base-p2|recipe-scan|junk-10|min_ns_per_scan|ns|312.500
+RESULT|r8base-p2|recipe-scan|junk-150|median_ns_per_scan|ns|4629.000
+RESULT|r8base-p2|recipe-scan|junk-150|min_ns_per_scan|ns|4613.000
+RESULT|r8base-p2|cargo-route|idle|median_ns_per_tick|ns|1159300.000
+RESULT|r8base-p2|cargo-route|idle|min_ns_per_tick|ns|787700.000
+RESULT|r8base-p2|cargo-route|happy-merge|median_ns_per_tick|ns|2725500.000
+RESULT|r8base-p2|cargo-route|happy-merge|min_ns_per_tick|ns|2141700.000
+RESULT|r8base-p2|cargo-route|mixed-bounce|median_ns_per_tick|ns|4326200.000
+RESULT|r8base-p2|cargo-route|mixed-bounce|min_ns_per_tick|ns|3880700.000
+RESULT|r8base-p2|cargo-route|mixed-bounce-smartfill|median_ns_per_tick|ns|3274800.000
+RESULT|r8base-p2|cargo-route|mixed-bounce-smartfill|min_ns_per_tick|ns|3018500.000
+RESULT|r8base-p2|cargo-route|machine-bounce|median_ns_per_tick|ns|2474200.000
+RESULT|r8base-p2|cargo-route|machine-bounce|min_ns_per_tick|ns|2434200.000
+RESULT|r8base-p2|cargo-mapping|mapping-100|median_ns_per_tick|ns|448.000
+RESULT|r8base-p2|cargo-mapping|mapping-100|min_ns_per_tick|ns|428.000
+NOTE|r8base-p2|cargo-mapping mapping-100: z-base 500, nodes/side 100
+RESULT|r8base-p2|cargo-mapping|mapping-400|median_ns_per_tick|ns|220.000
+RESULT|r8base-p2|cargo-mapping|mapping-400|min_ns_per_tick|ns|178.000
+NOTE|r8base-p2|cargo-mapping mapping-400: z-base 600, nodes/side 400
+RESULT|r8base-p2|player-interaction|place-block|median_ns_per_op|ns|1165.000
+RESULT|r8base-p2|player-interaction|place-block|min_ns_per_op|ns|792.500
+RESULT|r8base-p2|player-interaction|break-block|median_ns_per_op|ns|1012.000
+RESULT|r8base-p2|player-interaction|break-block|min_ns_per_op|ns|509.500
+NOTE|r8base-p2|capacitor-texture: using real PLAYER_HEAD blocks (baseline pays full texture application)
+RESULT|r8base-p2|capacitor-texture|same-stage-real-heads|median_ns_per_call|ns|97.600
+RESULT|r8base-p2|capacitor-texture|same-stage-real-heads|min_ns_per_call|ns|96.550
+RESULT|r8base-p2|hologram-label|unchanged-label|median_ns_per_call|ns|79.800
+RESULT|r8base-p2|hologram-label|unchanged-label|min_ns_per_call|ns|75.700
+NOTE|r8base-p2|ticker-run: ticking chunks=24, ticking blocks=5000
+NOTE|r8base-p2|ticker-run: first chunk isLoaded=true
+NOTE|r8base-p2|ticker-run: 5000 blocks ticked per run
+RESULT|r8base-p2|ticker-run|5000-trivial-tickers|median_ms_per_run|ms|0.813
+RESULT|r8base-p2|ticker-run|5000-trivial-tickers|min_ms_per_run|ms|0.742
+RESULT|r8base-p2|ticker-run|5000-trivial-tickers|median_ns_per_block|ns|162.660
+RESULT|r8base-p2|cargo-protection|prot-bounce-1owner|median_ns_per_tick|ns|2848700.000
+RESULT|r8base-p2|cargo-protection|prot-bounce-1owner|min_ns_per_tick|ns|2748900.000
+NOTE|r8base-p2|cargo-protection prot-bounce-1owner: module queries per tick without caching = 144
+RESULT|r8base-p2|cargo-protection|prot-bounce-4owners|median_ns_per_tick|ns|2027500.000
+RESULT|r8base-p2|cargo-protection|prot-bounce-4owners|min_ns_per_tick|ns|2009400.000
+NOTE|r8base-p2|cargo-protection prot-bounce-4owners: module queries per tick without caching = 144
