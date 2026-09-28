@@ -1,109 +1,108 @@
 # Contributing to Slimefun
 
-> **本仓库为非官方维护分支（SlimeFun4.1）——请先阅读本节，再参考下文继承自官方的指南。**
+> **本仓库为非官方维护分支（SlimeFun4.1）——请先阅读本节，再参考下文指南。**
 >
 > - **Issue 与 Pull Request 请直接提交到本仓库**；请勿提交到官方 Slimefun4 的 Issue Tracker、Discord 或 Crowdin（官方不会处理本分支的问题，README 免责声明同样适用）。
 > - **翻译**：本分支的 zh-CN 本地化是仓库内置资源（`src/main/resources/languages/zh/`），不走 Crowdin——直接以 PR 修改语言文件与 `SlimefunItems` 等显示层定义即可；注意 5.1.0 汉化的两条红线（存档兼容/交互一致，见 [note/release/5.1.0.md](note/release/5.1.0.md)）。
 > - **构建/测试**：`mvn clean package`、`mvn test`（JUnit 5 + MockBukkit，全量 3221 项，须以 **Java 21** 运行——`JAVA_HOME` 指向 JDK 21，否则 MockBukkit 会级联报错）；产物为 `target/SlimeFun4.1-<version>.jar`。
 > - **发布流程**：见 [note/report/runbook-1.21.11-regression.md](note/report/runbook-1.21.11-regression.md) §5 与 [note/release/](note/release/) 既有版本记录；审计规范见 [note/audit/](note/audit/)。
-> - 下文的代码风格、Javadoc、单元测试规范照常适用。
 
-This document outlines various ways how you can help contribute to Slimefun and make this a bigger and better project.<br>
-All contributions must be inline with our [Code of Conduct](.github/CODE_OF_CONDUCT.md) and [License](LICENSE).
-Please also follow the templates for Issues and Pull Requests we provide.
+本文档说明你可以通过哪些方式为 Slimefun 做贡献、把这个项目变得更好。<br>
+所有贡献须符合我们的[行为准则](.github/CODE_OF_CONDUCT.md)与[许可证](LICENSE)。
+请同时遵循我们提供的 Issue 与 Pull Request 模板。
 
 > **已清理章节说明（2026-09-28）**：原文档的"社区参与方式"章节（官方 Issue Tracker 报 bug / Discord 建议投票 / Crowdin 翻译与语言组长 / 官方 Wiki 贡献 / sonarcloud 代码质量入口）描述的是官方 Slimefun4 仓库的流程，对本分支不适用，已整体移除——历史内容可在 git 中找回：`git log -- CONTRIBUTING.md` 后 `git show <提交>:CONTRIBUTING.md`。本分支的参与方式即顶部说明：发现问题 → 本仓库 Issue；修复/改进 → 本仓库 PR（全量测试通过 + 遵循下方风格规范）。
 
-## :toolbox: How to compile SlimeFun4.1
-Slimefun is written in Java and uses [Maven](https://maven.apache.org/) for compilation.<br>
-To compile it yourself, follow these steps:
+## :toolbox: 如何编译 SlimeFun4.1
+Slimefun 使用 Java 编写，并使用 [Maven](https://maven.apache.org/) 编译。<br>
+自行编译请按以下步骤：
 
-1. Clone the project via git<br>
+1. 通过 git 克隆本项目<br>
 `$ git clone https://github.com/Quotidietium/Slimefun4.1/`
-2. Compile the project using Maven（需 JDK 21 作为 `JAVA_HOME`）<br>
+2. 使用 Maven 编译（需 JDK 21 作为 `JAVA_HOME`）<br>
 `$ mvn clean package`
-3. Extract the compiled `SlimeFun4.1-<version>.jar` from your `/target/` directory.
+3. 从 `/target/` 目录取得编译产物 `SlimeFun4.1-<version>.jar`。
 
-If you are already using an IDE, make sure to import the project via git and set it up as a *Maven project*.
-Then you should be able build it via Maven using the goals `clean package`.
+如果你已经在使用 IDE，请通过 git 导入本项目并设置为 *Maven 项目*。
+之后即可用 Maven 的 `clean package` 目标构建。
 
-If you have any further questions, please open an Issue on this repository.
+如有其它问题，请在本仓库开 Issue。
 
-## :star: Pull Requests: Code Quality
-We always welcome quality improvements to the code.
-But please keep in mind that some design patterns may not be changed too abruptly if an addon depends on them.
-If you plan a larger refactor, consider opening an Issue first to discuss the intended changes.
+## :star: Pull Request：代码质量
+我们始终欢迎代码质量改进。
+但请注意：部分设计模式被附属插件依赖，不宜过于激进地改动。
+如果你计划做较大规模的重构，建议先开 Issue 说明意图再动手。
 
-#### Documentation
-Code documentation is also a great way to improve the maintainability of the project.
-1. Every class and every public method should have a Javadocs section assigned to it.
-2. Classes should also include an `@author` tag to indicate who worked on that class.
-3. Methods and parameters should be annotated with `@Nullable` or `@Nonnull` to indicate whether or not null values are accepted.
+#### 文档
+代码文档同样是提升可维护性的好方式。
+1. 每个类、每个公开方法都应有对应的 Javadoc。
+2. 类应包含 `@author` 标签以标明作者。
+3. 方法与参数应标注 `@Nullable` 或 `@Nonnull`，说明是否接受 null。
 
-You can generate the Javadocs locally via `mvn javadoc:javadoc`.
+可以通过 `mvn javadoc:javadoc` 在本地生成 Javadoc。
 
-#### Unit Tests
-Unit Tests help us test the project to work as intended in an automated manner.<br>
-More or better Unit Tests are always good to have, so feel free to submit a Test and place it in our [src/test/java](src/test/java) directory.
+#### 单元测试
+单元测试帮助我们以自动化方式验证项目按预期工作。<br>
+单元测试越多越好，欢迎提交测试并放入 [src/test/java](src/test/java) 目录。
 
-We are using [Junit 5 - Jupiter](https://github.com/junit-team/junit5/) and [MockBukkit](https://github.com/MockBukkit/MockBukkit) as our testing environment.<br>
-Every new Unit Test should have a `@DisplayName` annotation with a plain text description on what the Unit Test tests.
+测试环境使用 [Junit 5 - Jupiter](https://github.com/junit-team/junit5/) 与 [MockBukkit](https://github.com/MockBukkit/MockBukkit)。<br>
+每个新单元测试都应带 `@DisplayName` 注解，用纯文本描述该测试验证的内容。
 
-## :black_nib: Code Style guidelines
-The general gist when it comes to code style: **Try to be consistent!**.<br>
-Try to stay inline with the code that surrounds you, having an entire package or even a single file that's filled with plenty of different and inconsistent code styles is just hard to read or maintain. That's why we wanna make sure everyone follows these principles.
+## :black_nib: 代码风格指南
+代码风格的核心要义：**保持一致！**<br>
+请与你周围的代码保持同风格——一整个包甚至单个文件里混杂多种不一致的代码风格会非常难读难维护。因此请所有人遵循以下原则。
 
-*Note that these are just guidelines, we may request changes on your pull request if we think there are changes necessary.
-But we won't reject your Pull Request completely due to a few styling inconsistencies, we can always refactor code later.
-But do try to follow our code style as best as you can.*
+*注意：这些只是指引。如果我们认为有必要，可能会在你的 PR 中要求修改；
+但不会因为少量风格不一致而完全拒绝你的 PR——代码总可以之后再重构。
+不过还是请尽量遵守我们的代码风格。*
 
-#### 1. Imports
-* Don't use wildcard (`*`) imports!
-* Don't import unused classes!
-* Don't use static imports!
-* Always use imports, even in javadocs, don't write out the full location of a class.
-#### 2. Annotations
-* Methods and parameters should be annotated with `@Nullable` (`javax.annotation.Nullable`) or `@Nonnull`(`javax.annotation.Nonnull`)!
-* Methods that override a method must be annotated with `@Override`!
-* Interfaces with only one method should be annotated using `@FunctionalInterface`!
-* If you deprecate a method, add an `@deprecated` section to the javadocs explaining why you did it.
-#### 3. Documentation
-* Every class and every public method should have a Javadocs section assigned to it.
-* New packages should have a `package-info.java` file with documentation about the package.
-* Classes should have an `@author` tag.
-* If there are any other relevant classes related to yours, add them using the `@see` tag.
-#### 4. Unit Tests
-* Try to write Unit Tests where possible.
-* Unit Test classes and methods should have no access modifier, not `public`, `protected` nor `private`.
-* Each Test should have a plain text `@DisplayName` annotation!
-#### 5. General best-practices
-* Do not use `Collection#forEach(x -> ...)`, use a proper `for (...)` loop!
-* Do not create new `Random` objects, use `ThreadLocalRandom.current()` instead!
-* Always declare Maps or Collections using their base type! (e.g. `List<String> list = new ArrayList<>();`)
-* When doing String operations like `String#toUppercase()`, always specify `Locale.ROOT` as an argument!
-* When reading or writing files, always specify the encoding using `StandardCharsets.UTF_8`!
-* Do not declare multiple fields/variables on the same line! (e.g. Don't do this: `int x, y, z;`)
-* Use a Logger, try to avoid `System.out.println(...)` and `Throwable#printStacktrace()`, use `Logger#log` instead!
-* Do not use Exceptions to validate data, empty catch blocks are a very bad practice, use other means like a regular expression to validate data.
-* If a parameter is annotated with `@Nonnull`, you should enforce this behaviour by doing `Validate.notNull(variable, "...");` and give a meaningful message about what went wrong
-* Any `switch/case` should always have a `default:` case at the end.
-* If you are working with a resource that must be closed, use a `try/with-resource`, this will automatically close the resource at the end. (e.g. `try (InputStream stream = ...) {`)
-* Array designators should be placed behind the type, not the variable name. (e.g. `int[] myArray`)
-* Enums must be compared using `==`, not with `.equals()`!
-* Avoid direct string concatenation, use a `StringBuilder` instead!
-* If you need both the key and the value from a Map, use `Map#entrySet()`!
-#### 6. Naming conventions
-* Classes should be in *PascalCase* (e.g. `MyAwesomeClass`)
-* Enum constants should be in *SCREAMING_SNAKE_CASE* (e.g. `MY_ENUM_CONSTANT`)
-* Constants (`static final` fields) should be in *SCREAMING_SNAKE_CASE* (e.g. `MY_CONSTANT_FIELD`)
-* Variables, parameters and fields should be in *camelCase* (e.g. `myVariableOrField`)
-* All methods should be in *camelCase* (e.g. `myMethod`)
-* Packages must be all lowercase, consecutive words should generally be avoided. (e.g. `io.github.thebusybiscuit.slimefun4.core.something`)
-#### 7. Style preferences
-* Use **Spaces**, not Tabs!
-* One class per file! Please don't put multiple classes into one file, this also applies to enums, make a seperate file for new classes or enums.
-* Try to keep ternary operators to a minimum, only in return statements. (e.g. avoid doing this: `int y = x == null ? 1: 2`)
-* Try to keep so-called "guard blocks" to a minimum. One guard block is fine but having multiple guard blocks before getting to the actual code... Well, you might wanna refactor your code there. Example:
+#### 1. 导入（Imports）
+* 不要使用通配符（`*`）导入！
+* 不要导入未使用的类！
+* 不要使用静态导入！
+* 一律使用导入，即使在 javadoc 中也不要写出类的完整路径。
+#### 2. 注解（Annotations）
+* 方法与参数应标注 `@Nullable`（`javax.annotation.Nullable`）或 `@Nonnull`（`javax.annotation.Nonnull`）！
+* 覆写方法必须标注 `@Override`！
+* 只有一个方法的接口应标注 `@FunctionalInterface`！
+* 弃用方法时，应在 javadoc 中添加 `@deprecated` 小节说明原因。
+#### 3. 文档（Documentation）
+* 每个类、每个公开方法都应有 Javadoc。
+* 新包应有 `package-info.java` 文件说明包的用途。
+* 类应包含 `@author` 标签。
+* 如果与你相关的其它类，请用 `@see` 标签引用。
+#### 4. 单元测试（Unit Tests）
+* 尽可能编写单元测试。
+* 单元测试类与方法不应带访问修饰符——不要 `public`、`protected` 也不要 `private`。
+* 每个测试都应带纯文本的 `@DisplayName` 注解！
+#### 5. 通用最佳实践
+* 不要使用 `Collection#forEach(x -> ...)`，请用规范的 `for (...)` 循环！
+* 不要 new `Random` 对象，请使用 `ThreadLocalRandom.current()`！
+* 声明 Map 或集合时一律使用基类型！（例如 `List<String> list = new ArrayList<>();`）
+* 做字符串大小写转换（如 `String#toUppercase()`）时，务必以 `Locale.ROOT` 为参数！
+* 读写文件时，务必用 `StandardCharsets.UTF_8` 指定编码！
+* 不要在同一行声明多个字段/变量！（例如不要写：`int x, y, z;`）
+* 使用 Logger，避免 `System.out.println(...)` 与 `Throwable#printStacktrace()`，改用 `Logger#log`！
+* 不要用异常校验数据，空 catch 块是极坏的习惯——请用正则等其它手段校验。
+* 参数标注了 `@Nonnull` 时，应通过 `Validate.notNull(variable, "...");` 强制该行为，并给出有意义的错误消息。
+* 任何 `switch/case` 末尾都必须有 `default:` 分支。
+* 使用必须关闭的资源时，请用 `try/with-resource`，它会在结束时自动关闭资源。（例如 `try (InputStream stream = ...) {`）
+* 数组方括号应跟在类型后面，而不是变量名后面。（例如 `int[] myArray`）
+* 枚举必须用 `==` 比较，不要用 `.equals()`！
+* 避免直接的字符串拼接，请使用 `StringBuilder`！
+* 同时需要 Map 的键与值时，请使用 `Map#entrySet()`！
+#### 6. 命名约定
+* 类名使用 *PascalCase*（例如 `MyAwesomeClass`）
+* 枚举常量使用 *SCREAMING_SNAKE_CASE*（例如 `MY_ENUM_CONSTANT`）
+* 常量（`static final` 字段）使用 *SCREAMING_SNAKE_CASE*（例如 `MY_CONSTANT_FIELD`）
+* 变量、参数与字段使用 *camelCase*（例如 `myVariableOrField`）
+* 所有方法使用 *camelCase*（例如 `myMethod`）
+* 包名全部小写，一般应避免连续单词。（例如 `io.github.thebusybiscuit.slimefun4.core.something`）
+#### 7. 风格偏好
+* 使用**空格**缩进，不要用 Tab！
+* 每个文件一个类！请不要把多个类放进一个文件，枚举也一样——新类或新枚举请另建文件。
+* 尽量少用三目运算符，只在 return 语句中使用。（例如避免写：`int y = x == null ? 1: 2`）
+* 尽量少用所谓"卫语句块"（guard block）。一个卫语句没问题，但在进入正式代码前堆叠多个卫语句……你可能需要重构。示例：
 ```java
 // guard block
 if (something) {
@@ -112,17 +111,17 @@ if (something) {
 
 // Actual code...
 ```
-* if/else statements should always include a bracket, please avoid one-line statements. (e.g. Avoid doing: `if (x == 0) return;`)
-* We do not enforce any particular width or column limit, just try to prevent your lines from becoming too long. But please avoid line-wrapping.
-* Annotations that target the return type of the method should be inline. Annotations which target the method itself should be written in the line above:
+* if/else 语句必须带花括号，请避免单行语句。（例如避免写：`if (x == 0) return;`）
+* 我们不强制列宽限制，只需尽量避免过长的行。同时请避免折行。
+* 修饰方法返回类型的注解应写在行内；修饰方法本身的注解写在上一行：
 ```java
-@Override // <- Describes the method itself. `@Nullable` describes only the return type.
+@Override // <- 描述方法本身。`@Nullable` 只描述返回类型。
 public @Nullable String getString() {
   // [...]
 }
 ```
-* Comments should never go on the same line as code! Always above or below.
-* When you deviate from this style, add formatter comments and explain why. Example:
+* 注释永远不要与代码同行！写在代码上方或下方。
+* 偏离本风格时，请添加 formatter 注释并说明原因。示例：
 ```java
 // @formatter:off - This array represents a 3x3 grid and should be shown as such.
 String[] arrays = {
@@ -132,17 +131,17 @@ String[] arrays = {
 };
 // @formatter:on
 ```
-* Make sure that empty lines are truly empty, they should not contain any whitespace characters.
-* Empty blocks like constructors should not occupy more than one line. (e.g. `private MyClass() {}`)
-* Modifiers for classes and fields must follow this order:<br>
+* 确保空行是真正的空行，其中不应包含任何空白字符。
+* 空代码块（如构造器）不应超过一行。（例如 `private MyClass() {}`）
+* 类与字段的修饰符必须遵循此顺序：<br>
 `[public/protected/private] [abstract] [static] [final]`
-* We recommend using horizontal whitespaces like this:
-  * In variable assignments: `int x = 123;`
-  * In a for-loop: `for (int i = 0; i < 10; i++) {`
-  * Before and after statement parenthesis: `if (x != null) {`
-  * Inbetween array initializers: `int[] array = { 1, 2, 3 };`
-  * After the double slash of a comment: `// This is a comment`
-* Slimefun follows the **1TBS / OTBS** Bracket-Style standard (One true brace style):
+* 我们推荐如下空格用法：
+  * 变量赋值：`int x = 123;`
+  * for 循环：`for (int i = 0; i < 10; i++) {`
+  * 语句括号前后：`if (x != null) {`
+  * 数组初始化内部：`int[] array = { 1, 2, 3 };`
+  * 注释的双斜线后：`// This is a comment`
+* Slimefun 遵循 **1TBS / OTBS** 括号风格标准（One true brace style）：
 ```java
 private void example(int x) {
     if (x < 0) {
