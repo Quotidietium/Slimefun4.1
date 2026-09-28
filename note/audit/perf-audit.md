@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r15base 均已用毕移除（r13base=3a52e23be、r14base=286f85a83、r15base=f6d05df89）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r16base 均已用毕移除（r14base=286f85a83、r15base=f6d05df89、r16base=f6fd44901）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -195,3 +195,13 @@
 **量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r15-multiblock-trigger-buckets.md](../report/perf/benchmark-perf-r15-multiblock-trigger-buckets.md)）**：click-no-match（生产常态形态）**-99.6%**（3111ns→~18ns median，min 全 0 为 JIT 消除，median 口径 9/9，区间 0.0033-0.0061）；click-near-miss **-76.7%**（3296→770ns，9/9）；click-full-match **-69.3%**（3692→1065ns，9/9）；median 指标三变体全部 9/9 同向同量级（对指标选取不敏感）；lean 池逐对 0.9887-1.0187 零回归。维护成本：注册期 O(N×T) 微秒级重建，事件路径正常态零分配。新增 `TestMultiblockBucketPrefilter` 7 项判别（oracle=测试内复刻旧全扫循环，**优化侧与 r15base 剥离 r15 专有断言后双侧 7/7 全绿**——直接等价证明；覆盖三 trigger 索引/tag 等价/null 通配/序选择/漂移自愈/零候选）。全量 **3285 测试 0 失败**；`mvn package` BUILD SUCCESS。
 
 **MockBukkit 注记（bench/test 侧已固化）**：(1) full-match 路径 callItemHandler→canUse 需 ProtectionManager（正常由首 tick 调度创建，单测不泵 tick——反射注入 IntegrationsManager.protectionManager 字段）；(2) PlayerInteractEvent 须用 6 参构造 + EquipmentSlot.HAND（监听器检查 getHand）；(3) 判别测试的 lastEvent 捕获须每次点击前重置，否则无匹配迭代残留上一事件造成假失败（本轮曾中招）。
+
+## 第 16 轮（2026-09-29）：AContainer 配方扫描 material 位图与全域索引快跳
+
+**方向**：处理机器配方扫描（hopper/cargo 到料时负缓存失效后的全列表走查——r 更早轮已覆盖 idle 稳态负缓存，本轮覆盖到料瞬间）。定向：place/break 监听路径（BlockStorage/TickerTask 访问皆 O(1)，无热点）、AncientAltar（配方表 ~20、玩家触发低频、isItemSimilar 已 r14 优化）排除后，以最新 base 绝对成本排序锁定 recipe-scan/junk-150（4567ns/scan）。**JFR 放大探针分解**（20000 轮 × 464 样本）：方法体 58.6%/ArrayList 迭代 17.9%/**JumboEnumSet.contains 16.2%**——Material 1943 枚举必退化 Jumbo（contains 线性走查 word 数组，最坏 31 比较）；配对 JDK 探针证分配面仅 1.2%（EnumSet.noneOf 33ns/位图 11ns/3×HashMap 20ns），推翻分配风暴初假设。A/B：base=f6fd44901（bench 修订提交，worktree `../sf-perf-r16base`）vs opt=本轮。bench 增补 near-miss-150 守卫变体（配方 input 加 CustomModelData 差异；同材质 plain 栈过预筛但 150 次全量 meta 比较全拒）。
+
+**改动（单文件 AContainer）**：(1) presentMaterials 从 EnumSet 改 long[31] 位图（O(1) 位测试）；(2) 全域配方 material 位图快跳 `scanProvablyMatchesNothing`：无零长输入/null 输入配方（needsFullScan 保守位）且 present∩全域=∅ 时直返 matchedNothing——与全扫数学等价（配对循环零比对 ⇒ matchedNothing=true；副作用两侧均不触发）；索引惰性构建、recipes.size() 漂移重建（r15 家族）；(3) 快跳同时接入 findNextRecipe（直驱路径，负缓存 put 语义一致）与 findNextRecipeCached（tick 主路径）。**明确不做**：迭代器→索引循环（CME fail-fast→弱一致的静默行为变化）；per-material 配方分桶（序合并复杂度不成比例）。
+
+**JIT 双形态测量学事件（本轮教训，双修复闭环）**：初版快跳在 scanForRecipe 内，bench 序（junk 2400 次→near-miss 2400 次）测得 near-miss +50% 幻影劣化；专注探针充分热身两侧持平（5960 vs 5905ns）。根因：opt 侧 junk 走快跳后不再锻炼 scanForRecipe，near-miss 自付 JIT 爬坡，9 轮采样计入中位。修复：① bench warmup 3→25（每变体 5000 次自证热身，r13 惯例先提交再重建 base）；② 快跳拆独立方法（独立编译单元）防同方法分支 profile 摇摆。
+
+**量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r16-recipe-scan-material-index.md](../report/perf/benchmark-perf-r16-recipe-scan-material-index.md)）**：junk-150 **-98.5%**（4545→77ns，**9/9**，区间 0.012-0.020 极紧，成本与配方表大小无关）；junk-10 -46.4%（9/9）；守卫 near-miss-150 中位 -7.5%（7/9，区间宽 0.668-1.440 与 base 自身 1.5× 波动同量级，如实归因 JIT 方差不宣称改善）；lean 池 0.964-1.045 零漂移。新增 `TestRecipeScanMaterialIndex` 5 项判别（快跳≡全扫/空输入配方强制全扫/晚注册重建/已知材质正常匹配/空槽 idle），**优化侧与 r16base 双侧 5/5 全绿**。全量 **3290 测试 0 失败**；`mvn package` BUILD SUCCESS。
