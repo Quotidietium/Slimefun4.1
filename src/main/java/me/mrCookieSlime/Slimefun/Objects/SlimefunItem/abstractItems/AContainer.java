@@ -2,11 +2,9 @@ package me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -67,6 +65,31 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
      * on every tick. Keyed by the machine's {@link BlockPosition}.
      */
     private final Map<BlockPosition, FailedRecipeScan> failedScans = new ConcurrentHashMap<>();
+
+    /**
+     * Number of {@code long} words needed to address every {@link Material}
+     * ordinal as a bit. Fixed once per class load; the array allocation this
+     * replaces (an {@link EnumSet} over the ~1900 Materials of modern versions
+     * is a {@link java.util.JumboEnumSet} whose {@code contains} walks the
+     * enum's words linearly) is both bigger and slower to query.
+     */
+    private static final int MATERIAL_WORDS = (Material.values().length + 63) >> 6;
+
+    /**
+     * The union of every input {@link Material} across this machine's recipe
+     * list, as a bit set, plus whether any recipe bypasses the Material
+     * prefilter (empty input array or a null input slot). Lazily built on the
+     * first scan and rebuilt whenever the recipe list grows, which is the only
+     * mutation the first-party and addon API performs on it (additions via
+     * {@code registerRecipe}).
+     */
+    private volatile RecipeMaterialIndex recipeMaterialIndex;
+
+    /**
+     * Aggregate index over {@link #recipes} used by the whole-list shortcut
+     * in {@code scanForRecipe}. See there for the equivalence argument.
+     */
+    private record RecipeMaterialIndex(long[] materials, boolean needsFullScan, int recipeCount) {}
 
     private int energyConsumedPerTick = -1;
     private int energyCapacity = -1;
@@ -472,6 +495,16 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
             return null;
         }
 
+        /*
+         * Whole-list shortcut (see scanProvablyMatchesNothing): equivalent to
+         * a scan ending in matchedNothing, so the negative cache is written
+         * exactly like the full scan would have done.
+         */
+        if (scanProvablyMatchesNothing(inv, inputSlots)) {
+            failedScans.put(position, FailedRecipeScan.capture(inv, inputSlots, recipes.size()));
+            return null;
+        }
+
         RecipeScan scan = scanForRecipe(inv, inputSlots);
 
         if (scan.matchedNothing()) {
@@ -518,7 +551,22 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
     }
 
     protected MachineRecipe findNextRecipe(BlockMenu inv) {
-        return scanForRecipe(inv, getInputSlots()).recipe();
+        int[] inputSlots = getInputSlots();
+
+        /*
+         * The whole-list shortcut lives in its own method (its own JIT
+         * compilation unit) on purpose: inside scanForRecipe the shortcut's
+         * "return immediately" profile and the deep per-recipe loop profile
+         * pollute each other's branch profiles, and C2 ends up de-optimizing
+         * one shape while specializing for the other - measured as a +50%
+         * regression on the near-miss shape when it follows heavy junk-scan
+         * traffic within the same compiled method.
+         */
+        if (scanProvablyMatchesNothing(inv, inputSlots)) {
+            return null;
+        }
+
+        return scanForRecipe(inv, inputSlots).recipe();
     }
 
     /**
@@ -557,6 +605,102 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
         return wrapper;
     }
 
+    /**
+     * Whole-list shortcut for a recipe scan, kept in its own method (see
+     * {@code findNextRecipe}).
+     *
+     * <p>When no recipe bypasses the Material prefilter (empty input array or
+     * a null input slot) and not a single present Material appears in ANY
+     * recipe input, then every recipe is prefilter-rejected and a full scan
+     * provably ends with {@code matchedNothing} - which is exactly what this
+     * shortcut reports. The {@code isItemSimilar} chain is never reached in
+     * that state either way, so side effects (wrapper creation, slot
+     * consumption, {@code fitAll}) are also identical.
+     *
+     * @param inv
+     *            The machine's {@link BlockMenu}
+     * @param inputSlots
+     *            The machine's input slots
+     *
+     * @return {@code true} if a full scan provably cannot match anything
+     */
+    @ParametersAreNonnullByDefault
+    private boolean scanProvablyMatchesNothing(BlockMenu inv, int[] inputSlots) {
+        long[] presentMaterials = new long[MATERIAL_WORDS];
+
+        for (int slot : inputSlots) {
+            ItemStack item = inv.getItemInSlot(slot);
+
+            if (item != null) {
+                Material material = item.getType();
+
+                if (material != null) {
+                    presentMaterials[material.ordinal() >> 6] |= 1L << (material.ordinal() & 63);
+                }
+            }
+        }
+
+        return !recipeMaterialIndex(presentMaterials);
+    }
+
+    /**
+     * Ensures {@link #recipeMaterialIndex} reflects the current recipe list
+     * and reports whether the scan can proceed at all (i.e. some present
+     * Material is plausibly required by some recipe, or a recipe exists that
+     * the Material prefilter cannot reject).
+     *
+     * @param presentMaterials
+     *            The bit set of Materials currently present in the input slots
+     *
+     * @return Whether the full scan loop must run ({@code true}) or every
+     *         recipe is provably prefilter-rejected ({@code false})
+     */
+    private boolean recipeMaterialIndex(long[] presentMaterials) {
+        RecipeMaterialIndex index = recipeMaterialIndex;
+        int size = recipes.size();
+
+        if (index == null || index.recipeCount() != size) {
+            long[] materials = new long[MATERIAL_WORDS];
+            boolean needsFullScan = false;
+
+            for (MachineRecipe recipe : recipes) {
+                ItemStack[] inputs = recipe.getInput();
+
+                if (inputs.length == 0) {
+                    needsFullScan = true;
+                    continue;
+                }
+
+                for (ItemStack input : inputs) {
+                    Material material = input != null ? input.getType() : null;
+
+                    if (material == null) {
+                        needsFullScan = true;
+                    } else {
+                        materials[material.ordinal() >> 6] |= 1L << (material.ordinal() & 63);
+                    }
+                }
+            }
+
+            index = new RecipeMaterialIndex(materials, needsFullScan, size);
+            recipeMaterialIndex = index;
+        }
+
+        if (index.needsFullScan()) {
+            return true;
+        }
+
+        long[] union = index.materials();
+
+        for (int w = 0; w < MATERIAL_WORDS; w++) {
+            if ((presentMaterials[w] & union[w]) != 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @ParametersAreNonnullByDefault
     private RecipeScan scanForRecipe(BlockMenu inv, int[] inputSlots) {
         Map<Integer, ItemStack> inventory = new HashMap<>();
@@ -590,14 +734,19 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
          * change invalidates the negative-scan cache and forces a full scan
          * over the whole recipe list.
          *
-         * Recipes are still visited in list order and recipes with an empty
-         * input array are never skipped, so which recipe wins - and the
-         * matchedNothing verdict - are identical to the unfiltered scan.
+         * The present Materials live in a long[] bit set: EnumSet over the
+         * ~1900 Materials of modern versions degenerates to JumboEnumSet,
+         * whose contains() walks the enum's word array linearly, while the
+         * bit test is two array reads. Query results are identical.
          */
-        Set<Material> presentMaterials = EnumSet.noneOf(Material.class);
+        long[] presentMaterials = new long[MATERIAL_WORDS];
 
         for (ItemStack stack : inventory.values()) {
-            presentMaterials.add(stack.getType());
+            Material material = stack.getType();
+
+            if (material != null) {
+                presentMaterials[material.ordinal() >> 6] |= 1L << (material.ordinal() & 63);
+            }
         }
 
         Map<Integer, Integer> found = new HashMap<>();
@@ -609,7 +758,9 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                 boolean possible = true;
 
                 for (ItemStack input : inputs) {
-                    if (input == null || !presentMaterials.contains(input.getType())) {
+                    Material required = input != null ? input.getType() : null;
+
+                    if (required == null || (presentMaterials[required.ordinal() >> 6] & (1L << (required.ordinal() & 63))) == 0) {
                         possible = false;
                         break;
                     }
