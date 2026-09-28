@@ -41,16 +41,23 @@ mvn compile exec:java -Dsf.jar=target/slimefun-under-test.jar \
 RESULT|<标签>|<场景>|<变体>|<指标>|<单位>|<值>
 ```
 
-## 场景说明（与优化提交一一对应）
+## 场景说明
 
-| 场景 | 对应优化 | 测量内容 |
+当前共 **8 个场景类**（`scenarios/` 目录，与 `BenchMain` 逐个注册）；各场景的典型数据、变体与覆盖边界详见 [report/SCENARIOS.md](report/SCENARIOS.md)。
+
+| 场景 | 对应优化/来源 | 测量内容 |
 |---|---|---|
 | `blockstorage` / `charge-write` | `b71f6a07c` BlockStorage 延迟序列化 | 5000 个方块每轮一次的 `energy-charge` 写入（电网真实热路径），中位/最小 纳秒/次 |
 | `blockstorage` / `save-5000-dirty-blocks` | 同上 | 5000 个脏方块批量 `save()` 落盘耗时 |
 | `machine-idle-scan` | `966051f8b` 空转配方负缓存 | 1000 台电炉空转（空输入 / 不匹配垃圾输入两个变体）每 tick 纳秒 |
+| `machine-processing` ★ | 4.9.4 防御路径验证 | 活跃机器 takeCharge + 进度 + 配方消费每 tick 纳秒 |
+| `energy-settlement` ★ | 同上 | 电网结算 charge 写入 / 已满跳过两变体，每组件纳秒 |
+| `player-interaction` ★ | 同上 | 放置 / 破坏 SF 方块（事件→存储+ticker 注册/注销）每次微秒 |
 | `capacitor-texture` | `8add0ddba` 贴图分档去重 | 2000 个电容同档位重复贴图更新每次调用纳秒；若 MockBukkit 支持 Skull 则使用真实 PLAYER_HEAD，否则退化为纯调度开销（结果中有 NOTE 标明） |
 | `hologram-label` | `8f383b2d3` 标签未变跳调度 | 2000 个全息重复推送相同标签每次调用纳秒 |
 | `ticker-run` | `83e5e72cc` TickerTask 微优化 | 5000 个平凡 ticker 的一次完整 `TickerTask.run()` 毫秒数（含防定时器干扰的采样过滤） |
+
+★ = 4.9.4 防御加固批次新增（详见 [report/PERFORMANCE-COMPARISON.md](report/PERFORMANCE-COMPARISON.md)）。
 
 ## MockBukkit 环境注意事项
 
