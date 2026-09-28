@@ -40,6 +40,31 @@
 
 **环境注记**：①本会话环境噪声显著宽于 r134 会话（CPU 频率双峰），绝对值不可跨会话比较；②中途一次 TaskStop 杀 shell 未及杀子 JVM，导致一轮 base 结果文件被双进程交错写入（缺 2 行 charge-write RESULT），已确认无残留进程并作废该轮该场景数据。
 
+## 第 2 轮（2026-09-28）：机器 tick 路径每 tick 临时分配消除
+
+**方向**：机器家族每 tick 的临时对象分配与重复解析。A/B 隔离本轮增量：base=Round 1 收官提交（4ccafb3cd，worktree `../sf-perf-r2base`）vs opt=本轮提交（1cb2b95a5），基准以 overlay 同步新场景。
+
+**改动（4 文件）**：
+
+1. `AContainer.tick(Block)`：`inv.getLocation()`（BlockMenu 字段直读零分配）+ 单个 `BlockPosition` 贯穿 getOperation/takeCharge/endOperation/startOperation/findNextRecipeCached（`findNextRecipeCached` 签名改为接收 BlockPosition）——活跃 tick 3-4 个临时对象 → 2 个；无子类覆写 tick，全部 AContainer 子类自动受益。
+2. `AGenerator.getGeneratedOutput`：单 BlockPosition 复用（2-3 个 → 1 个）。
+3. `Reactor.getGeneratedOutput`：同型，position 经参数传至 createByproduct/burnNextFuel。
+4. `GEOMiner.tick`：坐标复用 + 充电闸门迁移到第 1 轮数据复用变体（3 次查找+2 分配 → 1 次查找+0 分配；`start()` 增 position 参数）。
+
+**量化（严格交错 5+5，完整数据见 [benchmark-perf-r2-tick-alloc.md](../report/perf/benchmark-perf-r2-tick-alloc.md)）**：
+
+| 场景 | min Δ | 中位 Δ | 折扣后估计 |
+|---|---|---|---|
+| machine-processing/active（AContainer.tick） | **-20.4%** | -5% | ~5-15% |
+| machine-idle-scan/empty | **-13.1%** | -14% | ~9-14% |
+| machine-idle-scan/junk | -30.9% | +11%（噪声） | min 口径正向 |
+| generator-tick/burning（新场景，AGenerator） | -2.4% | **-10.6%** | ~6-11% |
+
+控制场景（charge-api/energy-settlement/blockstorage/ticker-run/player-interaction/capacitor/hologram）全部零改动、带内波动。**环境偏向注记**：ticker-run（平凡 ticker，字节级零改动）中位 -4.5%——每对内 opt 恒后跑、会话渐热——目标场景结论已按此折扣，且与消除的分配数（1-3 个年轻代对象 ≈ 50-150ns）定量吻合。
+
+**回归**：全量 3221 项 0 失败；`mvn clean package` BUILD SUCCESS。新增 `BenchGenerator`/`GeneratorTickBench` 场景补齐发电机 tick 量化空白。
+
 ## 环境清单（滚动）
 
 - 基线 worktree：`../sf-perf-baseline`（HEAD=315df00fb，即 v5.1.13）——多轮复用，循环收尾时移除。
+- 第 2 轮增量基线 worktree：`../sf-perf-r2base`（HEAD=4ccafb3cd，Round 1 收官）——第 2 轮后待移除。
