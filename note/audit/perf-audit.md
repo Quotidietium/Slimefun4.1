@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r10base 均已用毕移除（r9base=f09cd2e57、r10base=ef3ccab2a）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r11base 均已用毕移除（r10base=ef3ccab2a、r11base=322cd4b62）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -147,3 +147,13 @@
 **量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r10-research-bookkeeping.md](../report/perf/benchmark-perf-r10-research-bookkeeping.md)）**：unlock-cycle **-62%（min，10.1µs→3.8µs）/ -71%（median）**，原始比值 9/9 全部 <0.5；title **-73% / -80%**（2.5µs→0.66µs），9/9 同向；has-unlocked 门禁持平（0.8ns，亚 ns 量化噪声）。守卫无系统性回归（本会话复合 lean 逐对 0.957–1.029，离群值双侧分布）。新增 `TestResearchProgressCaching` 4 项判别（活集合计数 ≡ 公开拷贝计数的不变式、三路失效、头衔阶梯与 RankChangeEvent 边界）。全量 **3254 测试 0 失败**；`mvn package` BUILD SUCCESS。
 
 **契约记录**：ItemState 注册后不可变是缓存前提（判别测试钉死非 ENABLED 状态不计入）；插件直接 `getAffectedItems()` 变异属带外操作不触发失效（与 ItemFilter/routing 缓存同族契约，javadoc 已声明）。
+
+## 第 11 轮（2026-09-29）：指南本地化读路径记忆化——字符串查找三级缓存 + lore 行级 memo
+
+**方向**：生存指南渲染链的本地化读（每分类页 36 显示物品 × 名字查找 + lore 短语扫描 + 每按钮消息查找——本 fork 默认 zh-CN，27 条 lore 短语 + 534 条物品名翻译全部激活）。A/B：base=322cd4b62（r11 bench 提交，worktree `../sf-perf-r11base`）vs opt=本轮（仅 SlimefunLocalization 单文件）。新场景 `guide-render`（category-open 端到端 + localized-item/item-name-lookup/item-clone/lore-translate/message-lookup 微基准与标定锚点）。
+
+**改动**：(1) `getStringOrNull` 内部收口 `cachedString`——`Language→LanguageFile→path` 三级嵌套 CHM，null 也 memo，命中零分配；(2) `translateLore(Language,…)` 行级 memo（lore 行跨物品高度重复）；(3) 显式 `invalidateTranslationCaches()` 带外契约钩子；(4) **明确不做**：getLocalizedItem 共享显示实例（引用语义红线）与 ItemMetaSnapshot 作 lore 源（快照陈旧风险）。
+
+**量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r11-guide-localization-memo.md](../report/perf/benchmark-perf-r11-guide-localization-memo.md)）**：lore-translate **-95.5/-96.4%**（1.16µs→47ns，9/9 对 0.031–0.071）、message-lookup **-91.5/-92.2%**（176→14ns，9/9 同向）；端到端 localized-item -5.6% / category-open -2.0%——分母被 MockBukkit `ItemMetaMock.getLore()` 每行 Gson 反序列化+Legacy 序列化支配（字节码证实，6 行 ≈40µs，占 95%），生产 Paper 该成本不存在，锚点分解推算生产比例 **30–55%**。守卫全带内（diff 单文件，代码归因排除）。新增 `TestGuideLocalizationCaching` 4 项判别（含文件域键隔离与带外契约钉死）。全量 **3258 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**MockBukkit 陷阱注记（bench 侧已固化）**：(1) 单测环境无语言装载——反射 `addLanguage` 注入 zh-CN+en 并反射置 defaultLanguage；(2) bench 世界默认视为禁用——须显式 `getWorldSettingsService().setEnabled(world, true)`；(3) 启动后注册的物品不走 load pass——须补 `item.load()` 入组，否则指南页空渲染（nonNull=18/papers=0 陷阱，本轮曾中招）；(4) **测量学**：ItemMetaMock 的 getLore/setLore 每行 Gson 往返使 meta 密集路径膨胀 ~40µs/6 行——凡触及 ItemMeta 读写的场景，mock 数字只可作保守下界，生产比例须锚点分解推算。
