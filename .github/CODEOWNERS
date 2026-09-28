@@ -1,16 +1,16 @@
-# Modifications to the source code should be handled by the code review team
+# 源代码的修改应由代码评审团队处理
 *.java                             @Slimefun/code-reviewers
 
-# Modifications to sensitive files should be reviewed by maintainers
+# 敏感文件的修改应由维护者评审
 /.github/                          @Slimefun/slimefun4-maintainers
 pom.xml                            @Slimefun/slimefun4-maintainers
 CONTRIBUTING.md                    @Slimefun/slimefun4-maintainers
 
-# Changes to the Issue templates need to be checked by the triage team
+# Issue 模板的变更需要分诊（triage）团队检查
 /.github/ISSUE_TEMPLATE/           @Slimefun/bug-testers
 
-# Our wiki lookup file will be reviewed by the wiki staff team
+# wiki 查询文件由 wiki 团队评审
 /src/main/resources/wiki.json      @Slimefun/wiki-staff
 
-# This file is handled by TheBusyBiscuit (admins have overwrite access anyway)
+# 本文件由 TheBusyBiscuit 管理（管理员本身拥有强制覆盖权限）
 /.github/CODEOWNERS                @TheBusyBiscuit
