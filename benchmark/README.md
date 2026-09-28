@@ -18,8 +18,8 @@
 前置条件：Java 21 + Maven，且被测版本已执行过 `mvn compile`（存在 `target/classes`）。
 
 ```bash
-# 对当前工作区版本（如 4.9.3）运行
-./run-benchmark.sh ../target/classes 4.9.3-optimized
+# 对当前工作区版本（如 5.1.13）运行
+./run-benchmark.sh ../target/classes 5.1.13-current
 
 # 对基线版本（如用 git worktree 检出的 4.9.2）运行
 ./run-benchmark.sh ../../sf-4.9.2-baseline/target/classes 4.9.2-baseline
