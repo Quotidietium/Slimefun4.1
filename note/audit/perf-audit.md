@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r11base 均已用毕移除（r10base=ef3ccab2a、r11base=322cd4b62）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r12base 均已用毕移除（r11base=322cd4b62、r12base=3ae83e3f7）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -157,3 +157,11 @@
 **量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r11-guide-localization-memo.md](../report/perf/benchmark-perf-r11-guide-localization-memo.md)）**：lore-translate **-95.5/-96.4%**（1.16µs→47ns，9/9 对 0.031–0.071）、message-lookup **-91.5/-92.2%**（176→14ns，9/9 同向）；端到端 localized-item -5.6% / category-open -2.0%——分母被 MockBukkit `ItemMetaMock.getLore()` 每行 Gson 反序列化+Legacy 序列化支配（字节码证实，6 行 ≈40µs，占 95%），生产 Paper 该成本不存在，锚点分解推算生产比例 **30–55%**。守卫全带内（diff 单文件，代码归因排除）。新增 `TestGuideLocalizationCaching` 4 项判别（含文件域键隔离与带外契约钉死）。全量 **3258 测试 0 失败**；`mvn package` BUILD SUCCESS。
 
 **MockBukkit 陷阱注记（bench 侧已固化）**：(1) 单测环境无语言装载——反射 `addLanguage` 注入 zh-CN+en 并反射置 defaultLanguage；(2) bench 世界默认视为禁用——须显式 `getWorldSettingsService().setEnabled(world, true)`；(3) 启动后注册的物品不走 load pass——须补 `item.load()` 入组，否则指南页空渲染（nonNull=18/papers=0 陷阱，本轮曾中招）；(4) **测量学**：ItemMetaMock 的 getLore/setLore 每行 Gson 往返使 meta 密集路径膨胀 ~40µs/6 行——凡触及 ItemMeta 读写的场景，mock 数字只可作保守下界，生产比例须锚点分解推算。
+
+## 第 12 轮（2026-09-29）：指南搜索路径——物品显示名与可搜索名计算一次缓存
+
+**方向**：生存指南搜索（openSearch 对每个启用物品做 getItemName 的 ItemMeta 全量往返 + stripColor 正则 + toLowerCase——附属服 1000+ 物品时每次搜索 1-15ms 主线程）。A/B：base=3ae83e3f7（r12 bench 提交，worktree `../sf-perf-r12base`）vs opt=本轮（SlimefunItem 名字缓存 + 搜索过滤器一行）。新场景 `guide-search`（500 物品：search-miss 全量走零命中/search-hit 稀疏命中/item-name 微基准）。
+
+**改动**：(1) `getItemName()` 计算一次 volatile 缓存（原每调用 ItemUtils.getItemName → getItemMeta 往返 + getDisplayName，dough 字节码证实）；(2) 新增 `getSearchableName()` = stripColor+toLowerCase(ROOT) 规范化形式，同样计算一次，`isSearchFilterApplicable` 改用之；(3) **零失效钩子**——`itemStackTemplate` 为 private final 且无 setter，缓存输入严格不可变（比 r10 hasEnabledItems 的前提更强）。
+
+**量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r12-guide-search-names.md](../report/perf/benchmark-perf-r12-guide-search-names.md)）**：search-miss **-93.7/-93.1%**（775µs→57µs/500 物品，9/9 对 0.052–0.094）；search-hit **-70.5/-69.1%**；item-name **-99.4%**（940ns→5.3ns，meta 往返消除）。3000 物品服线性外推 ~4.6ms→~0.34ms/搜索。守卫双侧 0.73–1.23（会话噪声特征，diff 不触及守卫路径）。新增 `TestSearchNameCaching` 3 项判别（缓存≡直算、可搜索名性质、40 物品稀疏 needle 功能等价——注记：单测环境显示名经本地化层为既有 "Error: No language present" 上游行为）。全量 **3261 测试 0 失败**；`mvn package` BUILD SUCCESS。
