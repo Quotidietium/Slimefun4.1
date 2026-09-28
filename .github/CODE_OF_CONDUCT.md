@@ -1,77 +1,64 @@
-# Slimefun4 - Code of Conduct
+# Slimefun4 - 行为准则（Code of Conduct）
 
-> **SlimeFun4.1 fork note：** 本仓库（非官方维护分支）按引用采纳本行为准则——行为规范全文适用；但下文中的"Scope/举报途径"以本仓库为准：适用范围为 [Quotidietium/Slimefun4.1](https://github.com/Quotidietium/Slimefun4.1)，违规举报请通过本仓库 Issue 或私信仓库维护者进行，**不适用**官方 Slimefun 组织/Discord 的执行与举报渠道。
+> **SlimeFun4.1 fork 说明：** 本仓库（非官方维护分支）采纳本行为准则。适用范围为本仓库 [Quotidietium/Slimefun4.1](https://github.com/Quotidietium/Slimefun4.1)；违规举报请通过本仓库 Issue 或私信仓库维护者进行，**不适用**官方 Slimefun 组织/Discord 的执行与举报渠道。
+> 本文档为社区中文译本，英文原版可在 git 历史中找回（`git log -- .github/CODE_OF_CONDUCT.md`）。
 
-### What is a Code of Conduct?
-> A code of conduct is a document that establishes expectations for behavior for your project’s participants. 
-> Adopting, and enforcing, a code of conduct can help create a positive social atmosphere for your community.
-<br>\- *Source: [https://opensource.guide](https://opensource.guide/code-of-conduct/#why-do-i-need-a-code-of-conduct)*
+### 什么是行为准则？
+> 行为准则是为项目参与者确立行为期望的文档。
+> 采纳并执行行为准则，有助于为社区营造积极的氛围。
+<br>\- *来源：[https://opensource.guide](https://opensource.guide/code-of-conduct/#why-do-i-need-a-code-of-conduct)*
 
-This document should serve the purpose of outlining the behaviour we expect from any participant of the project.
+本文档旨在说明我们对项目任何参与者的行为期望。
 
-## :mag_right: Scope
-This Code of Conduct applies to all sections of the [Slimefun4 GitHub repository](https://github.com/Slimefun/Slimefun4), our [Slimefun GitHub organization](https://github.com/Slimefun) and all repositories owned by said organization.<br>
-For our official Discord server, please refer to our article on [Discord Rules](https://github.com/Slimefun/Slimefun4/wiki/Discord-Rules).
+## :mag_right: 适用范围
+本行为准则适用于 [Quotidietium/Slimefun4.1](https://github.com/Quotidietium/Slimefun4.1) 仓库的全部区域。<br>
+（上游原版同时适用于官方 Slimefun 组织及其所有仓库，详见 git 历史中的英文原版。）
 
-Everyone who engages with this project on any of these repositories is expected to follow the Code of Conduct.<br>
-This includes maintainers, contributors, sponsors and anyone who engages in the "Issues" section on GitHub.
+在本仓库参与项目的所有人——包括维护者、贡献者，以及在 GitHub "Issues" 区参与讨论的任何人——都应遵守本行为准则。
 
-## :loudspeaker: Engagement
-This is an Open-Source project, anyone is welcome to engage and contribute!<br>
-We generally expect users to engage in the Issues section by reporting bugs or commenting on bug reports to give additional context, help, guidance or to propose possible solutions and fixes.
-Pull Requests are very much welcome and encouraged! They keep the project alive, so if you see an Issue and know how to fix it, feel free to create a Pull Request!
+## :loudspeaker: 参与方式
+这是一个开源项目，欢迎任何人参与和贡献！<br>
+我们通常期望用户通过 Issues 区参与：报告 bug、在 bug 报告下补充上下文、提供帮助与指引，或提出可能的解决方案。
+非常欢迎并鼓励提交 Pull Request！PR 是项目的生命力所在——如果你看到一个 Issue 且知道怎么修，欢迎随时提 PR！
 
-Issues that are considered "good first issues", indicated by the [good first issue](https://github.com/Slimefun/Slimefun4/labels/good%20first%20issue) label, are generally expected to be beginner-friendly. 
-And even if you shouldn't know where to start or how to proceed, our [Discord Server](https://discord.gg/slimefun) and its community will be there for you!
+带有 [good first issue](https://github.com/Slimefun/Slimefun4/labels/good%20first%20issue) 标签的 Issue 一般对新手友好。
+即使你不知道从何入手，也欢迎在本仓库 Issue 中提问。
 
-When commenting, please keep in mind that this software is offered for **free**. Don't expect to receive lightning-fast replies 24 hours a day. 
-Everyone here works on this project in their free time and usually has work, school, university or family to take care of, so we appreciate patience and understanding.
+评论时请记住：本软件是**免费**提供的。不要期待全天候的秒回。
+这里的每个人都在用业余时间维护项目，通常还要兼顾工作、学业或家庭，因此我们感谢你的耐心与理解。
 
-## :scroll: Our Standards
-Examples of behavior that contributes to a positive environment for our community include but are not limited to:
-* Demonstrating empathy and kindness towards other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the overall community
-* Having patience and understanding for contributors, even if reply times are slow
+## :scroll: 我们的标准
+有助于营造积极社区环境的行为包括但不限于：
+* 对他人展现同理心与善意
+* 尊重不同的意见、观点与经验
+* 给予并善意接受建设性反馈
+* 为自己的错误承担责任、向受影响者致歉并从中学习
+* 着眼于整个社区的利益，而不仅是个人
+* 对贡献者保持耐心与理解，即使回复不够及时
 
 <hr>
 
-Examples of unacceptable behavior include but are not limited to:
-* The use of sexualized language or imagery, and sexual attention or advances of any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email address, without their explicit permission
-* Impatient, aggresive and toxic behaviour
-* Other conduct which could reasonably be considered inappropriate in a professional setting
+不可接受的行为包括但不限于：
+* 使用性暗示的语言或图像，以及任何形式的性关注或示好
+* 恶意挑衅、侮辱或贬损性评论，以及针对个人或政治的攻击
+* 公开或私下的骚扰
+* 未经明确许可发布他人的私人信息（如住址或电子邮箱）
+* 不耐烦、攻击性与有毒的行为
+* 其它在专业场合中合理被视为不当的行为
 
-## :round_pushpin: Enforcement Responsibilities
-Our project maintainers are responsible for clarifying and enforcing our standards of
-acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+## :round_pushpin: 执行责任
+项目维护者负责澄清并执行上述可接受行为标准，并将对其认为不当、威胁、冒犯或有害的行为采取适当且公正的纠正措施。
 
-Maintainers have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
-not aligned to this Code of Conduct, and will communicate reasons for moderation
-decisions when appropriate.
+维护者有权利也有责任移除、编辑或拒绝不符合本行为准则的评论、提交、代码、wiki 编辑、Issue 及其它贡献，并在适当时候说明管理决定的原因。
 
-You can see a list of people who are recognized as "project maintainers" for Slimefun on the Slimefun GitHub organization:<br>
-https://github.com/orgs/Slimefun/people
+## :wrench: 执行与举报
+滥用、骚扰或其它不可接受的行为，请通过**本仓库的 Issue** 举报；如希望低调处理，请私信仓库维护者并说明情况。
 
-## :wrench: Enforcement
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders (labelled on Discord as "Admins" or "Moderators") responsible for enforcement on our [Discord Server](discord.gg/slimefun).
-If you want your issue to be handled discreetly, message `TheBusyBiscuit#2610` or `Walshy#9709` privately on Discord and state your concerns.
+所有投诉都将得到及时、公正的审查与调查。
+所有处理举报的人都必须尊重举报者的隐私与人身安全。
 
-All complaints will be reviewed and investigated promptly and fairly.
-All community leaders are obligated to respect the privacy and security of the
-reporter of any incident.
+## :balance_scale: 署名
+本行为准则是 [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org) 原版（2.0 版，见
+https://www.contributor-covenant.org/version/2/0/code_of_conduct.html）的**修改版本**（本 fork 另做了中文翻译与举报渠道适配）。
 
-## :balance_scale: Attribution
-This Code of Conduct is a **modified version** of the original [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org),
-version 2.0, available at
-https://www.contributor-covenant.org/version/2/0/code_of_conduct.html.
-
-The Contributor Covenant was created by Coraline Ada Ehmke in 2014 and is released under the [CC BY 4.0 License](https://github.com/ContributorCovenant/contributor_covenant/blob/release/LICENSE.md).
+Contributor Covenant 由 Coraline Ada Ehmke 于 2014 年创建，以 [CC BY 4.0 许可证](https://github.com/ContributorCovenant/contributor_covenant/blob/release/LICENSE.md)发布。
