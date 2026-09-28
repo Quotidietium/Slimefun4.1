@@ -21,6 +21,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.events.ReactorCoolantConsumeEvent;
@@ -341,7 +342,10 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
     public int getGeneratedOutput(Location l, Config data) {
         BlockMenu inv = BlockStorage.getInventory(l);
         BlockMenu accessPort = getAccessPort(l);
-        FuelOperation operation = processor.getOperation(l);
+
+        // One BlockPosition per tick, shared by every processor call below.
+        BlockPosition position = new BlockPosition(l);
+        FuelOperation operation = processor.getOperation(position);
 
         if (operation != null) {
             extraTick(l);
@@ -349,11 +353,11 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
             if (!operation.isFinished()) {
                 return generateEnergy(l, data, inv, accessPort, operation);
             } else {
-                createByproduct(l, inv, accessPort, operation);
+                createByproduct(l, inv, accessPort, operation, position);
                 return 0;
             }
         } else {
-            burnNextFuel(l, inv, accessPort);
+            burnNextFuel(l, inv, accessPort, position);
             return 0;
         }
     }
@@ -434,7 +438,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
         });
     }
 
-    private void createByproduct(@Nonnull Location l, @Nonnull BlockMenu inv, @Nullable BlockMenu accessPort, @Nonnull FuelOperation operation) {
+    private void createByproduct(@Nonnull Location l, @Nonnull BlockMenu inv, @Nullable BlockMenu accessPort, @Nonnull FuelOperation operation, @Nonnull BlockPosition position) {
         inv.replaceExistingItem(22, CustomItemStack.create(Material.BLACK_STAINED_GLASS_PANE, " "));
         ItemStack result = operation.getResult();
 
@@ -471,10 +475,10 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
             }
         }
 
-        processor.endOperation(l);
+        processor.endOperation(position);
     }
 
-    private void burnNextFuel(Location l, BlockMenu inv, BlockMenu accessPort) {
+    private void burnNextFuel(Location l, BlockMenu inv, BlockMenu accessPort, @Nonnull BlockPosition position) {
         Map<Integer, Integer> found = new HashMap<>();
         MachineFuel fuel = findFuel(inv, found);
 
@@ -503,7 +507,7 @@ public abstract class Reactor extends AbstractEnergyProvider implements Hologram
                 inv.consumeItem(entry.getKey(), entry.getValue());
             }
 
-            processor.startOperation(l, new FuelOperation(fuel.getInput(), fuel.getOutput(), ticks));
+            processor.startOperation(position, new FuelOperation(fuel.getInput(), fuel.getOutput(), ticks));
         }
     }
 

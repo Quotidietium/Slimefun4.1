@@ -10,11 +10,13 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.api.events.GEOMiningCompleteEvent;
@@ -286,17 +288,30 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
 
     protected void tick(@Nonnull Block b) {
         BlockMenu inv = BlockStorage.getInventory(b);
-        GEOMiningOperation operation = processor.getOperation(b);
+
+        /*
+         * Resolve the coordinates and block data once per tick and reuse them
+         * for every downstream call. Previously getOperation, getCharge and
+         * removeCharge each allocated their own Location/BlockPosition and
+         * re-navigated the BlockStorage maps (three separate lookups for the
+         * charge gate alone).
+         */
+        Location l = inv.getLocation();
+        BlockPosition position = new BlockPosition(l);
+        GEOMiningOperation operation = processor.getOperation(position);
 
         if (operation != null) {
             if (!operation.isFinished()) {
                 processor.updateProgressBar(inv, 4, operation);
 
-                if (getCharge(b.getLocation()) < getEnergyConsumption()) {
+                Config data = BlockStorage.getLocationInfo(l);
+                int charge = getCharge(l, data);
+
+                if (charge < getEnergyConsumption()) {
                     return;
                 }
 
-                removeCharge(b.getLocation(), getEnergyConsumption());
+                setCharge(l, data, charge - getEnergyConsumption());
                 operation.addProgress(getSpeed());
             } else {
                 inv.replaceExistingItem(4, CustomItemStack.create(Material.BLACK_STAINED_GLASS_PANE, " "));
@@ -307,7 +322,7 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                     Bukkit.getPluginManager().callEvent(completeEvent);
 
                     if (completeEvent.isCancelled()) {
-                        processor.endOperation(b);
+                        processor.endOperation(position);
                         return;
                     }
 
@@ -323,16 +338,16 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                     Slimefun.runSync(() -> finalBlock.getWorld().dropItemNaturally(finalBlock.getLocation(), leftover));
                 }
 
-                processor.endOperation(b);
+                processor.endOperation(position);
             }
         } else if (!BlockStorage.hasChunkInfo(b.getWorld(), b.getX() >> 4, b.getZ() >> 4)) {
             updateHologram(b, "&4需要先进行 GEO 扫描！");
         } else {
-            start(b, inv);
+            start(b, inv, position);
         }
     }
 
-    private void start(@Nonnull Block b, @Nonnull BlockMenu inv) {
+    private void start(@Nonnull Block b, @Nonnull BlockMenu inv, @Nonnull BlockPosition position) {
         for (GEOResource resource : Slimefun.getRegistry().getGEOResources().values()) {
             if (resource.isObtainableFromGEOMiner()) {
                 OptionalInt optional = Slimefun.getGPSNetwork().getResourceManager().getSupplies(resource, b.getWorld(), b.getX() >> 4, b.getZ() >> 4);
@@ -362,7 +377,7 @@ public class GEOMiner extends SlimefunItem implements RecipeDisplayItem, EnergyN
                         consumedSupplies = event.getConsumedSupplies();
                     }
 
-                    processor.startOperation(b, new GEOMiningOperation(resource, PROCESSING_TIME, consumedSupplies));
+                    processor.startOperation(position, new GEOMiningOperation(resource, PROCESSING_TIME, consumedSupplies));
                     Slimefun.getGPSNetwork().getResourceManager().setSupplies(resource, b.getWorld(), b.getX() >> 4, b.getZ() >> 4, supplies - consumedSupplies);
                     updateHologram(b, "&7开采中： &r" + resource.getName());
                     return;

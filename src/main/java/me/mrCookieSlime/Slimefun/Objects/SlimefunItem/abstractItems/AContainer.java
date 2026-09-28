@@ -381,10 +381,20 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
 
     protected void tick(Block b) {
         BlockMenu inv = BlockStorage.getInventory(b);
-        CraftingOperation currentOperation = processor.getOperation(b);
+
+        /*
+         * Resolve the coordinates once per tick and reuse them for every
+         * downstream call. Previously each call site (getOperation,
+         * takeCharge, endOperation, startOperation, findNextRecipeCached)
+         * allocated its own Location or BlockPosition, several of which
+         * internally re-derived the same values.
+         */
+        Location l = inv.getLocation();
+        BlockPosition position = new BlockPosition(l);
+        CraftingOperation currentOperation = processor.getOperation(position);
 
         if (currentOperation != null) {
-            if (takeCharge(b.getLocation())) {
+            if (takeCharge(l)) {
 
                 if (!currentOperation.isFinished()) {
                     processor.updateProgressBar(inv, 22, currentOperation);
@@ -405,15 +415,15 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                         }
                     }
 
-                    processor.endOperation(b);
+                    processor.endOperation(position);
                 }
             }
         } else {
-            MachineRecipe next = findNextRecipeCached(b, inv);
+            MachineRecipe next = findNextRecipeCached(position, inv);
 
             if (next != null) {
                 currentOperation = new CraftingOperation(next);
-                processor.startOperation(b, currentOperation);
+                processor.startOperation(position, currentOperation);
 
                 // Fixes #3534 - Update indicator immediately
                 processor.updateProgressBar(inv, 22, currentOperation);
@@ -431,15 +441,15 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
      * output slots are full" case is deliberately not cached, since the output
      * side can change at any time and must be re-evaluated on every tick.
      *
-     * @param b
-     *            The machine {@link Block}
+     * @param position
+     *            The machine's {@link BlockPosition}
      * @param inv
      *            The machine's {@link BlockMenu}
      *
      * @return The next {@link MachineRecipe} or null
      */
     @Nullable
-    private MachineRecipe findNextRecipeCached(@Nonnull Block b, @Nonnull BlockMenu inv) {
+    private MachineRecipe findNextRecipeCached(@Nonnull BlockPosition position, @Nonnull BlockMenu inv) {
         /*
          * Custom machines override findNextRecipe(BlockMenu) and keep the recipes list empty -
          * they generate their recipes dynamically (e.g. AutoEnchanter reads the enchantments off
@@ -454,7 +464,6 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
         }
 
         int[] inputSlots = getInputSlots();
-        BlockPosition position = new BlockPosition(b);
         FailedRecipeScan failed = failedScans.get(position);
 
         if (failed != null && failed.isStillValid(inv, inputSlots, recipes.size())) {

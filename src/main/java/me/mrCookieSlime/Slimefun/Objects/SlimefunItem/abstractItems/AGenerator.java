@@ -15,6 +15,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bakedlibs.dough.blocks.BlockPosition;
 import io.github.bakedlibs.dough.items.CustomItemStack;
 import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
@@ -141,7 +142,11 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
     @Override
     public int getGeneratedOutput(Location l, Config data) {
         BlockMenu inv = BlockStorage.getInventory(l);
-        FuelOperation operation = processor.getOperation(l);
+
+        // One BlockPosition per tick, shared by every processor call below
+        // (getOperation/endOperation/startOperation each allocated their own).
+        BlockPosition position = new BlockPosition(l);
+        FuelOperation operation = processor.getOperation(position);
 
         if (operation != null) {
             if (!operation.isFinished()) {
@@ -190,7 +195,7 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
 
                 inv.replaceExistingItem(22, CustomItemStack.create(Material.BLACK_STAINED_GLASS_PANE, " "));
 
-                processor.endOperation(l);
+                processor.endOperation(position);
                 return 0;
             }
         } else {
@@ -218,7 +223,7 @@ public abstract class AGenerator extends AbstractEnergyProvider implements Machi
                     inv.consumeItem(entry.getKey(), entry.getValue());
                 }
 
-                processor.startOperation(l, new FuelOperation(fuel.getInput(), fuel.getOutput(), ticks));
+                processor.startOperation(position, new FuelOperation(fuel.getInput(), fuel.getOutput(), ticks));
             }
 
             return 0;
