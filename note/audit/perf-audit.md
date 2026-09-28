@@ -106,7 +106,7 @@
 ## 环境清单（滚动）
 
 - 基线 worktree `../sf-perf-baseline`（v5.1.13，315df00fb）——v5.1.14 发布判定后已移除。
-- 增量基线 worktree（各轮建、各轮清）：r2base–r8base 均已用毕移除（r7base=10388e681、r8base=1df91ea49）。
+- 增量基线 worktree（各轮建、各轮清）：r2base–r9base 均已用毕移除（r8base=1df91ea49、r9base=f09cd2e57）。
 
 ## 第 7 轮（2026-09-29）：cargo 路由映射缓存——每 tick 重建改失效驱动
 
@@ -127,3 +127,13 @@
 **量化（交错 9 对——含 idle 守卫信号加测 4 对，lean 校正配对统计，详见 [benchmark-perf-r8-permission-cache.md](../report/perf/benchmark-perf-r8-permission-cache.md)）**：模块查询 144 → 24（**-83%**，判别测试计数钉死：4×2 布局 12→6）；现实档（cheap ~40ns/查）持平（0.992–1.017）；应力档（xheavy ~3µs/查）端到端 **-20%**（1owner min 0.798 / median 0.775），验证"节省 = 120 × 单查成本"线性缩放律。守卫全带内；idle +6.5% 经 diff 归因（无主路径指令级未变）+ mixed-bounce（同早期路径更重负载）-3% 反号交叉检查判为噪声。新增 `TestCargoPermissionCache` 5 项判别。全量 **3245 测试 0 失败**；`mvn package` BUILD SUCCESS。
 
 **方法论注记**：(1) 微基准标定 + 应力点的组合——当优化收益与目标成本线性相关而现实档成本低于噪声底时，用标定值锚定现实、用应力点验证机制，比强行加对更诚实；(2) MockBukkit 环境注记：`closeEntry` 的非空校验先于 no-op 早退，单测直接驱动 `CargoNetworkTask#run()` 需注册 CARGO_NODE_INPUT/CARGO_MANAGER 替身物品（`classifyLocation` 走字符串 ID，此前测试从未暴露此依赖）。
+
+## 第 9 轮（2026-09-29）：TickerTask 分发链解析缓存——每 tick 重解析改随 tick 注册表携带
+
+**方向**：tickLocation 每 tick 每方块的 id 提取 + 物品注册表查找 + ticker/sync 解析（数据→id→物品→ticker→标志四连依赖链）。A/B：base=f09cd2e57（r9 bench 提交，worktree `../sf-perf-r9base`）vs opt=本轮。新场景 `ticker-resolution`（info-get / full-chain 两变体标定解析链成本）。
+
+**改动**：注册表 `Map<ChunkPosition, Map<Location, TickingBlock>>`，TickingBlock 携带不可变 Resolved record（item/ticker/synchronised）；enableTicker 插入即解析（第一方路径全部数据先存后启用）、重复 enable 以 put 刷新；disableTicker/move 两端/destroy=true 删除整体摘除；destroy=false 删除在两个队列排空点清回 null 走惰性重解析（与旧"空数据每 tick 早退"精确等价）；**活 Config 每 tick 现读——机器经由它读写数据，缓存引用=静默 stale-write，明确不做**；getLocations() 公开形状保持。
+
+**量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r9-ticker-dispatch.md](../report/perf/benchmark-perf-r9-ticker-dispatch.md)）**：ticker-run **-17%（min）/ -15%（median）**，原始比值 9/9 全部 <1.0；微基准钉死下界 ≥7%（12ns/块），超额部分归因于被移除链的延迟受限性（紧凑微基准的迭代重叠掩盖依赖延迟）。守卫带内（idle +22% 为会话噪声极值——diff 仅 TickerTask，cargo 代码逐字未动，代码归因排除）。新增 `TestTickerResolutionCache` 6 项判别（含活数据三连改写钉死 Config 不缓存）。全量 **3251 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+**方法论沉淀**：单场景 lean 本会话失稳（目标场景不可自校；亚微秒场景量化抖动 ±40%）——改用**未触及场景组逐对原始比值的中位数（复合 lean）**，稳健性显著提升；"微基准下界 + 端到端实测"的双锚点继续生效（本轮端到端超出下界，差异方向有物理解释：依赖链延迟 vs 吞吐重叠）。
