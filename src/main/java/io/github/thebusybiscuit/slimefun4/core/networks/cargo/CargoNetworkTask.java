@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -66,6 +67,21 @@ class CargoNetworkTask implements Runnable {
      * it here removes the duplicate work. The cache lives only for this task (one tick).
      */
     private final Map<Location, OfflinePlayer> ownerCache = new HashMap<>();
+
+    /**
+     * Per-tick cache of protection queries, keyed by (owner, target block).
+     * {@link #isAllowed(OfflinePlayer, Block)} is called once per (input, target)
+     * combination - a network of many nodes routing through shared storage repeats
+     * the same pair heavily. The task runs synchronously on the main thread, so no
+     * listener or other plugin code can change protection state between two queries
+     * within this run: the cached result is always identical to a fresh query. Like
+     * {@link #ownerCache}, this lives only for this task (one tick).
+     */
+    private final Map<PermissionQuery, Boolean> permissionCache = new HashMap<>();
+
+    /** Cache key for {@link #permissionCache}. */
+    private record PermissionQuery(UUID ownerId, Location target) {
+    }
 
     private final Map<Location, Integer> inputs;
     private final Map<Integer, List<Location>> outputs;
@@ -137,6 +153,29 @@ class CargoNetworkTask implements Runnable {
         return owner;
     }
 
+    /**
+     * Checks (with the per-tick {@link #permissionCache}) whether the given owner may
+     * access the given target container. An ownerless (legacy/corrupted) node is always
+     * allowed, exactly like the previous inline null checks did.
+     */
+    @ParametersAreNonnullByDefault
+    private boolean isAllowed(@Nullable OfflinePlayer owner, @Nonnull Block target) {
+        if (owner == null) {
+            return true;
+        }
+
+        PermissionQuery key = new PermissionQuery(owner.getUniqueId(), target.getLocation());
+        Boolean cached = permissionCache.get(key);
+
+        if (cached != null) {
+            return cached;
+        }
+
+        boolean allowed = Slimefun.getProtectionManager().hasPermission(owner, target, Interaction.INTERACT_BLOCK);
+        permissionCache.put(key, allowed);
+        return allowed;
+    }
+
     @ParametersAreNonnullByDefault
     private void routeItems(Location inputNode, Block inputTarget, int frequency, Map<Integer, List<Location>> outputNodes) {
         /*
@@ -146,9 +185,7 @@ class CargoNetworkTask implements Runnable {
          * silently breaking existing setups - cargo nodes record their owner on placement, so an
          * absent owner essentially only happens on corrupted data.
          */
-        OfflinePlayer owner = getOwner(inputNode);
-
-        if (owner != null && !Slimefun.getProtectionManager().hasPermission(owner, inputTarget, Interaction.INTERACT_BLOCK)) {
+        if (!isAllowed(getOwner(inputNode), inputTarget)) {
             return;
         }
 
@@ -318,8 +355,7 @@ class CargoNetworkTask implements Runnable {
                 // owner must be allowed to access it, otherwise cargo could push items into another
                 // player's chest across a claim border. Skip (not continue) so round-robin index
                 // bookkeeping still advances.
-                OfflinePlayer outputOwner = getOwner(output);
-                boolean allowed = outputOwner == null || Slimefun.getProtectionManager().hasPermission(outputOwner, target.get(), Interaction.INTERACT_BLOCK);
+                boolean allowed = isAllowed(getOwner(output), target.get());
 
                 if (allowed) {
                     /*
