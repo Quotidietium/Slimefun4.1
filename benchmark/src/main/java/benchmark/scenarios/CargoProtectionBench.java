@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.Inventory;
@@ -19,6 +20,7 @@ import benchmark.Bench;
 import benchmark.BenchContext;
 import benchmark.BenchProtectionModule;
 import benchmark.Results;
+import io.github.bakedlibs.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.core.networks.cargo.BenchCargoRoute;
 import io.github.thebusybiscuit.slimefun4.core.networks.cargo.CargoNet;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
@@ -39,13 +41,26 @@ import me.mrCookieSlime.Slimefun.api.BlockStorage;
  * distinct (owner, target) pairs.</li>
  * <li><b>prot-bounce-4owners</b>: four players share the network - 4× the
  * distinct pairs, still far below the uncached query count.</li>
+ * <li><b>prot-bounce-*-heavy</b>: same layouts, but a second module with
+ * {@value #HEAVY_REGIONS} regions is registered first - every query then
+ * walks a plot-server-scale region list, the cost shape under which the
+ * per-pair cache pays off most.</li>
+ * <li><b>prot-bounce-*-xheavy</b>: a third module raises the walk to
+ * {@value #XHEAVY_REGIONS} regions (~µs per query, L2-spilling footprint):
+ * a stress point chosen so the eliminated-query saving resolves well above
+ * the run-to-run noise floor, validating the linear scaling law.</li>
  * </ul>
  *
  * <p>The item flow is the mixed-bounce shape (withdrawn item finds no
  * accepting output and returns), so both query sites - the input container
  * check and every output check - run on every tick.
  *
- * <p>This scenario registers a {@link BenchProtectionModule} on the global
+ * <p>A <b>protection-query</b> micro measurement times the registered module
+ * stack directly (ns per {@code hasPermission} call) before and after the
+ * heavy module joins, which converts the eliminated query count into an
+ * expected per-tick saving for whatever module a real server runs.
+ *
+ * <p>This scenario registers {@link BenchProtectionModule}s on the global
  * {@code ProtectionManager}, which cannot be unregistered - therefore it runs
  * <strong>last</strong> in the bench, after every other scenario.
  */
@@ -55,6 +70,9 @@ public final class CargoProtectionBench {
     private static final int OUTPUTS = 8;
     private static final int WARMUP = 3;
     private static final int ROUNDS = 9;
+    private static final int HEAVY_REGIONS = 400;
+    private static final int XHEAVY_REGIONS = 3000;
+    private static final int MICRO_CALLS = 100_000;
 
     private static final Material MOVED = Material.DIAMOND;
     private static final Material FILLER = Material.STONE;
@@ -83,12 +101,72 @@ public final class CargoProtectionBench {
         Slimefun.getProtectionManager().registerModule(ctx.server().getPluginManager(), "Slimefun",
             plugin -> new BenchProtectionModule(plugin, owners));
 
-        bounce(ctx, results, 1, owners, "prot-bounce-1owner");
+        bounce(ctx, results, 1, owners, "prot-bounce-1owner", 700);
         Bench.gcSettle();
-        bounce(ctx, results, 4, owners, "prot-bounce-4owners");
+        bounce(ctx, results, 4, owners, "prot-bounce-4owners", 800);
+
+        // Cost of one module query with only the cheap module registered
+        queryCost(ctx, results, owners, "cheap-module");
+
+        /*
+         * The module stack now also carries the heavy module; every following
+         * query walks its full region list first (it cannot be unregistered,
+         * exactly like a real protection plugin being present).
+         */
+        Slimefun.getProtectionManager().registerModule(ctx.server().getPluginManager(), "Slimefun",
+            plugin -> new BenchProtectionModule(plugin, HEAVY_REGIONS, owners));
+
+        queryCost(ctx, results, owners, "heavy-module-stack");
+
+        Bench.gcSettle();
+        bounce(ctx, results, 1, owners, "prot-bounce-1owner-heavy", 900);
+        Bench.gcSettle();
+        bounce(ctx, results, 4, owners, "prot-bounce-4owners-heavy", 1000);
+
+        Slimefun.getProtectionManager().registerModule(ctx.server().getPluginManager(), "Slimefun",
+            plugin -> new BenchProtectionModule(plugin, XHEAVY_REGIONS, owners));
+
+        queryCost(ctx, results, owners, "xheavy-module-stack");
+
+        Bench.gcSettle();
+        bounce(ctx, results, 1, owners, "prot-bounce-1owner-xheavy", 1100);
+        Bench.gcSettle();
+        bounce(ctx, results, 4, owners, "prot-bounce-4owners-xheavy", 1200);
     }
 
-    private void bounce(BenchContext ctx, Results results, int ownerCount, UUID[] owners, String variant) {
+    /**
+     * Times the registered module stack directly: nanoseconds per
+     * {@code ProtectionManager#hasPermission} call. Together with the number
+     * of eliminated queries this yields the expected per-tick saving for any
+     * module cost a real server might run.
+     */
+    private void queryCost(BenchContext ctx, Results results, UUID[] owners, String variant) {
+        OfflinePlayer owner = ctx.server().getOfflinePlayer(owners[0]);
+        Block target = ctx.world().getBlockAt(7, 100, 705);
+        Interaction action = Interaction.INTERACT_BLOCK;
+
+        for (int i = 0; i < 20_000; i++) {
+            Slimefun.getProtectionManager().hasPermission(owner, target, action);
+        }
+
+        long[] samples = new long[ROUNDS];
+
+        for (int r = 0; r < ROUNDS; r++) {
+            long start = System.nanoTime();
+
+            for (int i = 0; i < MICRO_CALLS; i++) {
+                Slimefun.getProtectionManager().hasPermission(owner, target, action);
+            }
+
+            samples[r] = System.nanoTime() - start;
+        }
+
+        Arrays.sort(samples);
+        results.emit("protection-query", variant, "min_ns_per_query", "ns", Bench.min(samples) / (double) MICRO_CALLS);
+        results.emit("protection-query", variant, "median_ns_per_query", "ns", Bench.median(samples) / (double) MICRO_CALLS);
+    }
+
+    private void bounce(BenchContext ctx, Results results, int ownerCount, UUID[] owners, String variant, int zBase) {
         World world = ctx.world();
         CargoNet network = BenchCargoRoute.mockNetwork(world);
 
@@ -99,7 +177,6 @@ public final class CargoProtectionBench {
 
         Inventory[] inputChests = new Inventory[INPUTS];
         Inventory[] outputChests = new Inventory[OUTPUTS];
-        int zBase = ownerCount == 1 ? 700 : 800;
 
         for (int i = 0; i < INPUTS; i++) {
             Location node = new Location(world, i, 100, zBase);

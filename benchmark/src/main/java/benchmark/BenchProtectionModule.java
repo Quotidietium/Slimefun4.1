@@ -1,5 +1,6 @@
 package benchmark;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -56,6 +57,33 @@ public final class BenchProtectionModule implements ProtectionModule {
             new Cuboid(-1000, 0, 501, 1000, 128, 1000, members),
             new Cuboid(-2000, 0, -2000, -1001, 128, 2000, members)
         );
+    }
+
+    /**
+     * Heavy variant modelling a protection plugin that manages many regions
+     * (plot-server scale) without spatial indexing: {@code farRegionCount}
+     * disjoint cuboids far from any bench coordinate, then a catch-all - so
+     * every query walks the entire region list before answering. This is the
+     * cost shape under which the per-pair permission cache pays off most.
+     *
+     * @param farRegionCount
+     *            How many non-matching regions every query walks first
+     * @param everyone
+     *            The players allowed inside the catch-all region
+     */
+    public BenchProtectionModule(Plugin plugin, int farRegionCount, UUID... everyone) {
+        this.plugin = plugin;
+        Set<UUID> members = Set.of(everyone);
+
+        List<Cuboid> list = new ArrayList<>(farRegionCount + 1);
+
+        for (int i = 0; i < farRegionCount; i++) {
+            int base = -20000 - 100 * i;
+            list.add(new Cuboid(base, 0, base, base + 99, 128, base + 99, members));
+        }
+
+        list.add(new Cuboid(-100000, 0, -100000, 100000, 128, 100000, members));
+        this.regions = List.copyOf(list);
     }
 
     @Override
