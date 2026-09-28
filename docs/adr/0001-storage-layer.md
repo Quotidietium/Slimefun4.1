@@ -127,10 +127,9 @@ The current plan looks like this:
   * We should probably still do experimental -> stable but it should have
     less of a lead time.
 
-## State of work
+## State of work（上游历史快照——本 fork 现状见顶部「Fork status」节）
 
-* Phase 1: In progress
-  * https://github.com/Slimefun/Slimefun4/pull/4065
+* Phase 1: In progress（上游 PR：https://github.com/Slimefun/Slimefun4/pull/4065）
 * Phase 2: Not started
 * Phase 3: Not started
 * Phase 4: Not started
