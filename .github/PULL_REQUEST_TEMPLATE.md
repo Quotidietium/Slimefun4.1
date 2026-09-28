@@ -1,24 +1,24 @@
-## Description
-<!-- Please explain why you are making this pull request. -->
-<!-- Start writing below this line -->
+## 描述
+<!-- 请说明你提交这个 Pull Request 的原因。 -->
+<!-- 请在本行下方开始书写 -->
 
-## Proposed changes
-<!-- Please explain what changes you have made to the code. -->
-<!-- Start writing below this line -->
+## 变更内容
+<!-- 请说明你对代码做了哪些修改。 -->
+<!-- 请在本行下方开始书写 -->
 
-## Related Issues (if applicable)
-<!-- Please tag any Issues related to your Pull Request -->
-<!-- Syntax: "Resolves #000" -->
-<!-- Start writing below this line -->
+## 关联 Issues（如有）
+<!-- 请标注与本次 Pull Request 相关的 Issues -->
+<!-- 语法："Resolves #000" -->
+<!-- 请在本行下方开始书写 -->
 
-## Checklist
-<!-- Here is a little checklist you can follow. -->
-<!-- Click on these checkboxes after you created the pull request. -->
-<!-- Don't worry, these are not requirements. They only serve as guidance. -->
-- [ ] I have fully tested the proposed changes and promise that they will not break everything into chaos.
-- [ ] I have also tested the proposed changes in combination with various popular addons and can confirm my changes do not break them.
-- [ ] I have made sure that the proposed changes do not break compatibility across the supported Minecraft versions (1.21.1 - 1.21.11).
-- [ ] I followed the existing code standards and didn't mess up the formatting.
-- [ ] I did my best to add documentation to any public classes or methods I added.
-- [ ] I have added `Nonnull` and `Nullable` annotations to my methods to indicate their behaviour for null values
-- [ ] I added sufficient Unit Tests to cover my code.
+## 检查清单
+<!-- 这里提供一份简明的检查清单供你参考。 -->
+<!-- 创建 Pull Request 后可以点击勾选这些复选框。 -->
+<!-- 别担心，这些并非硬性要求，仅作指引。 -->
+- [ ] 我已充分测试了本次变更，并承诺不会把一切搞得一团糟。
+- [ ] 我还把本次变更与多款流行附加插件（addons）组合测试过，可以确认没有破坏它们。
+- [ ] 我已确认本次变更不会破坏受支持 Minecraft 版本区间（1.21.1 - 1.21.11）的兼容性。
+- [ ] 我遵循了既有的代码规范，没有弄乱格式。
+- [ ] 我尽力为新增的公开类或方法补充了文档。
+- [ ] 我为我的方法添加了 `Nonnull` 与 `Nullable` 注解，以标明其对 null 值的行为
+- [ ] 我添加了足够的单元测试来覆盖我的代码。
