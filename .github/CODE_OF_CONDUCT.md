@@ -1,4 +1,7 @@
 # Slimefun4 - Code of Conduct
+
+> **SlimeFun4.1 fork note：** 本仓库（非官方维护分支）按引用采纳本行为准则——行为规范全文适用；但下文中的"Scope/举报途径"以本仓库为准：适用范围为 [Quotidietium/Slimefun4.1](https://github.com/Quotidietium/Slimefun4.1)，违规举报请通过本仓库 Issue 或私信仓库维护者进行，**不适用**官方 Slimefun 组织/Discord 的执行与举报渠道。
+
 ### What is a Code of Conduct?
 > A code of conduct is a document that establishes expectations for behavior for your project’s participants. 
 > Adopting, and enforcing, a code of conduct can help create a positive social atmosphere for your community.
