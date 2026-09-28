@@ -18,6 +18,7 @@ import benchmark.scenarios.ChargeApiBench;
 import benchmark.scenarios.EnergySettlementBench;
 import benchmark.scenarios.GeneratorTickBench;
 import benchmark.scenarios.GuideRenderBench;
+import benchmark.scenarios.GuideSearchBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
 import benchmark.scenarios.MachineProcessingBench;
@@ -131,6 +132,14 @@ public final class BenchMain {
                 new GuideRenderBench().run(ctx, results);
             } catch (Exception | LinkageError x) {
                 results.note("guide-render: scenario failed: " + x);
+            }
+            Bench.gcSettle();
+
+            // Survival guide search (full-registry name normalization walk)
+            try {
+                new GuideSearchBench().run(ctx, results);
+            } catch (Exception | LinkageError x) {
+                results.note("guide-search: scenario failed: " + x);
             }
             Bench.gcSettle();
 
