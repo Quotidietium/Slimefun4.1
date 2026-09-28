@@ -54,9 +54,19 @@ public class TickerTask implements Runnable {
 
     /**
      * This Map holds all currently actively ticking locations.
-     * The value of this map (Set entries) MUST be thread-safe and mutable.
+     * The value of this map (Map entries) MUST be thread-safe and mutable.
+     *
+     * <p>Each entry is a {@link TickingBlock} carrying the resolved
+     * {@link SlimefunItem} and {@link BlockTicker} for its {@link Location}:
+     * the resolution chain (id extraction + registry lookup + ticker lookup)
+     * only changes when a block's data is replaced, which every first-party
+     * path expresses via {@link #enableTicker(Location)} (re-place, re-store)
+     * or {@link #disableTicker(Location)} (break, move-away, delete). The
+     * live {@link Config} is still read fresh on every tick - machines mutate
+     * their data through it, so caching the reference would silently divert
+     * those writes into a dead object.
      */
-    private final Map<ChunkPosition, Set<Location>> tickingLocations = new ConcurrentHashMap<>();
+    private final Map<ChunkPosition, Map<Location, TickingBlock>> tickingLocations = new ConcurrentHashMap<>();
 
     // These are "Queues" of blocks that need to be removed or moved
     private final Map<Location, Location> movingQueue = new ConcurrentHashMap<>();
@@ -87,12 +97,71 @@ public class TickerTask implements Runnable {
 
         private final Location location;
         private final SlimefunItem item;
+        private final BlockTicker ticker;
         private final Config data;
 
-        SynchronizedTick(@Nonnull Location location, @Nonnull SlimefunItem item, @Nonnull Config data) {
+        SynchronizedTick(@Nonnull Location location, @Nonnull SlimefunItem item, @Nonnull BlockTicker ticker, @Nonnull Config data) {
             this.location = location;
             this.item = item;
+            this.ticker = ticker;
             this.data = data;
+        }
+    }
+
+    /**
+     * One actively ticking block: its {@link Location} plus the item/ticker
+     * resolution that used to be recomputed on every single tick.
+     *
+     * <p>The resolution is captured when the ticker is enabled (every
+     * first-party flow stores the block data before enabling the ticker) and
+     * published safely through the enclosing {@link ConcurrentHashMap}. If the
+     * data was not resolvable at that moment - or was deleted since via a
+     * {@code destroy = false} deletion - {@link #resolved} stays {@code null}
+     * and the ticker thread retries the resolution once per tick, exactly the
+     * per-tick lookup the un-cached path performed.
+     */
+    private static final class TickingBlock {
+
+        private final Location location;
+
+        /** Immutable resolution of (item, ticker, synchronised). Volatile: written by either thread, read while ticking. */
+        private volatile Resolved resolved;
+
+        TickingBlock(@Nonnull Location location) {
+            this.location = location;
+            this.resolved = resolve();
+        }
+
+        @Nullable
+        private Resolved resolve() {
+            Config data = BlockStorage.getLocationInfo(location);
+            String id = data.getString("id");
+
+            if (id != null) {
+                SlimefunItem item = SlimefunItem.getById(id);
+
+                if (item != null) {
+                    BlockTicker ticker = item.getBlockTicker();
+
+                    if (ticker != null) {
+                        return new Resolved(item, ticker, ticker.isSynchronized());
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Drops the cached resolution so the next tick re-resolves from live
+         * data (used when data was deleted without disabling the ticker).
+         */
+        void invalidate() {
+            resolved = null;
+        }
+
+        /** The resolved dispatch target of this block. */
+        private record Resolved(@Nonnull SlimefunItem item, @Nonnull BlockTicker ticker, boolean synchronised) {
         }
     }
 
@@ -144,6 +213,16 @@ public class TickerTask implements Runnable {
                  */
                 try {
                     BlockStorage.deleteLocationInfoUnsafely(entry.getKey(), entry.getValue());
+
+                    /*
+                     * A destroy=false deletion removes the data but leaves the ticker
+                     * registered (the block is expected to receive new data): drop the
+                     * cached resolution so the next tick resolves the replacement
+                     * instead of ticking with the departed item.
+                     */
+                    if (!entry.getValue()) {
+                        invalidateResolution(entry.getKey());
+                    }
                 } catch (Exception | LinkageError x) {
                     Slimefun.logger().log(Level.WARNING, x, () -> "Could not delete block data @ " + new BlockPosition(entry.getKey()) + ", dropping the queue entry");
                 }
@@ -156,7 +235,7 @@ public class TickerTask implements Runnable {
 
             // Run our ticker code
             if (!halted) {
-                for (Map.Entry<ChunkPosition, Set<Location>> entry : tickingLocations.entrySet()) {
+                for (Map.Entry<ChunkPosition, Map<Location, TickingBlock>> entry : tickingLocations.entrySet()) {
                     tickChunk(entry.getKey(), tickers, entry.getValue(), synchronizedTicks);
                 }
             }
@@ -189,7 +268,7 @@ public class TickerTask implements Runnable {
                          * are always ran with a 50ms delay (1 game tick)
                          */
                         Block b = tick.location.getBlock();
-                        tickBlock(tick.location, b, tick.item, tick.data, System.nanoTime());
+                        tickBlock(tick.location, b, tick.item, tick.ticker, tick.data, System.nanoTime());
                     }
                 });
             }
@@ -218,15 +297,15 @@ public class TickerTask implements Runnable {
     }
 
     @ParametersAreNonnullByDefault
-    private void tickChunk(ChunkPosition chunk, Set<BlockTicker> tickers, Set<Location> locations, List<SynchronizedTick> synchronizedTicks) {
+    private void tickChunk(ChunkPosition chunk, Set<BlockTicker> tickers, Map<Location, TickingBlock> locations, List<SynchronizedTick> synchronizedTicks) {
         try {
             // Only continue if the Chunk is actually loaded
             if (chunk.isLoaded()) {
                 // Resolve the world's BlockStorage once per chunk instead of on every block.
                 BlockStorage storage = BlockStorage.getStorage(chunk.getWorld());
 
-                for (Location l : locations) {
-                    tickLocation(tickers, l, synchronizedTicks, storage);
+                for (TickingBlock block : locations.values()) {
+                    tickLocation(tickers, block, synchronizedTicks, storage);
                 }
             }
         } catch (IllegalStateException x) {
@@ -243,45 +322,58 @@ public class TickerTask implements Runnable {
         }
     }
 
-    private void tickLocation(@Nonnull Set<BlockTicker> tickers, @Nonnull Location l, @Nonnull List<SynchronizedTick> synchronizedTicks, @Nullable BlockStorage storage) {
-        // Reuse the per-chunk-resolved BlockStorage when available to skip the world lookup
-        // that the single-argument getLocationInfo performs on every block.
-        Config data = storage != null ? BlockStorage.getLocationInfo(l, storage) : BlockStorage.getLocationInfo(l);
-        SlimefunItem item = SlimefunItem.getById(data.getString("id"));
+    private void tickLocation(@Nonnull Set<BlockTicker> tickers, @Nonnull TickingBlock block, @Nonnull List<SynchronizedTick> synchronizedTicks, @Nullable BlockStorage storage) {
+        Location l = block.location;
+        TickingBlock.Resolved resolution = block.resolved;
 
-        if (item == null) {
-            return;
+        if (resolution == null) {
+            /*
+             * Not resolvable yet (or deleted since): retry the resolution once,
+             * paying exactly the per-tick lookup the un-cached path performed.
+             * Stays skipped until data appears - the same visible behaviour as
+             * the old getById-null early return.
+             */
+            resolution = block.resolve();
+
+            if (resolution == null) {
+                return;
+            }
+
+            block.resolved = resolution;
         }
 
-        BlockTicker blockTicker = item.getBlockTicker();
+        // The live Config is read fresh on EVERY tick: machines mutate their
+        // data through this object, so a cached reference would divert those
+        // writes into a dead object when the storage entry gets replaced.
+        Config data = storage != null ? BlockStorage.getLocationInfo(l, storage) : BlockStorage.getLocationInfo(l);
+        SlimefunItem item = resolution.item();
+        BlockTicker blockTicker = resolution.ticker();
 
-        if (blockTicker != null) {
-            try {
-                if (blockTicker.isSynchronized()) {
-                    Slimefun.getProfiler().scheduleEntries(1);
-                    blockTicker.update();
+        try {
+            if (resolution.synchronised()) {
+                Slimefun.getProfiler().scheduleEntries(1);
+                blockTicker.update();
 
-                    // Buffered: all synchronized blocks are ticked in a single scheduler
-                    // submission at the end of this run (see run()).
-                    synchronizedTicks.add(new SynchronizedTick(l, item, data));
-                } else {
-                    long timestamp = Slimefun.getProfiler().newEntry();
-                    blockTicker.update();
-                    Block b = l.getBlock();
-                    tickBlock(l, b, item, data, timestamp);
-                }
-
-                tickers.add(blockTicker);
-            } catch (Exception x) {
-                reportErrors(l, item, x);
+                // Buffered: all synchronized blocks are ticked in a single scheduler
+                // submission at the end of this run (see run()).
+                synchronizedTicks.add(new SynchronizedTick(l, item, blockTicker, data));
+            } else {
+                long timestamp = Slimefun.getProfiler().newEntry();
+                blockTicker.update();
+                Block b = l.getBlock();
+                tickBlock(l, b, item, blockTicker, data, timestamp);
             }
+
+            tickers.add(blockTicker);
+        } catch (Exception x) {
+            reportErrors(l, item, x);
         }
     }
 
     @ParametersAreNonnullByDefault
-    private void tickBlock(Location l, Block b, SlimefunItem item, Config data, long timestamp) {
+    private void tickBlock(Location l, Block b, SlimefunItem item, BlockTicker ticker, Config data, long timestamp) {
         try {
-            item.getBlockTicker().tick(b, item, data);
+            ticker.tick(b, item, data);
         } catch (Exception | LinkageError x) {
             reportErrors(l, item, x);
         } finally {
@@ -465,6 +557,11 @@ public class TickerTask implements Runnable {
             if (entryWorld != null && entryWorld.getUID().equals(world.getUID())) {
                 try {
                     BlockStorage.deleteLocationInfoUnsafely(entry.getKey(), entry.getValue());
+
+                    // Same resolution-drop as the run()-side drain (see there)
+                    if (!entry.getValue()) {
+                        invalidateResolution(entry.getKey());
+                    }
                 } catch (Exception | LinkageError x) {
                     Slimefun.logger().log(Level.WARNING, x, () -> "Could not delete block data @ " + new BlockPosition(entry.getKey()) + " during world unload");
                 }
@@ -551,35 +648,41 @@ public class TickerTask implements Runnable {
     }
 
     /**
-     * This method returns a <strong>read-only</strong> {@link Map}
+     * This returns a <strong>read-only</strong> {@link Map}
      * representation of every {@link ChunkPosition} and its corresponding
      * {@link Set} of ticking {@link Location Locations}.
-     * 
+     *
      * This does include any {@link Location} from an unloaded {@link Chunk} too!
-     * 
+     *
      * @return A {@link Map} representation of all ticking {@link Location Locations}
      */
     @Nonnull
     public Map<ChunkPosition, Set<Location>> getLocations() {
-        return Collections.unmodifiableMap(tickingLocations);
+        Map<ChunkPosition, Set<Location>> view = new HashMap<>(tickingLocations.size());
+
+        for (Map.Entry<ChunkPosition, Map<Location, TickingBlock>> entry : tickingLocations.entrySet()) {
+            view.put(entry.getKey(), Collections.unmodifiableSet(entry.getValue().keySet()));
+        }
+
+        return Collections.unmodifiableMap(view);
     }
 
     /**
-     * This method returns a <strong>read-only</strong> {@link Set}
+     * This returns a <strong>read-only</strong> {@link Set}
      * of all ticking {@link Location Locations} in a given {@link Chunk}.
      * The {@link Chunk} does not have to be loaded.
      * If no {@link Location} is present, the returned {@link Set} will be empty.
-     * 
+     *
      * @param chunk
      *            The {@link Chunk}
-     * 
+     *
      * @return A {@link Set} of all ticking {@link Location Locations}
      */
     @Nonnull
     public Set<Location> getLocations(@Nonnull Chunk chunk) {
         Validate.notNull(chunk, "The Chunk cannot be null!");
 
-        Set<Location> locations = tickingLocations.getOrDefault(new ChunkPosition(chunk), Collections.emptySet());
+        Set<Location> locations = tickingLocations.getOrDefault(new ChunkPosition(chunk), Collections.emptyMap()).keySet();
         return Collections.unmodifiableSet(locations);
     }
 
@@ -611,7 +714,7 @@ public class TickerTask implements Runnable {
 
     /**
      * This enables the ticker at the given {@link Location} and adds it to our "queue".
-     * 
+     *
      * @param l
      *            The {@link Location} to activate
      */
@@ -623,15 +726,17 @@ public class TickerTask implements Runnable {
         /*
          * One atomic compute: a concurrent disableTicker() emptying and
          * removing the chunk entry can no longer make a freshly added
-         * Location vanish together with the removed Set.
+         * Location vanish together with the removed entry. The put also
+         * REPLACES any prior entry, so a re-enable (re-place, re-store) picks
+         * up a fresh item/ticker resolution.
          */
-        tickingLocations.compute(chunk, (key, locations) -> {
-            if (locations == null) {
-                locations = ConcurrentHashMap.newKeySet();
+        tickingLocations.compute(chunk, (key, blocks) -> {
+            if (blocks == null) {
+                blocks = new ConcurrentHashMap<>();
             }
 
-            locations.add(l);
-            return locations;
+            blocks.put(l, new TickingBlock(l));
+            return blocks;
         });
     }
 
@@ -651,11 +756,34 @@ public class TickerTask implements Runnable {
          * One atomic computeIfPresent: removing the Location and removing the
          * (then empty) chunk entry happen as a single action, so a concurrent
          * enableTicker() for the same chunk can neither lose its entry nor
-         * resurrect an empty Set.
+         * resurrect an empty entry.
          */
-        tickingLocations.computeIfPresent(chunk, (key, locations) -> {
-            locations.remove(l);
-            return locations.isEmpty() ? null : locations;
+        tickingLocations.computeIfPresent(chunk, (key, blocks) -> {
+            blocks.remove(l);
+            return blocks.isEmpty() ? null : blocks;
+        });
+    }
+
+    /**
+     * Drops the cached item/ticker resolution of the given {@link Location}
+     * (if it is currently ticking): the next tick re-resolves from live data.
+     * Used when block data is deleted without disabling the ticker
+     * ({@code destroy = false} deletions).
+     *
+     * @param l
+     *            The {@link Location} whose resolution should be dropped
+     */
+    private void invalidateResolution(@Nonnull Location l) {
+        ChunkPosition chunk = new ChunkPosition(l.getWorld(), l.getBlockX() >> 4, l.getBlockZ() >> 4);
+
+        tickingLocations.computeIfPresent(chunk, (key, blocks) -> {
+            TickingBlock block = blocks.get(l);
+
+            if (block != null) {
+                block.invalidate();
+            }
+
+            return blocks;
         });
     }
 
