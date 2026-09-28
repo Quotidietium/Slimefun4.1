@@ -13,6 +13,7 @@ import benchmark.scenarios.BlockStorageWriteBench;
 import benchmark.scenarios.CapacitorTextureBench;
 import benchmark.scenarios.ChargeApiBench;
 import benchmark.scenarios.EnergySettlementBench;
+import benchmark.scenarios.GeneratorTickBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
 import benchmark.scenarios.MachineProcessingBench;
@@ -82,6 +83,9 @@ public final class BenchMain {
             Bench.gcSettle();
 
             new ChargeApiBench().run(ctx, results);
+            Bench.gcSettle();
+
+            new GeneratorTickBench().run(ctx, results);
             Bench.gcSettle();
 
             new PlayerInteractionBench().run(ctx, results);

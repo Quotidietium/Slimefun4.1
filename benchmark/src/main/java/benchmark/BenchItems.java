@@ -72,5 +72,9 @@ public final class BenchItems {
         BenchMachine machine = new BenchMachine(itemGroup,
             new SlimefunItemStack(BenchMachine.ID, Material.FURNACE, "Bench Machine"));
         machine.register(Slimefun.instance());
+
+        BenchGenerator generator = new BenchGenerator(itemGroup,
+            new SlimefunItemStack(BenchGenerator.ID, Material.BLAST_FURNACE, "Bench Generator"));
+        generator.register(Slimefun.instance());
     }
 }
