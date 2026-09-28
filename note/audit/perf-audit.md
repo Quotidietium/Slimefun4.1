@@ -64,7 +64,20 @@
 
 **回归**：全量 3221 项 0 失败；`mvn clean package` BUILD SUCCESS。新增 `BenchGenerator`/`GeneratorTickBench` 场景补齐发电机 tick 量化空白。
 
+## 第 3 轮（2026-09-28）：配方扫描材料预过滤与惰性包装
+
+**方向**：漏斗/货运供料机器的配方扫描路径——输入每次变更使负扫描缓存失效并强制全列表扫描（150 配方档单次 ~10µs，每台每 tick 持续）。A/B：base=Round 2 收官（e8545d4d5，worktree `../sf-perf-r3base`）vs opt=本轮（4dbcfbf14）。
+
+**改动（`AContainer.scanForRecipe`）**：
+
+1. 材料预过滤：输入槽 Material 建 EnumSet，逐配方跳过"所需 Material 不在场"的必不匹配项（isItemSimilar 对异 Material 首判短路）；列表顺序/零输入配方/胜者/matchedNothing 判定逐位不变。
+2. `ItemStackWrapper` 由急切全槽构建改为首次比较时惰性逐槽备忘（全败扫描零包装；比较位用的仍是同一包装实例，语义不变）。
+
+**量化（交错 5+5，完整数据见 [benchmark-perf-r3-recipe-scan.md](../report/perf/benchmark-perf-r3-recipe-scan.md)）**：recipe-scan/junk-10 min **-68.6%**/中位 **-78%**；junk-150 min **-47.4%**/中位 **-53.2%**；方向 5 轮全一致。ticker-run 环境指示器持平 → 会话无偏向、无需折扣。控制场景全部带内。
+
+**判别测试**：`TestRecipeScanMaterialPrefilter` 6 项（不虚构匹配/不漏配/同 Material 优先序/多输入部分在场/同 Material 异 meta 仍拒绝/空输入）。全量 **3227 测试 0 失败**；`mvn clean package` BUILD SUCCESS。新增 `BenchHeftyMachine`（150 配方档）与 `recipe-scan` 场景。
+
 ## 环境清单（滚动）
 
 - 基线 worktree：`../sf-perf-baseline`（HEAD=315df00fb，即 v5.1.13）——多轮复用，循环收尾时移除。
-- 第 2 轮增量基线 worktree：`../sf-perf-r2base`（HEAD=4ccafb3cd，Round 1 收官）——第 2 轮后待移除。
+- 增量基线 worktree（各轮建、各轮清）：r2base（Round 1 收官）/ r3base（Round 2 收官）——均已用毕移除。
