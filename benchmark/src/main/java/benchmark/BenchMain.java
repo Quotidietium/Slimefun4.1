@@ -19,6 +19,7 @@ import benchmark.scenarios.EnergySettlementBench;
 import benchmark.scenarios.GeneratorTickBench;
 import benchmark.scenarios.GuideRenderBench;
 import benchmark.scenarios.GuideSearchBench;
+import benchmark.scenarios.PlayerDataBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
 import benchmark.scenarios.MachineProcessingBench;
@@ -140,6 +141,14 @@ public final class BenchMain {
                 new GuideSearchBench().run(ctx, results);
             } catch (Exception | LinkageError x) {
                 results.note("guide-search: scenario failed: " + x);
+            }
+            Bench.gcSettle();
+
+            // Legacy player-data persistence (research/backpack save + load)
+            try {
+                new PlayerDataBench().run(ctx, results);
+            } catch (Exception | LinkageError x) {
+                results.note("player-data: scenario failed: " + x);
             }
             Bench.gcSettle();
 
