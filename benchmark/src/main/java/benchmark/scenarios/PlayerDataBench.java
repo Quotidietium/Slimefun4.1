@@ -38,12 +38,16 @@ import io.github.thebusybiscuit.slimefun4.storage.data.PlayerData;
  * {@value #BACKPACK_SIZE} slots, {@value #BACKPACK_FILL} filled each). Save
  * variants write through the snapshot path the async auto-save uses; load
  * variants read the files the matching save variant primed during setup, so
- * the parsed content is identical on every iteration.
+ * the parsed content is identical on every iteration. A scale extension
+ * grows the registry to {@value #SCALE_REGISTRY_RESEARCHES} researches
+ * (addon-heavy shape) afterwards: the per-research config walks scale
+ * linearly with the registry, which lifts them above the disk-noise floor.
  * </p>
  */
 public final class PlayerDataBench {
 
     private static final int REGISTRY_RESEARCHES = 250;
+    private static final int SCALE_REGISTRY_RESEARCHES = 2500;
     private static final int HEAVY_UNLOCKED = 230;
     private static final int SPARSE_UNLOCKED = 10;
     private static final int BACKPACK_COUNT = 3;
@@ -107,6 +111,25 @@ public final class PlayerDataBench {
         loadVariant(results, storage, "load-research", uuidHeavy);
         Bench.gcSettle();
         loadVariant(results, storage, "load-backpacks", uuidBackpacks);
+        Bench.gcSettle();
+
+        /*
+         * Scale extension: model an addon-heavy server with a very large research
+         * registry. The per-research config walks being measured scale linearly
+         * with the registry size, so this shape lifts the walk cost above the
+         * disk-I/O noise floor that dominates the realistic shapes above.
+         */
+        List<Research> scaleResearches = new ArrayList<>(SCALE_REGISTRY_RESEARCHES - REGISTRY_RESEARCHES);
+
+        for (int r = REGISTRY_RESEARCHES; r < SCALE_REGISTRY_RESEARCHES; r++) {
+            scaleResearches.add(new Research(new NamespacedKey(ctx.plugin(), "bench_pdata_" + r), 900_000 + r, "Bench Research " + r, r % 20));
+        }
+
+        Slimefun.getRegistry().getResearches().addAll(scaleResearches);
+
+        saveVariant(results, storage, "save-scale-sparse", uuidSparse, dataSparse, null);
+        Bench.gcSettle();
+        loadVariant(results, storage, "load-scale-sparse", uuidSparse);
     }
 
     private static Set<Research> unlocked(List<Research> researches, int count) {
