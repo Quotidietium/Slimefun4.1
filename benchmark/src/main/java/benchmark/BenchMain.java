@@ -19,6 +19,7 @@ import benchmark.scenarios.EnergySettlementBench;
 import benchmark.scenarios.GeneratorTickBench;
 import benchmark.scenarios.GuideRenderBench;
 import benchmark.scenarios.GuideSearchBench;
+import benchmark.scenarios.ItemCompareBench;
 import benchmark.scenarios.PlayerDataBench;
 import benchmark.scenarios.HologramLabelBench;
 import benchmark.scenarios.MachineIdleScanBench;
@@ -149,6 +150,14 @@ public final class BenchMain {
                 new PlayerDataBench().run(ctx, results);
             } catch (Exception | LinkageError x) {
                 results.note("player-data: scenario failed: " + x);
+            }
+            Bench.gcSettle();
+
+            // Item identity resolution and comparison workhorse
+            try {
+                new ItemCompareBench().run(ctx, results);
+            } catch (Exception | LinkageError x) {
+                results.note("item-compare: scenario failed: " + x);
             }
             Bench.gcSettle();
 
