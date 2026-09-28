@@ -2,9 +2,11 @@ package me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -522,10 +524,38 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
     /**
      * The result of scanning a machine's inputs against the recipe list.
      * Carries the matched {@link MachineRecipe} (or null) and whether any
-     * recipe matched the inputs at all, so that callers can distinguish
+     * recipe matched the inputs at all, so callers can distinguish
      * "nothing matches" from "matched, but the output is full".
      */
     private record RecipeScan(@Nullable MachineRecipe recipe, boolean matchedNothing) {}
+
+    /**
+     * Returns the lazily created {@link ItemStackWrapper} for the given input
+     * slot, memoized for the duration of one recipe scan. Wrappers cache the
+     * {@link org.bukkit.inventory.meta.ItemMeta} so repeated comparisons
+     * against many recipes do not re-clone it; creating them only on first
+     * use keeps scans that match nothing (the common idle case) free of that
+     * cost.
+     */
+    @ParametersAreNonnullByDefault
+    private static ItemStack wrappedItem(Map<Integer, ItemStack> inventory, Map<Integer, ItemStack> wrappers, int slot) {
+        ItemStack raw = inventory.get(slot);
+
+        // An empty slot never wraps: comparisons treat null as a non-match,
+        // exactly like the eager build did.
+        if (raw == null) {
+            return null;
+        }
+
+        ItemStack wrapper = wrappers.get(slot);
+
+        if (wrapper == null) {
+            wrapper = ItemStackWrapper.wrap(raw);
+            wrappers.put(slot, wrapper);
+        }
+
+        return wrapper;
+    }
 
     @ParametersAreNonnullByDefault
     private RecipeScan scanForRecipe(BlockMenu inv, int[] inputSlots) {
@@ -535,16 +565,64 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
             ItemStack item = inv.getItemInSlot(slot);
 
             if (item != null) {
-                inventory.put(slot, ItemStackWrapper.wrap(item));
+                inventory.put(slot, item);
             }
+        }
+
+        /*
+         * Wrappers are created lazily, one per slot, on the first comparison
+         * that involves it. Most scans never reach a comparison (the Material
+         * prefilter below rejects every recipe when none of the present
+         * Materials is required), and wrapping every occupied slot up front
+         * would be pure overhead for those. The memoized wrapper is used in
+         * exactly the comparison positions the eager build used, so the
+         * comparison semantics are identical.
+         */
+        Map<Integer, ItemStack> wrappers = new HashMap<>();
+
+        /*
+         * Material prefilter: isItemSimilar can never match two stacks of
+         * different Material (its very first check), so a recipe that requires
+         * a Material which no input slot holds provably cannot match. Testing
+         * the (tiny) material set first skips the far more expensive
+         * meta-aware comparisons for those recipes. This matters whenever the
+         * inputs keep changing (e.g. hopper-fed machines), because every
+         * change invalidates the negative-scan cache and forces a full scan
+         * over the whole recipe list.
+         *
+         * Recipes are still visited in list order and recipes with an empty
+         * input array are never skipped, so which recipe wins - and the
+         * matchedNothing verdict - are identical to the unfiltered scan.
+         */
+        Set<Material> presentMaterials = EnumSet.noneOf(Material.class);
+
+        for (ItemStack stack : inventory.values()) {
+            presentMaterials.add(stack.getType());
         }
 
         Map<Integer, Integer> found = new HashMap<>();
 
         for (MachineRecipe recipe : recipes) {
-            for (ItemStack input : recipe.getInput()) {
+            ItemStack[] inputs = recipe.getInput();
+
+            if (inputs.length > 0) {
+                boolean possible = true;
+
+                for (ItemStack input : inputs) {
+                    if (input == null || !presentMaterials.contains(input.getType())) {
+                        possible = false;
+                        break;
+                    }
+                }
+
+                if (!possible) {
+                    continue;
+                }
+            }
+
+            for (ItemStack input : inputs) {
                 for (int slot : inputSlots) {
-                    if (SlimefunUtils.isItemSimilar(inventory.get(slot), input, true)) {
+                    if (SlimefunUtils.isItemSimilar(wrappedItem(inventory, wrappers, slot), input, true)) {
                         found.put(slot, input.getAmount());
                         break;
                     }
@@ -570,7 +648,7 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
                     int required = entry.getValue();
                     ItemStack live = inv.getItemInSlot(slot);
 
-                    if (live == null || live.getAmount() < required || !SlimefunUtils.isItemSimilar(live, inventory.get(slot), true)) {
+                    if (live == null || live.getAmount() < required || !SlimefunUtils.isItemSimilar(live, wrappedItem(inventory, wrappers, slot), true)) {
                         return new RecipeScan(null, false);
                     }
                 }
