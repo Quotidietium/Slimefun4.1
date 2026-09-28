@@ -22,6 +22,7 @@ import benchmark.scenarios.MachineIdleScanBench;
 import benchmark.scenarios.MachineProcessingBench;
 import benchmark.scenarios.PlayerInteractionBench;
 import benchmark.scenarios.RecipeScanBench;
+import benchmark.scenarios.TickerResolutionBench;
 import benchmark.scenarios.TickerRunBench;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 
@@ -108,6 +109,11 @@ public final class BenchMain {
             Bench.gcSettle();
 
             new HologramLabelBench().run(ctx, results);
+            Bench.gcSettle();
+
+            // Calibration anchor for the ticker-structure optimization: times
+            // the per-block resolution chain TickerTask pays before dispatch.
+            new TickerResolutionBench().run(ctx, results);
             Bench.gcSettle();
 
             // Must run last: registers thousands of ticking locations.
