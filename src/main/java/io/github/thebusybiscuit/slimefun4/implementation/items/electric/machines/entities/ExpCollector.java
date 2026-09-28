@@ -137,6 +137,9 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
     protected void tick(Block block) {
         Location location = block.getLocation();
         OfflinePlayer owner = SlimefunUtils.getOwner(location);
+        // Resolved once: both charge checks below reuse this Config instead of
+        // re-navigating the BlockStorage maps per orb.
+        Config data = BlockStorage.getLocationInfo(location);
 
         // Only collect orbs the machine's owner is allowed to interact with, so an Exp Collector
         // at a claim border cannot drain orbs (and thus experience) from a neighbour's claim.
@@ -146,7 +149,7 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
         while (iterator.hasNext() && experiencePoints == 0) {
             ExperienceOrb orb = (ExperienceOrb) iterator.next();
 
-            if (getCharge(location) < getEnergyConsumption()) {
+            if (getCharge(location, data) < getEnergyConsumption()) {
                 return;
             }
 
@@ -167,7 +170,7 @@ public class ExpCollector extends SlimefunItem implements InventoryBlock, Energy
 
             experiencePoints = getStoredExperience(location) + collectedExperience;
 
-            removeCharge(location, getEnergyConsumption());
+            removeCharge(location, data, getEnergyConsumption());
             orb.remove();
             produceFlasks(location, experiencePoints);
         }

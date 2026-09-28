@@ -485,13 +485,21 @@ public abstract class AContainer extends SlimefunItem implements InventoryBlock,
         Validate.notNull(l, "Can't attempt to take charge from a null location!");
 
         if (isChargeable()) {
-            int charge = getCharge(l);
+            /*
+             * Resolve the block data once and hand it straight through to the
+             * Config-reusing getCharge/setCharge variants. The previous form
+             * (getCharge(l) + setCharge(l, ...)) performed the world + storage
+             * map lookups three times per tick on this, the hottest charge
+             * path of every active machine.
+             */
+            Config data = BlockStorage.getLocationInfo(l);
+            int charge = getCharge(l, data);
 
             if (charge < getEnergyConsumption()) {
                 return false;
             }
 
-            setCharge(l, charge - getEnergyConsumption());
+            setCharge(l, data, charge - getEnergyConsumption());
             return true;
         } else {
             return true;

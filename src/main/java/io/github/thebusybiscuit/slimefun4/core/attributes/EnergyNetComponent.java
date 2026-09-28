@@ -201,7 +201,31 @@ public interface EnergyNetComponent extends ItemAttribute {
     }
 
     default void addCharge(@Nonnull Location l, int charge) {
+        addCharge(l, BlockStorage.getLocationInfo(l), charge);
+    }
+
+    /**
+     * Variant of {@link #addCharge(Location, int)} that reuses the {@link Config} the
+     * caller already holds for this {@link Location}, mirroring
+     * {@link #setCharge(Location, Config, int)}.
+     *
+     * <p>The single-argument version performs three separate {@link BlockStorage}
+     * lookups per call (one inside {@link BlockStorage#checkID(Location)}, one inside
+     * {@link #getCharge(Location)} and one inside {@link BlockStorage#addBlockInfo(Location, String, String, boolean)}).
+     * This variant collapses them into the single write-path lookup of
+     * {@link BlockStorage#updateBlockInfo(Location, Config, String, String)}.
+     *
+     * @param l
+     *            The target {@link Location}
+     * @param data
+     *            The data at this {@link Location} (from
+     *            {@link BlockStorage#getLocationInfo(Location)})
+     * @param charge
+     *            The amount of charge to add
+     */
+    default void addCharge(@Nonnull Location l, @Nonnull Config data, int charge) {
         Validate.notNull(l, "Location was null!");
+        Validate.notNull(data, "data was null!");
         Validate.isTrue(charge > 0, "You can only add a positive charge!");
 
         try {
@@ -209,12 +233,14 @@ public interface EnergyNetComponent extends ItemAttribute {
 
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
-                // Never create a ghost record for a block that was deleted mid-tick
-                if (BlockStorage.checkID(l) == null) {
+                // Never create a ghost record for a block that was deleted mid-tick.
+                // Equivalent to the checkID(l) == null guard of the single-argument
+                // version, but read off the Config we already hold.
+                if (data.getString("id") == null) {
                     return;
                 }
 
-                int currentCharge = getCharge(l);
+                int currentCharge = getCharge(l, data);
 
                 // Check if there is even space for new energy
                 if (currentCharge < capacity) {
@@ -223,7 +249,7 @@ public interface EnergyNetComponent extends ItemAttribute {
                     // flowSafeAddition for its own sums, but this public API path did not, and an
                     // overflow would write a negative charge straight to disk).
                     int newCharge = Math.min(capacity, NumberUtils.flowSafeAddition(currentCharge, charge));
-                    BlockStorage.addBlockInfo(l, "energy-charge", String.valueOf(newCharge), false);
+                    BlockStorage.updateBlockInfo(l, data, "energy-charge", String.valueOf(newCharge));
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {
@@ -237,7 +263,25 @@ public interface EnergyNetComponent extends ItemAttribute {
     }
 
     default void removeCharge(@Nonnull Location l, int charge) {
+        removeCharge(l, BlockStorage.getLocationInfo(l), charge);
+    }
+
+    /**
+     * Variant of {@link #removeCharge(Location, int)} that reuses the {@link Config}
+     * the caller already holds for this {@link Location}, mirroring
+     * {@link #addCharge(Location, Config, int)}.
+     *
+     * @param l
+     *            The target {@link Location}
+     * @param data
+     *            The data at this {@link Location} (from
+     *            {@link BlockStorage#getLocationInfo(Location)})
+     * @param charge
+     *            The amount of charge to remove
+     */
+    default void removeCharge(@Nonnull Location l, @Nonnull Config data, int charge) {
         Validate.notNull(l, "Location was null!");
+        Validate.notNull(data, "data was null!");
         Validate.isTrue(charge > 0, "The charge to remove must be greater than zero!");
 
         try {
@@ -246,16 +290,17 @@ public interface EnergyNetComponent extends ItemAttribute {
             // This method only makes sense if we can actually store energy
             if (capacity > 0) {
                 // Never create a ghost record for a block that was deleted mid-tick
-                if (BlockStorage.checkID(l) == null) {
+                // (see addCharge(Location, Config, int)).
+                if (data.getString("id") == null) {
                     return;
                 }
 
-                int currentCharge = getCharge(l);
+                int currentCharge = getCharge(l, data);
 
                 // Check if there is even energy stored
                 if (currentCharge > 0) {
                     int newCharge = Math.max(0, currentCharge - charge);
-                    BlockStorage.addBlockInfo(l, "energy-charge", String.valueOf(newCharge), false);
+                    BlockStorage.updateBlockInfo(l, data, "energy-charge", String.valueOf(newCharge));
 
                     // Update the capacitor texture
                     if (getEnergyComponentType() == EnergyNetComponentType.CAPACITOR) {
