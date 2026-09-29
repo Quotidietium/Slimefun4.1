@@ -205,3 +205,11 @@
 **JIT 双形态测量学事件（本轮教训，双修复闭环）**：初版快跳在 scanForRecipe 内，bench 序（junk 2400 次→near-miss 2400 次）测得 near-miss +50% 幻影劣化；专注探针充分热身两侧持平（5960 vs 5905ns）。根因：opt 侧 junk 走快跳后不再锻炼 scanForRecipe，near-miss 自付 JIT 爬坡，9 轮采样计入中位。修复：① bench warmup 3→25（每变体 5000 次自证热身，r13 惯例先提交再重建 base）；② 快跳拆独立方法（独立编译单元）防同方法分支 profile 摇摆。
 
 **量化（交错 9 对，复合 lean 校正，详见 [benchmark-perf-r16-recipe-scan-material-index.md](../report/perf/benchmark-perf-r16-recipe-scan-material-index.md)）**：junk-150 **-98.5%**（4545→77ns，**9/9**，区间 0.012-0.020 极紧，成本与配方表大小无关）；junk-10 -46.4%（9/9）；守卫 near-miss-150 中位 -7.5%（7/9，区间宽 0.668-1.440 与 base 自身 1.5× 波动同量级，如实归因 JIT 方差不宣称改善）；lean 池 0.964-1.045 零漂移。新增 `TestRecipeScanMaterialIndex` 5 项判别（快跳≡全扫/空输入配方强制全扫/晚注册重建/已知材质正常匹配/空槽 idle），**优化侧与 r16base 双侧 5/5 全绿**。全量 **3290 测试 0 失败**；`mvn package` BUILD SUCCESS。
+
+## 第 17 轮定向中止记录（2026-09-29，会话收尾指令）
+
+定向阶段完成、实现未开始（用户指令转入发布收尾）。数据留档避免重复排查：
+
+- **cargo-route/idle 残余**：bench 全场景 1.7ms/tick（16 输入空箱网络）；包内探针专注跑实测 **83µs/tick（5.2µs/输入节点）**——bench 数字含共享 JVM 干扰。JFR 分解（200k 轮）：主线程 Java 执行样本近零、**native 样本 58% 在 `URLClassPath$FileLoader.getResource → WinNTFileSystem.getBooleanAttributes0`**（Windows 文件系统 exists 调用，µs 级）——每 tick 循环内有 ClassLoader 资源查找，调用者栈被 JFR native 栈深截断未定位（stackdepth=256 仍止于 getResource，疑采样器 JNI 边界丢帧）。**续做路线**：以 async-profiler（无 JFR 栈深限制）或代码级 grep getResource 调用链定位；修复后 idle 探针应从 83µs 显著下降。
+- 候选复核：cargo 六子面其余均 r6-r9 已尽或红线否决；guide-render category-open 残余被 MockBukkit ItemMetaMock Gson 往返支配（r11 已证 95%，生产比例已推算，非可挖面）。
+- r17 探针环境（/tmp/r17probe、bench target JFR/CP 文件）已清理。
