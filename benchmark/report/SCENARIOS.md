@@ -1,7 +1,20 @@
 # SlimeFun4.1 基准场景清单与覆盖说明
 
 - **日期**:2026-07-29
-- **范围**:本轮测试与基准细化的完整场景清单、典型数据、以及 MockBukkit 环境下的覆盖边界
+- **最后更新**:2026-10-01（场景清单按当前代码核对更新至 21 类；典型数据与逐轮分析见 [note/report/perf/](../../note/report/perf/)）
+- **范围**:基准场景清单、典型数据、以及 MockBukkit 环境下的覆盖边界
+
+## 〇、当前场景清单（21 个场景类，2026-10-01 按代码核对）
+
+`benchmark/` 场景随性能优化专项（r1-r16）从 8 类扩至 21 类，全部在 `BenchMain` 注册。完整清单、变体与来源见 [../README.md](../README.md) 的「场景说明」；各轮交错 A/B 数据与分析脚本存于本目录（`results-*` 与 `r*-anal.awk`），逐轮报告归档 [note/report/perf/](../../note/report/perf/)。
+
+| 批次 | 场景类 |
+|---|---|
+| 4.9.3 初始（5） | blockstorage、machine-idle-scan、capacitor-texture、hologram-label、ticker-run |
+| 4.9.4 防御加固（+3） | machine-processing、energy-settlement、player-interaction |
+| 性能专项 r1-r16（+13） | charge-api（r1）、generator-tick（r2）、recipe-scan（r3）、cargo-route（r6）、cargo-mapping（r7）、cargo-protection（r8）、ticker-resolution（r9）、research-progress（r10）、guide-render（r11）、guide-search（r12）、player-data（r13）、item-compare（r14）、multiblock-interact（r15） |
+
+以下为 2026-07-29（4.9.4 轮）的原始快照，保留作历史对照：
 
 ## 一、基准场景总览（8 个场景）
 
