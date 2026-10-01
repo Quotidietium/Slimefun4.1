@@ -30,8 +30,8 @@ Slimefun 是一个为 Spigot / Paper 服务器提供"**无需安装任何 mod �
 - 移除了联网自动更新与匿名数据上报
 - 编译产物改名为 `SlimeFun4.1-<version>`，避免被官方构建覆盖
 - 修复了一些边界条件下的空指针与数据校验问题
-- 近期做了一点性能上的小优化（有兴致可自行查看 [benchmark/](benchmark/) 目录下的对比数据）
-- 建立了逐轮审计与发布流程（全程记录与实机回归证据见 [note/](note/) 目录），全量单元测试 3221 项全绿
+- 开展了系统性的性能优化专项（15 轮合入、每轮独立 Maven 基准工程交错 A/B 量化，数据与报告见 [benchmark/](benchmark/) 与 [note/report/perf/](note/report/perf/)）
+- 建立了逐轮审计与发布流程（全程记录与实机回归证据见 [note/](note/) 目录），全量单元测试 3287 项全绿
 
 ---
 
@@ -60,7 +60,7 @@ mvn clean package
 构建成功后，产物位于：
 
 ```
-target/SlimeFun4.1-5.1.13.jar
+target/SlimeFun4.1-5.1.15.jar
 ```
 
 将该 jar 放入服务器的 `plugins/` 目录，重启服务器即可。
@@ -69,7 +69,7 @@ target/SlimeFun4.1-5.1.13.jar
 > ```bash
 > mvn clean package -DskipTests=true
 > ```
-> 运行单元测试：`mvn test`（基于 MockBukkit，全量 3221 项、0 失败、7 跳过）。
+> 运行单元测试：`mvn test`（基于 MockBukkit，全量 3287 项、0 失败、7 跳过）。
 
 ---
 
